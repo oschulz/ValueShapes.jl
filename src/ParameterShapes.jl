@@ -4,6 +4,11 @@ __precompile__(true)
 
 module ParameterShapes
 
+using ArraysOfArrays
+using ElasticArrays
+
+import TypedTables
+
 # package code goes here
 
 end # module

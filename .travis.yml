@@ -20,6 +20,9 @@ julia:
 notifications:
   email: false
 
+before_script:
+  - julia -e "using Pkg; pkg\"add https://github.com/oschulz/ArraysOfArrays.jl.git\""
+
 after_success:
   # push coverage results to Codecov
   - julia -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
