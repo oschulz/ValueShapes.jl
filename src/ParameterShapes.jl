@@ -7,8 +7,9 @@ module ParameterShapes
 using ArraysOfArrays
 using ElasticArrays
 
+import StatsBase
 import TypedTables
 
-# package code goes here
+include("param_shapes.jl")
 
 end # module
