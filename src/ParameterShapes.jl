@@ -10,7 +10,6 @@ using MacroTools
 
 import StatsBase
 
-include("npargs.jl")
 include("param_shapes.jl")
 
 end # module
