@@ -3,5 +3,6 @@
 import Test
 
 Test.@testset "Package ParameterShapes" begin
+    include("npargs.jl")
     include("test_param_shapes.jl")
 end # testset

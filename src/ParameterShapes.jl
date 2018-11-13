@@ -11,6 +11,7 @@ using MacroTools
 import StatsBase
 import TypedTables
 
+include("npargs.jl")
 include("param_shapes.jl")
 
 end # module
