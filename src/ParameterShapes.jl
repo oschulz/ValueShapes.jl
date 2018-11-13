@@ -6,6 +6,7 @@ module ParameterShapes
 
 using ArraysOfArrays
 using ElasticArrays
+using MacroTools
 
 import StatsBase
 import TypedTables
