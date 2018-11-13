@@ -90,11 +90,14 @@ dealing with multiple parameter vectors,
 
     (parshapes::ParamShapes)(
         data::ArrayOfArrays.AbstractVectorOfSimilarVectors
-    )::TypedTables.Table
+    )::NamedTuple
 
-will transform a vector of flattened parameter vectors into a table that has
-the parameter names as column names and the (possibly array-shaped)
-parameter value views as entries. In return,
+will transform a vector of flattened parameter vectors into a named tuple of
+vectors that contain the (possibly array-shaped) parameter value views as
+entries. The resulting tuple is suitable to be wrapped into a
+`TypedTables.Table` or similar.
+
+In return,
 
     ArraysOfArrays.VectorOfSimilarVectors{T}(parshapes::ParamShapes)
 
@@ -110,7 +113,7 @@ parshapes = ParamShapes(a = (2,3), b = (), c = (4,))
 data = VectorOfSimilarVectors{Int}(parshapes)
 resize!(data, 10)
 rand!(flatview(data), 0:99)
-table = parshapes(data)
+table = TypedTables.Table(parshapes(data))
 fill!(table.b, 42)
 all(x -> x == 42, view(flatview(data), 7, :))
 ```
@@ -156,7 +159,7 @@ end
 Base.@propagate_inbounds function (parshapes::ParamShapes)(parvalues::AbstractVectorOfSimilarVectors)
     accessors = _accessors(parshapes)
     cols = map(pa -> pa(parvalues), accessors) # Not type-stable, investigate!
-    TypedTables.Table(cols)
+    cols
 end
 
 
