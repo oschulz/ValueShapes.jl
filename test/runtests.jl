@@ -1,7 +1,7 @@
-# This file is a part of ParameterShapes.jl, licensed under the MIT License (MIT).
+# This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
 import Test
 
-Test.@testset "Package ParameterShapes" begin
-    include("test_param_shapes.jl")
+Test.@testset "Package ValueShapes" begin
+    include("test_varshapes.jl")
 end # testset
