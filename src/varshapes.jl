@@ -1,64 +1,68 @@
 # This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
 
-
-const ValueShapeTuple{N} = NTuple{N,<:Integer} where {N}
-
-
-
-struct VariableDataAccessor{N}
-    shape::NTuple{N,Int}
+struct VariableDataAccessor{S<:AbstractValueShape}
+    shape::S
     offset::Int
     len::Int
 
-    VariableDataAccessor{N}(shape::NTuple{N,Int}, offset::Int) where {N} = new{N}(shape, offset, prod(shape))
+    VariableDataAccessor{S}(shape::S, offset::Int) where {S<:AbstractValueShape} =
+        new{S}(shape, offset, flatdof(shape))
 end
 
-VariableDataAccessor(shape::NTuple{N,Int}, offset::Int) where {N} = VariableDataAccessor{N}(shape, offset)
+VariableDataAccessor(shape::S, offset::Int) where {S<:AbstractValueShape} = VariableDataAccessor{S}(shape, offset)
 
-@inline function _view_range(idxs::AbstractUnitRange{<:Integer}, pa::VariableDataAccessor)
-    from = first(idxs) + pa.offset
-    to = from + pa.len - 1
+
+nonabstract_eltype(va::VariableDataAccessor) = nonabstract_eltype(va.shape)
+
+
+@inline function _view_range(idxs::AbstractUnitRange{<:Integer}, va::VariableDataAccessor)
+    from = first(idxs) + va.offset
+    to = from + va.len - 1
     from:to
 end
 
 
-Base.@propagate_inbounds (pa::VariableDataAccessor{0})(parvalues::AbstractVector) =
-    parvalues[first(_view_range(axes(parvalues, 1), pa))]
-
-Base.@propagate_inbounds (pa::VariableDataAccessor{1})(parvalues::AbstractVector) =
-    view(parvalues, _view_range(axes(parvalues, 1), pa))
-
-Base.@propagate_inbounds (pa::VariableDataAccessor{N})(parvalues::AbstractVector) where N =
-    reshape(view(parvalues, _view_range(axes(parvalues, 1), pa)), pa.shape...)
+const ScalarAccessor{T} = VariableDataAccessor{ScalarShape{T}} where {T}
+const ArrayAccessor{T,N} = VariableDataAccessor{ArrayShape{T,N}} where {T,N}
 
 
-Base.@propagate_inbounds function (pa::VariableDataAccessor{0})(parvalues::AbstractVectorOfSimilarVectors)
-    flat_parvalues = flatview(parvalues)
-    idxs = _view_range(axes(flat_parvalues, 1), pa)
-    view(flat_parvalues, first(idxs), :)
+Base.@propagate_inbounds (va::ScalarAccessor)(data::AbstractVector) =
+    data[first(_view_range(axes(data, 1), va))]
+
+Base.@propagate_inbounds (va::ArrayAccessor{T,1})(data::AbstractVector) where {T} =
+    view(data, _view_range(axes(data, 1), va))
+
+Base.@propagate_inbounds (va::ArrayAccessor{T,N})(data::AbstractVector) where {T,N} =
+    reshape(view(data, _view_range(axes(data, 1), va)), size(va.shape)...)
+
+
+Base.@propagate_inbounds function (va::ScalarAccessor)(data::AbstractVectorOfSimilarVectors)
+    flat_data = flatview(data)
+    idxs = _view_range(axes(flat_data, 1), va)
+    view(flat_data, first(idxs), :)
 end
 
-Base.@propagate_inbounds function (pa::VariableDataAccessor{1})(parvalues::AbstractVectorOfSimilarVectors)
-    flat_parvalues = flatview(parvalues)
-    idxs = _view_range(axes(flat_parvalues, 1), pa)
-    fpview = view(flat_parvalues, idxs, :)
+Base.@propagate_inbounds function (va::ArrayAccessor{T,1})(data::AbstractVectorOfSimilarVectors) where {T,N}
+    flat_data = flatview(data)
+    idxs = _view_range(axes(flat_data, 1), va)
+    fpview = view(flat_data, idxs, :)
     VectorOfSimilarVectors(fpview)
 end
 
-Base.@propagate_inbounds function (pa::VariableDataAccessor{N})(parvalues::AbstractVectorOfSimilarVectors) where {N}
-    flat_parvalues = flatview(parvalues)
-    idxs = _view_range(axes(flat_parvalues, 1), pa)
-    fpview = view(flat_parvalues, idxs, :)
-    VectorOfSimilarArrays(reshape(fpview, pa.shape..., :))
+Base.@propagate_inbounds function (va::ArrayAccessor{T,N})(data::AbstractVectorOfSimilarVectors) where {T,N}
+    flat_data = flatview(data)
+    idxs = _view_range(axes(flat_data, 1), va)
+    fpview = view(flat_data, idxs, :)
+    VectorOfSimilarArrays(reshape(fpview, size(va.shape)..., :))
 end
 
 
 
-@inline _paroffset_cumsum_impl(s, x, y, rest...) = (s, _paroffset_cumsum_impl(s+x, y, rest...)...)
-@inline _paroffset_cumsum_impl(s,x) = (s,)
-@inline _paroffset_cumsum_impl(s) = ()
-@inline _paroffset_cumsum(x::Tuple) = _paroffset_cumsum_impl(0, x...)
+@inline _varoffset_cumsum_impl(s, x, y, rest...) = (s, _varoffset_cumsum_impl(s+x, y, rest...)...)
+@inline _varoffset_cumsum_impl(s,x) = (s,)
+@inline _varoffset_cumsum_impl(s) = ()
+@inline _varoffset_cumsum(x::Tuple) = _varoffset_cumsum_impl(0, x...)
 
 
 """
@@ -87,9 +91,11 @@ to get correctly named and shaped views into a vector containing the flattened
 values of all variables. In return,
 
     Base.Vector{T}(::UndefInitializer, varshapes::VarShapes)
+    Base.Vector(::UndefInitializer, varshapes::VarShapes)
 
 will create a suitable uninitialized vector to hold such flattened data for
-a given set of variables.
+a given set of variables. If no type `T` is given, a suitable non-abstract
+type will be chosen automatically via `nonabstract_eltype(varshapes)`.
 
 When dealing with multiple vectors of flattened data,
 
@@ -97,14 +103,12 @@ When dealing with multiple vectors of flattened data,
         data::ArrayOfArrays.AbstractVectorOfSimilarVectors
     )::NamedTuple
 
-will transform a vector of vectors holding flattened data into a named tuple
-of vectors, each tuple entry representing multiple values for a single
-variable, implemented as views into `data`. The resulting tuple is suitable to
-be wrapped into a `TypedTables.Table`, `DataFrames.DataFrame` or similar.
-
-In return,
+creates a view of a vector of flattened data vectors as a table with the
+variable names as column names and the (possibly array-shaped) variable
+value views as entries. In return,
 
     ArraysOfArrays.VectorOfSimilarVectors{T}(varshapes::VarShapes)
+    ArraysOfArrays.VectorOfSimilarVectors(varshapes::VarShapes)
 
 will create a suitable vector (of length zero) of vectors to hold flattened
 value data. The result will be a `VectorOfSimilarVectors` wrapped around a
@@ -125,16 +129,17 @@ all(x -> x == 42, view(flatview(data), 7, :))
 """
 struct VarShapes{N,AC}
     _accessors::AC
-    _n_pars_flattened::Int
+    _flatdof::Int
 
-    @inline function VarShapes(varshapes::NamedTuple{PN,<:NTuple{N,ValueShapeTuple}}) where {PN,N}
+    @inline function VarShapes(varshapes::NamedTuple{PN,<:NTuple{N,Any}}) where {PN,N}
         labels = keys(varshapes)
-        shapes = values(varshapes)
-        lens = map(prod, shapes)
-        offsets = _paroffset_cumsum(lens)
+        shapes = map(x -> convert(AbstractValueShape, x), values(varshapes))
+        shapelengths = map(flatdof, shapes)
+        offsets = _varoffset_cumsum(shapelengths)
         accessors = map(VariableDataAccessor, shapes, offsets)
-        lens = map(x -> x.len, accessors)
-        n_flattened = sum(lens)
+        # acclengths = map(x -> x.len, accessors)
+        # @assert shapelengths == acclengths
+        n_flattened = sum(shapelengths)
         named_accessors = NamedTuple{labels}(accessors)
         new{PN,typeof(named_accessors)}(named_accessors, n_flattened)
     end
@@ -146,34 +151,49 @@ export VarShapes
 
 
 @inline _accessors(x::VarShapes) = getfield(x, :_accessors)
-@inline _n_pars_flattened(x::VarShapes) = getfield(x, :_n_pars_flattened)
+@inline flatdof(x::VarShapes) = getfield(x, :_flatdof)
 
 
 @inline Base.keys(varshapes::VarShapes) = keys(_accessors(varshapes))
 
-@inline Base.getproperty(varshapes::VarShapes, p::Symbol) = getfield(_accessors(varshapes), p)
+@inline Base.values(varshapes::VarShapes) = values(_accessors(varshapes))
 
-@inline Base.propertynames(varshapes::VarShapes) = keys(varshapes)
+@inline Base.getproperty(varshapes::VarShapes, p::Symbol) = getproperty(_accessors(varshapes), p)
+
+@inline Base.propertynames(varshapes::VarShapes) = propertynames(_accessors(varshapes))
+
+@inline Base.length(varshapes::VarShapes) = length(_accessors(varshapes))
+
+@inline Base.getindex(varshapes::VarShapes, i::Integer) = getindex(_accessors(varshapes), i)
+
+@inline Base.map(f, varshapes::VarShapes) = map(f, _accessors(varshapes))
 
 
-Base.@propagate_inbounds function (varshapes::VarShapes)(parvalues::AbstractVector)
+Base.@propagate_inbounds function (varshapes::VarShapes)(data::AbstractVector)
     accessors = _accessors(varshapes)
-    map(pa -> pa(parvalues), accessors) # Not type-stable, investigate!
+    map(va -> va(data), accessors)
 end
 
-Base.@propagate_inbounds function (varshapes::VarShapes)(parvalues::AbstractVectorOfSimilarVectors)
+Base.@propagate_inbounds function (varshapes::VarShapes)(data::AbstractVectorOfSimilarVectors)
     accessors = _accessors(varshapes)
-    cols = map(pa -> pa(parvalues), accessors) # Not type-stable, investigate!
+    cols = map(va -> va(data), accessors)
     TypedTables.Table(cols)
 end
 
 
-StatsBase.dof(varshapes::VarShapes) = _n_pars_flattened(varshapes)
+Base.@pure nonabstract_eltype(varshapes::VarShapes) =
+    _multi_promote_type(map(nonabstract_eltype, values(varshapes))...)
 
 
 Base.Vector{T}(::UndefInitializer, varshapes::VarShapes) where T =
-    Vector{T}(undef, StatsBase.dof(varshapes))
+    Vector{T}(undef, flatdof(varshapes))
+
+Base.Vector(::UndefInitializer, varshapes::VarShapes) =
+    Vector{nonabstract_eltype(varshapes)}(undef, flatdof(varshapes))
 
 
 ArraysOfArrays.VectorOfSimilarVectors{T}(varshapes::VarShapes) where T =
-    VectorOfSimilarVectors(ElasticArray{T}(undef, StatsBase.dof(varshapes), 0))
+    VectorOfSimilarVectors(ElasticArray{T}(undef, flatdof(varshapes), 0))
+
+ArraysOfArrays.VectorOfSimilarVectors(varshapes::VarShapes) =
+    VectorOfSimilarVectors(ElasticArray{nonabstract_eltype(varshapes)}(undef, flatdof(varshapes), 0))

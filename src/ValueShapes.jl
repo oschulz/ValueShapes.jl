@@ -8,9 +8,9 @@ using ArraysOfArrays
 using ElasticArrays
 using MacroTools
 
-import StatsBase
 import TypedTables
 
+include("valueshape.jl")
 include("varshapes.jl")
 
 end # module

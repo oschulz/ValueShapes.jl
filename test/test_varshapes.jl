@@ -5,32 +5,32 @@ using Test
 
 using Random
 using ArraysOfArrays
-import StatsBase, TypedTables
+import TypedTables
 
 
 @testset "varshapes" begin
     @testset "VarShapes" begin
         get_c(x) = x.c
 
-        parvalues = VectorOfSimilarVectors(reshape(collect(1:22), 11, 2))
+        data = VectorOfSimilarVectors(reshape(collect(1:22), 11, 2))
         ref_table = TypedTables.Table(a = [[1 3 5; 2 4 6], [12 14 16; 13 15 17]], b = [7, 18], c = [[8, 9, 10, 11], [19, 20, 21, 22]])
 
-        parshapes = @inferred VarShapes(a = (2,3), b = (), c = (4,))
-        @test @inferred(get_c(parshapes)) === ValueShapes._accessors(parshapes).c
-        @test @inferred(Base.propertynames(parshapes)) == (:a, :b, :c)
-        @test @inferred(StatsBase.dof(parshapes)) == 11
+        varshapes = @inferred VarShapes(a = (2,3), b = (), c = (4,))
+        @test @inferred(get_c(varshapes)) === ValueShapes._accessors(varshapes).c
+        @test @inferred(Base.propertynames(varshapes)) == (:a, :b, :c)
+        @test @inferred(flatdof(varshapes)) == 11
 
-        @test @inferred(parshapes(parvalues[1])) == ref_table[1]
-        @test @inferred(parshapes(parvalues)) == ref_table
+        @test @inferred(varshapes(data[1])) == ref_table[1]
+        @test @inferred(varshapes(data)) == ref_table
     end
 
     @testset "examples" begin
         @test begin
-            parshapes = VarShapes(a = (2,3), b = (), c = (4,))
-            data = VectorOfSimilarVectors{Int}(parshapes)
+            varshapes = VarShapes(a = (2,3), b = (), c = (4,))
+            data = VectorOfSimilarVectors{Int}(varshapes)
             resize!(data, 10)
             rand!(flatview(data), 0:99)
-            table = parshapes(data)
+            table = varshapes(data)
             fill!(table.b, 42)
             all(x -> x == 42, view(flatview(data), 7, :))
         end
