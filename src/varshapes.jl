@@ -164,7 +164,7 @@ end
 Base.@propagate_inbounds function (varshapes::VarShapes)(parvalues::AbstractVectorOfSimilarVectors)
     accessors = _accessors(varshapes)
     cols = map(pa -> pa(parvalues), accessors) # Not type-stable, investigate!
-    cols
+    TypedTables.Table(cols)
 end
 
 

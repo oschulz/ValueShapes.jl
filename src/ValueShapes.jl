@@ -9,6 +9,7 @@ using ElasticArrays
 using MacroTools
 
 import StatsBase
+import TypedTables
 
 include("varshapes.jl")
 

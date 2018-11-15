@@ -21,7 +21,7 @@ import StatsBase, TypedTables
         @test @inferred(StatsBase.dof(parshapes)) == 11
 
         @test @inferred(parshapes(parvalues[1])) == ref_table[1]
-        @test @inferred(TypedTables.Table(parshapes(parvalues))) == ref_table
+        @test @inferred(parshapes(parvalues)) == ref_table
     end
 
     @testset "examples" begin
@@ -30,7 +30,7 @@ import StatsBase, TypedTables
             data = VectorOfSimilarVectors{Int}(parshapes)
             resize!(data, 10)
             rand!(flatview(data), 0:99)
-            table = TypedTables.Table(parshapes(data))
+            table = parshapes(data)
             fill!(table.b, 42)
             all(x -> x == 42, view(flatview(data), 7, :))
         end
