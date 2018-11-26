@@ -14,7 +14,7 @@ julia:
 ## (tests will run but not make your overall status red)
 #matrix:
 #  allow_failures:
-#  - julia: nightly
+#    - julia: nightly
 #  fast_finish: true
 
 notifications:
@@ -25,3 +25,13 @@ after_success:
   - julia -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
   # push coverage results to Coveralls
   - julia -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+
+jobs:
+  include:
+    - stage: "Documentation"
+      julia: 1.0
+      os: linux
+      script:
+        - julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+        - julia --project=docs/ docs/make.jl
+      after_success: skip
