@@ -25,6 +25,7 @@ end
 
 const ScalarAccessor{T} = VariableDataAccessor{ScalarShape{T}} where {T}
 const ArrayAccessor{T,N} = VariableDataAccessor{ArrayShape{T,N}} where {T,N}
+const ConstAccessor = VariableDataAccessor{ConstValueShape{T}} where {T}
 
 
 Base.@propagate_inbounds (va::ScalarAccessor)(data::AbstractVector) =
@@ -35,6 +36,8 @@ Base.@propagate_inbounds (va::ArrayAccessor{T,1})(data::AbstractVector) where {T
 
 Base.@propagate_inbounds (va::ArrayAccessor{T,N})(data::AbstractVector) where {T,N} =
     reshape(view(data, _view_range(axes(data, 1), va)), size(va.shape)...)
+
+@inline (va::ConstAccessor)(::AbstractVector) = va.shape.value
 
 
 Base.@propagate_inbounds function (va::ScalarAccessor)(data::AbstractVectorOfSimilarVectors)
@@ -57,6 +60,8 @@ Base.@propagate_inbounds function (va::ArrayAccessor{T,N})(data::AbstractVectorO
     VectorOfSimilarArrays(reshape(fpview, size(va.shape)..., :))
 end
 
+@inline (va::ConstAccessor)(data::AbstractVectorOfSimilarVectors) =
+    Fill(va.shape.value, size(data,1))
 
 
 @inline _varoffset_cumsum_impl(s, x, y, rest...) = (s, _varoffset_cumsum_impl(s+x, y, rest...)...)

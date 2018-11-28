@@ -108,3 +108,21 @@ Base.@pure auto_nonabstract(::Type{>:Real}) = Float64
 Base.@pure _multi_promote_type() = Nothing
 Base.@pure _multi_promote_type(T::Type) = T
 Base.@pure _multi_promote_type(T::Type, U::Type, rest::Type...) = promote_type(T, _multi_promote_type(U, rest...))
+
+
+
+const ScalarValueInstance = Union{Number,String,Symbol}
+
+
+struct ConstValueShape{T} <: AbstractValueShape
+    value::T
+end
+
+@inline Base.size(shape::ConstValueShape) = size(shape.value)
+
+@inline Base.eltype(shape::ConstValueShape) = eltype(shape.value)
+
+Base.@pure flatdof(::ConstValueShape) = 0
+
+@inline Base.convert(::Type{AbstractValueShape}, x::ScalarValueInstance) = ConstValueShape(x)
+@inline Base.convert(::Type{AbstractValueShape}, x::AbstractArray{<:ScalarValueInstance}) = ConstValueShape(x)

@@ -6,6 +6,7 @@ module ShapesOfVariables
 
 using ArraysOfArrays
 using ElasticArrays
+using FillArrays
 using MacroTools
 
 import TypedTables
