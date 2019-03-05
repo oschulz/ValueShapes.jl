@@ -1,31 +1,102 @@
 # This file is a part of ShapesOfVariables.jl, licensed under the MIT License (MIT).
 
 
+"""
+    ShapesOfVariables.default_datatype(T::Type)
+
+Return a default specific type U that is more specific than T, with U <: T.
+
+e.g.
+
+    ShapesOfVariables.default_datatype(Real) == Float64
+    ShapesOfVariables.default_datatype(Complex) == Complex{Float64}
+"""
+function default_datatype end
+
+@inline default_datatype(::Type{>:Int}) = Int
+@inline default_datatype(::Type{>:Float64}) = Float64
+@inline default_datatype(::Type{>:Real}) = Float64
+@inline default_datatype(::Type{>:Complex{Float64}}) = Complex{Float64}
+@inline default_datatype(T::Type) = T
+
+
+
+"""
+    abstract type AbstractValueShape
+
+An `AbstractValueShape` combines type and size information, the combination of
+which is termed shape, here. Subtypes are defined for shapes of scalars
+(see [`ScalarShape`](@ref)), arrays (see [`ArrayShape`](@ref)) and constant
+values (see [`ConstValueShape`](@ref)).
+
+Subtype of `AbstractValueShape` must support `eltype`, `size` and
+[`totalndof`](@ref).
+"""
 abstract type AbstractValueShape end
 
 export AbstractValueShape
 
 
+function shapeoftype end
+export shapeoftype
+
+@inline shapeoftype(T::Type{<:Any}) = ScalarShape{T}()
+
+@inline shapeoftype(T::Type{<:AbstractArray}) = throw(ArgumentError("Type $T does not have a fixed shape"))
+
+
 function shapeof end
 export shapeof
 
-function flatdof end
-export flatdof
+@inline shapeof(x::T) where T = shapeoftype(T)
+
+@inline function shapeof(x::AbstractArray{T}) where T
+    shapeoftype(T) # ensure T has a fixed shape
+    ArrayShape{T}(size(x))
+end
+
+# Possible extension: shapeof(x::AbstractArrayOfSimilarArrays{...})
 
 
-Base.@pure shapeof(T::Type{<:Any}) = ScalarShape{T}()
+"""
+    totalndof(shape::AbstractValueShape)
 
-Base.@pure shapeof(T::Type{<:AbstractArray}) = throw(ArgumentError("Type $T does not have a fixed shape"))
+Get the total number of degrees of freedom of values having the given shape.
 
-Base.@pure shapeof(::T) where {T<:Number} = shapeof(T)
-
-@inline shapeof(x::AbstractArray{<:T}) where T = ArrayShape{T}(size(x))
-
-
-Base.@pure Base.convert(::Type{AbstractValueShape}, T::Type{<:Any}) = shapeof(T)
-
+Equivalent to the size of the array required when flattening values of this
+shape into an array of real numbers, without including any constant values.
+"""
+function totalndof end
+export totalndof
 
 
+@inline nonabstract_eltype(shape::AbstractValueShape) = default_datatype(eltype(shape))
+
+
+
+"""
+    ScalarShape{T} <: AbstractValueShape
+
+An `ScalarShape` describes the shape of scalar values of a given type.
+
+Constructor:
+
+    ScalarShape{T::Type}()
+
+T may be an abstract type of Union, or a specific type, e.g.
+
+    ScalarShape{Integer}()
+    ScalarShape{Real}()
+    ScalarShape{Complex}()
+    ScalarShape{Float32}()
+
+Scalar shapes may have a total number of degrees of freedom
+(see [`totalndof`](@ref)) greater than one, e.g. shapes of complex-valued
+scalars:
+
+    totalndof(ScalarShape{Real}()) == 1
+    totalndof(ScalarShape{Complex}()) == 2
+"""
 struct ScalarShape{T} <: AbstractValueShape end
 
 export ScalarShape
@@ -36,18 +107,49 @@ Base.@pure Base.eltype(shape::ScalarShape{T}) where {T} = T
 Base.@pure Base.size(::ScalarShape) = 1
 
 
+Base.@pure totalndof(::ScalarShape{T}) where {T <: Real} = 1
 
-Base.@pure flatdof(::ScalarShape{T}) where {T <: Real} = 1
-
-Base.@pure @generated function flatdof(::ScalarShape{T}) where {T <: Any}
-    fieldtypes = ntuple(i -> fieldtype(T, i), Val(fieldcount(T)))
-    field_flatlenghts = sum(U -> flatdof(shapeof(U)), fieldtypes)
-    l = prod(field_flatlenghts)
-    quote $l end
+@inline function totalndof(::ScalarShape{T}) where {T <: Any}
+    if @generated
+        fieldtypes = ntuple(i -> fieldtype(T, i), Val(fieldcount(T)))
+        field_flatlenghts = sum(U -> totalndof(shapeoftype(U)), fieldtypes)
+        l = prod(field_flatlenghts)
+        quote $l end
+    else
+        fieldtypes = ntuple(i -> fieldtype(T, i), Val(fieldcount(T)))
+        field_flatlenghts = sum(U -> totalndof(shapeoftype(U)), fieldtypes)
+        l = prod(field_flatlenghts)
+        l
+    end
 end
 
 
 
+"""
+    ArrayShape{T,N} <: AbstractValueShape
+
+Describes the shape of `N`-dimensional arrays of type `T` and a given size.
+
+Constructor:
+
+    ArrayShape{T}(dims::NTuple{N,Integer}) where {T,N}
+    ArrayShape{T}(dims::Integer...) where {T}
+
+e.g.
+
+    shape = ArrayShape{Real}(2, 3)
+
+Array shapes can be used to instantiate array of the given shape, e.g.
+
+    size(Array(undef, shape)) == (2, 3)
+    size(ElasticArrays.ElasticArray(undef, shape)) == (2, 3)
+
+If the element type of the shape of an abstract type of union,
+[`ShapesOfVariables.default_datatype`](@ref) will be used to determine a
+suitable more specific type, if possible:
+
+    eltype(Array(undef, shape)) == Float64
+"""
 struct ArrayShape{T,N} <: AbstractValueShape
     dims::NTuple{N,Int}
 end
@@ -63,15 +165,8 @@ ArrayShape{T}(dims::Integer...) where {T} = ArrayShape{T}(dims)
 
 Base.@pure Base.eltype(::ArrayShape{T}) where {T} = T
 
-flatdof(shape::ArrayShape{T}) where{T} =
-    prod(size(shape)) * flatdof(convert(AbstractValueShape, T))
-
-
-@inline Base.convert(::Type{AbstractValueShape}, tuple::Tuple) = _tupleentries_to_valshape(tuple...)
-
-@inline _tupleentries_to_valshape() where {T} = ScalarShape{Real}()
-
-@inline _tupleentries_to_valshape(dim1::Integer, dims::Integer...) = ArrayShape{Real}(dim1, dims...)
+totalndof(shape::ArrayShape{T}) where{T} =
+    prod(size(shape)) * totalndof(shapeoftype(T))
 
 
 @inline Array{U}(::UndefInitializer, shape::ArrayShape{T}) where {T,U<:T} =
@@ -88,41 +183,40 @@ flatdof(shape::ArrayShape{T}) where{T} =
     ElasticArray{nonabstract_eltype(shape)}(undef, shape)
 
 
-function nonabstract_eltype end
-export nonabstract_eltype
-
-@inline function nonabstract_eltype(shape::AbstractValueShape)
-    T = eltype(shape)
-    if (isabstracttype(T))
-        auto_nonabstract(T)
-    else
-        T
-    end
-end
-
-Base.@pure auto_nonabstract(::Type{>:Int}) = Int
-Base.@pure auto_nonabstract(::Type{>:Float64}) = Float64
-Base.@pure auto_nonabstract(::Type{>:Real}) = Float64
-
-
-Base.@pure _multi_promote_type() = Nothing
-Base.@pure _multi_promote_type(T::Type) = T
-Base.@pure _multi_promote_type(T::Type, U::Type, rest::Type...) = promote_type(T, _multi_promote_type(U, rest...))
+# TODO: Add support for StaticArray.
 
 
 
-const ScalarValueInstance = Union{Number,String,Symbol}
+"""
+    ConstValueShape{T} <: AbstractValueShape
 
+A `ConstValueShape` describes the shape of constant values of type `T`.
 
+Constructor:
+
+    ConstValueShape(value)
+
+`value` may be of arbitrary type, e.g. a constant scalar value or array:
+
+    ConstValueShape(4.2),
+    ConstValueShape([11 21; 12 22]),
+
+Shapes of constant values have zero degrees of freedom
+((see [`totalndof`](@ref)).
+"""
 struct ConstValueShape{T} <: AbstractValueShape
     value::T
 end
+
+export ConstValueShape
+
 
 @inline Base.size(shape::ConstValueShape) = size(shape.value)
 
 @inline Base.eltype(shape::ConstValueShape) = eltype(shape.value)
 
-Base.@pure flatdof(::ConstValueShape) = 0
+Base.@pure totalndof(::ConstValueShape) = 0
 
-@inline Base.convert(::Type{AbstractValueShape}, x::ScalarValueInstance) = ConstValueShape(x)
-@inline Base.convert(::Type{AbstractValueShape}, x::AbstractArray{<:ScalarValueInstance}) = ConstValueShape(x)
+
+
+# Possible extension: variable/flexible array shapes?

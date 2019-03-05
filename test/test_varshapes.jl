@@ -20,10 +20,16 @@ import TypedTables
             y = [[8, 9, 10, 11], [19, 20, 21, 22]]
         )
 
-        varshapes = @inferred VarShapes(a = (2,3), b = (), c = 4.2, x = [11 21; 12 22], y = (4,))
+        varshapes = @inferred VarShapes(
+            a = ArrayShape{Real}(2, 3),
+            b = ScalarShape{Real}(),
+            c = ConstValueShape(4.2),
+            x = ConstValueShape([11 21; 12 22]),
+            y = ArrayShape{Real}(4)
+        )
         @test @inferred(get_y(varshapes)) === ShapesOfVariables._accessors(varshapes).y
         @test @inferred(Base.propertynames(varshapes)) == (:a, :b, :c, :x, :y)
-        @test @inferred(flatdof(varshapes)) == 11
+        @test @inferred(totalndof(varshapes)) == 11
 
         @test @inferred(varshapes(data[1])) == ref_table[1]
         @test @inferred(varshapes(data)) == ref_table
@@ -31,7 +37,13 @@ import TypedTables
 
     @testset "examples" begin
         @test begin
-            varshapes = VarShapes(a = (2,3), b = (), c = 4.2, x = [11 21; 12 22], y = (4,))
+            varshapes = VarShapes(
+                a = ArrayShape{Real}(2, 3),
+                b = ScalarShape{Real}(),
+                c = ConstValueShape(4.2),
+                x = ConstValueShape([11 21; 12 22]),
+                y = ArrayShape{Real}(4)
+            )
             data = VectorOfSimilarVectors{Int}(varshapes)
             resize!(data, 10)
             rand!(flatview(data), 0:99)

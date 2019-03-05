@@ -7,7 +7,7 @@ struct VariableDataAccessor{S<:AbstractValueShape}
     len::Int
 
     VariableDataAccessor{S}(shape::S, offset::Int) where {S<:AbstractValueShape} =
-        new{S}(shape, offset, flatdof(shape))
+        new{S}(shape, offset, totalndof(shape))
 end
 
 VariableDataAccessor(shape::S, offset::Int) where {S<:AbstractValueShape} = VariableDataAccessor{S}(shape, offset)
@@ -86,7 +86,11 @@ Constructors:
 
 e.g.
 
-    varshapes = VarShapes(a = (2,3), b = (), c = (4,))
+    varshapes = VarShapes(
+        a = ArrayShape{Real}(2, 3),
+        b = ScalarShape{Real}(),
+        c = ArrayShape{Real}(4)
+    )
 
 Use
 
@@ -123,23 +127,27 @@ flat `Vector{T}`.
 Example:
 
 ```julia
-varshapes = VarShapes(a = (2,3), b = (), c = (4,))
-data = VectorOfSimilarVectors{Int}(varshapes)
+varshapes = VarShapes(
+    a = ScalarShape{Real}(),
+    b = ArrayShape{Real}(2, 3),
+    c = ConstValueShape(42)
+)
+data = VectorOfSimilarVectors{Float64}(varshapes)
 resize!(data, 10)
-rand!(flatview(data), 0:99)
+rand!(flatview(data))
 table = TypedTables.Table(varshapes(data))
-fill!(table.b, 42)
-all(x -> x == 42, view(flatview(data), 7, :))
+fill!(table.a, 4.2)
+all(x -> x == 4.2, view(flatview(data), 1, :))
 ```
 """
 struct VarShapes{N,AC}
     _accessors::AC
     _flatdof::Int
 
-    @inline function VarShapes(varshapes::NamedTuple{PN,<:NTuple{N,Any}}) where {PN,N}
+    @inline function VarShapes(varshapes::NamedTuple{PN,<:NTuple{N,AbstractValueShape}}) where {PN,N}
         labels = keys(varshapes)
-        shapes = map(x -> convert(AbstractValueShape, x), values(varshapes))
-        shapelengths = map(flatdof, shapes)
+        shapes = values(varshapes)
+        shapelengths = map(totalndof, shapes)
         offsets = _varoffset_cumsum(shapelengths)
         accessors = map(VariableDataAccessor, shapes, offsets)
         # acclengths = map(x -> x.len, accessors)
@@ -156,7 +164,7 @@ export VarShapes
 
 
 @inline _accessors(x::VarShapes) = getfield(x, :_accessors)
-@inline flatdof(x::VarShapes) = getfield(x, :_flatdof)
+@inline totalndof(x::VarShapes) = getfield(x, :_flatdof)
 
 
 @inline Base.keys(varshapes::VarShapes) = keys(_accessors(varshapes))
@@ -186,19 +194,24 @@ Base.@propagate_inbounds function (varshapes::VarShapes)(data::AbstractVectorOfS
 end
 
 
+Base.@pure _multi_promote_type() = Nothing
+Base.@pure _multi_promote_type(T::Type) = T
+Base.@pure _multi_promote_type(T::Type, U::Type, rest::Type...) = promote_type(T, _multi_promote_type(U, rest...))
+
+
 Base.@pure nonabstract_eltype(varshapes::VarShapes) =
     _multi_promote_type(map(nonabstract_eltype, values(varshapes))...)
 
 
 Base.Vector{T}(::UndefInitializer, varshapes::VarShapes) where T =
-    Vector{T}(undef, flatdof(varshapes))
+    Vector{T}(undef, totalndof(varshapes))
 
 Base.Vector(::UndefInitializer, varshapes::VarShapes) =
-    Vector{nonabstract_eltype(varshapes)}(undef, flatdof(varshapes))
+    Vector{nonabstract_eltype(varshapes)}(undef, totalndof(varshapes))
 
 
 ArraysOfArrays.VectorOfSimilarVectors{T}(varshapes::VarShapes) where T =
-    VectorOfSimilarVectors(ElasticArray{T}(undef, flatdof(varshapes), 0))
+    VectorOfSimilarVectors(ElasticArray{T}(undef, totalndof(varshapes), 0))
 
 ArraysOfArrays.VectorOfSimilarVectors(varshapes::VarShapes) =
-    VectorOfSimilarVectors(ElasticArray{nonabstract_eltype(varshapes)}(undef, flatdof(varshapes), 0))
+    VectorOfSimilarVectors(ElasticArray{nonabstract_eltype(varshapes)}(undef, totalndof(varshapes), 0))
