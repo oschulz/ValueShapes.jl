@@ -1,5 +1,6 @@
 name = "ShapesOfVariables"
 uuid = "b3480ff6-a2af-506e-a6b8-61d160ca6532"
+version = "0.1.0"
 
 [deps]
 ArraysOfArrays = "65a8f2f4-9b39-5baf-92e2-a9cc46fdf018"
@@ -8,8 +9,12 @@ FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
 TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 
+[compat]
+julia = "1"
+
 [extras]
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["Random", "Test"]
