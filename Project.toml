@@ -1,6 +1,6 @@
 name = "ShapesOfVariables"
 uuid = "b3480ff6-a2af-506e-a6b8-61d160ca6532"
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 ArraysOfArrays = "65a8f2f4-9b39-5baf-92e2-a9cc46fdf018"
