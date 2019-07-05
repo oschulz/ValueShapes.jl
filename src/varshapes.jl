@@ -140,11 +140,11 @@ fill!(table.a, 4.2)
 all(x -> x == 4.2, view(flatview(data), 1, :))
 ```
 """
-struct VarShapes{N,AC}
-    _accessors::AC
+struct VarShapes{names,AT<:(NTuple{N,VariableDataAccessor} where N)}
+    _accessors::NamedTuple{names,AT}
     _flatdof::Int
 
-    @inline function VarShapes(varshapes::NamedTuple{PN,<:NTuple{N,AbstractValueShape}}) where {PN,N}
+    @inline function VarShapes(varshapes::NamedTuple{names,<:NTuple{N,AbstractValueShape}}) where {names,N}
         labels = keys(varshapes)
         shapes = values(varshapes)
         shapelengths = map(totalndof, shapes)
@@ -154,7 +154,7 @@ struct VarShapes{N,AC}
         # @assert shapelengths == acclengths
         n_flattened = sum(shapelengths)
         named_accessors = NamedTuple{labels}(accessors)
-        new{PN,typeof(named_accessors)}(named_accessors, n_flattened)
+        new{names,typeof(accessors)}(named_accessors, n_flattened)
     end
 end
 
