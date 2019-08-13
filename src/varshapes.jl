@@ -79,6 +79,13 @@ Base.@propagate_inbounds function Base.view(data::AbstractVector, va::ScalarAcce
 end
 
 
+Base.@propagate_inbounds function Base.view(
+    data::AbstractMatrix, va_row::VariableDataAccessor, va_col::VariableDataAccessor
+)
+    view(data, _view_idxs(axes(data, 1), va_row), _view_idxs(axes(data, 2), va_col))
+end
+
+
 @inline _varoffset_cumsum_impl(s, x, y, rest...) = (s, _varoffset_cumsum_impl(s+x, y, rest...)...)
 @inline _varoffset_cumsum_impl(s,x) = (s,)
 @inline _varoffset_cumsum_impl(s) = ()
