@@ -182,7 +182,7 @@ end
 
 export VarShapes
 
-@inline VarShapes(;varshapes...) = VarShapes(varshapes.data)
+@inline VarShapes(;varshapes...) = VarShapes(values(varshapes))
 
 
 @inline _accessors(x::VarShapes) = getfield(x, :_accessors)
