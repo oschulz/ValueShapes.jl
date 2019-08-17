@@ -37,6 +37,9 @@ abstract type AbstractValueShape end
 export AbstractValueShape
 
 
+Base.length(shape::AbstractValueShape) = prod(size(shape))
+
+
 function shapeoftype end
 export shapeoftype
 

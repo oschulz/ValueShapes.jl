@@ -13,12 +13,24 @@ end
 VariableDataAccessor(shape::S, offset::Int) where {S<:AbstractValueShape} = VariableDataAccessor{S}(shape, offset)
 
 
-nonabstract_eltype(va::VariableDataAccessor) = nonabstract_eltype(va.shape)
-
-
 const ScalarAccessor{T} = VariableDataAccessor{ScalarShape{T}} where {T}
 const ArrayAccessor{T,N} = VariableDataAccessor{ArrayShape{T,N}} where {T,N}
 const ConstAccessor = VariableDataAccessor{ConstValueShape{T}} where {T}
+
+
+nonabstract_eltype(va::VariableDataAccessor) = nonabstract_eltype(va.shape)
+
+AbstractValueShape(va::VariableDataAccessor) = va.shape
+Base.convert(::Type{AbstractValueShape}, va::VariableDataAccessor) = ValueShape(va)
+
+Base.size(va::VariableDataAccessor) = size(va.shape)
+Base.length(va::VariableDataAccessor) = length(va.shape)
+
+
+# ToDo: implement Base.getindex for VariableDataAccessor? Allow only contiguous?
+
+
+
 
 
 @inline function _view_range(idxs::AbstractUnitRange{<:Integer}, va::VariableDataAccessor)
