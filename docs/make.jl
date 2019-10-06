@@ -5,14 +5,14 @@
 # for local builds.
 
 using Documenter
-using ShapesOfVariables
+using ValueShapes
 
 makedocs(
-    sitename = "ShapesOfVariables",
-    modules = [ShapesOfVariables],
+    sitename = "ValueShapes",
+    modules = [ValueShapes],
     format = Documenter.HTML(
         prettyurls = !("local" in ARGS),
-        canonical = "https://oschulz.github.io/ShapesOfVariables.jl/stable/"
+        canonical = "https://oschulz.github.io/ValueShapes.jl/stable/"
     ),
     pages=[
         "Home" => "index.md",
@@ -25,6 +25,6 @@ makedocs(
 )
 
 deploydocs(
-    repo = "github.com/oschulz/ShapesOfVariables.jl.git",
+    repo = "github.com/oschulz/ValueShapes.jl.git",
     forcepush = true
 )

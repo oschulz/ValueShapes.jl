@@ -1,8 +1,8 @@
-# This file is a part of ShapesOfVariables.jl, licensed under the MIT License (MIT).
+# This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
 __precompile__(true)
 
-module ShapesOfVariables
+module ValueShapes
 
 using ArraysOfArrays
 using ElasticArrays

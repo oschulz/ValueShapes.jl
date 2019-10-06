@@ -1,6 +1,6 @@
-# This file is a part of ShapesOfVariables.jl, licensed under the MIT License (MIT).
+# This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
-using ShapesOfVariables
+using ValueShapes
 using Test
 
 using Random
@@ -9,11 +9,11 @@ import TypedTables
 
 
 @testset "valueshape" begin
-    @testset "ShapesOfVariables.default_datatype" begin
-        @test @inferred(ShapesOfVariables.default_datatype(Integer)) == Int
-        @test @inferred(ShapesOfVariables.default_datatype(AbstractFloat)) == Float64
-        @test @inferred(ShapesOfVariables.default_datatype(Real)) == Float64
-        @test @inferred(ShapesOfVariables.default_datatype(Complex)) == Complex{Float64}
+    @testset "ValueShapes.default_datatype" begin
+        @test @inferred(ValueShapes.default_datatype(Integer)) == Int
+        @test @inferred(ValueShapes.default_datatype(AbstractFloat)) == Float64
+        @test @inferred(ValueShapes.default_datatype(Real)) == Float64
+        @test @inferred(ValueShapes.default_datatype(Complex)) == Complex{Float64}
     end
 
     @testset "ScalarShape" begin
@@ -34,7 +34,7 @@ import TypedTables
         @test @inferred(shapeof(rand(3))) == ArrayShape{Float64,1}((3,))
         @test @inferred(shapeof(rand(3, 4, 5))) == ArrayShape{Float64,3}((3, 4, 5))
 
-        @inferred(ShapesOfVariables.nonabstract_eltype(ArrayShape{Complex,3}((3, 4, 5)))) == Complex{Float64}
+        @inferred(ValueShapes.nonabstract_eltype(ArrayShape{Complex,3}((3, 4, 5)))) == Complex{Float64}
 
         @test @inferred(totalndof(ArrayShape{Float64,1}((3,)))) == 3
         @test @inferred(totalndof(ArrayShape{Complex,3}((3, 4, 5)))) == 120

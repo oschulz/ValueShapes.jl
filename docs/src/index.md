@@ -1,19 +1,19 @@
-# ShapesOfVariables.jl
+# ValueShapes.jl
 
-ShapesOfVariables provides Julia types to describe the shape of values and
+ValueShapes provides Julia types to describe the shape of values and
 to describe sets of named variables.
 
 This package aims to provide a bridge between user code operating on named
 structured variables and (e.g. fitting/optimization) algorithms operating on
-flat vectors of anonymous real values. ShapesOfVariables provides a zero-copy
+flat vectors of anonymous real values. ValueShapes provides a zero-copy
 duality of view between both representations.
 
-ShapesOfVariables defines the shape of a value as the combination of it's data
+ValueShapes defines the shape of a value as the combination of it's data
 type (resp. element type, in the case of arrays) and the size of the value
 (relevant if the value is an array), e.g.
 
 ```julia
-using ShapesOfVariables
+using ValueShapes
 
 ScalarShape{Real}()
 ArrayShape{Real}(2, 3)
@@ -26,7 +26,7 @@ Array shapes can be used to construct a compatible array:
 Array(undef, ArrayShape{Real}(2, 3))
 ```
 
-Building on this, ShapesOfVariables provides a way to describe a set of
+Building on this, ValueShapes provides a way to describe a set of
 named variables and their shapes:
 
 ```julia
@@ -75,7 +75,7 @@ may come in handy to define functions that take such tuples as
 parameters and deconstruct them, so that the variable names can be used
 directly inside the function body.
 
-ShapesOfVariables can also handle multiple values for sets of variables and
+ValueShapes can also handle multiple values for sets of variables and
 is designed to compose well with
 [ArraysOfArrays](https://github.com/oschulz/ArraysOfArrays.jl) and
 [TypedTables](https://github.com/FugroRoames/TypedTables.jl)

@@ -2,7 +2,7 @@
 
 ```@meta
 DocTestSetup  = quote
-    using ShapesOfVariables
+    using ValueShapes
 end
 ```
 
@@ -21,6 +21,6 @@ Order = [:function]
 # Documentation
 
 ```@autodocs
-Modules = [ShapesOfVariables]
+Modules = [ValueShapes]
 Order = [:type, :function]
 ```

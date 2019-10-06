@@ -1,5 +1,5 @@
-name = "ShapesOfVariables"
-uuid = "b3480ff6-a2af-506e-a6b8-61d160ca6532"
+name = "ValueShapes"
+uuid = "136a8f8c-c49b-4edb-8b98-f3d64d48be8f"
 version = "0.3.0"
 
 [deps]

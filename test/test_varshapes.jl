@@ -1,6 +1,6 @@
-# This file is a part of ShapesOfVariables.jl, licensed under the MIT License (MIT).
+# This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
-using ShapesOfVariables
+using ValueShapes
 using Test
 
 using Random
@@ -27,7 +27,7 @@ import TypedTables
             x = ConstValueShape([11 21; 12 22]),
             y = ArrayShape{Real}(4)
         )
-        @test @inferred(get_y(varshapes)) === ShapesOfVariables._accessors(varshapes).y
+        @test @inferred(get_y(varshapes)) === ValueShapes._accessors(varshapes).y
         @test @inferred(Base.propertynames(varshapes)) == (:a, :b, :c, :x, :y)
         @test @inferred(totalndof(varshapes)) == 11
 

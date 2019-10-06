@@ -1,15 +1,15 @@
-# This file is a part of ShapesOfVariables.jl, licensed under the MIT License (MIT).
+# This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
 
 """
-    ShapesOfVariables.default_datatype(T::Type)
+    ValueShapes.default_datatype(T::Type)
 
 Return a default specific type U that is more specific than T, with U <: T.
 
 e.g.
 
-    ShapesOfVariables.default_datatype(Real) == Float64
-    ShapesOfVariables.default_datatype(Complex) == Complex{Float64}
+    ValueShapes.default_datatype(Real) == Float64
+    ValueShapes.default_datatype(Complex) == Complex{Float64}
 """
 function default_datatype end
 
@@ -148,7 +148,7 @@ Array shapes can be used to instantiate array of the given shape, e.g.
     size(ElasticArrays.ElasticArray(undef, shape)) == (2, 3)
 
 If the element type of the shape of an abstract type of union,
-[`ShapesOfVariables.default_datatype`](@ref) will be used to determine a
+[`ValueShapes.default_datatype`](@ref) will be used to determine a
 suitable more specific type, if possible:
 
     eltype(Array(undef, shape)) == Float64
