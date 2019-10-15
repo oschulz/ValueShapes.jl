@@ -10,10 +10,19 @@
 
 ## Documentation
 
-ValueShapes provides Julia types to describe the shape of values and
-of sets of named variables. The aim is to provide a bridge between user code
-operating on named structured variables and (e.g. fitting/optimization)
-algorithms operating on flat vectors of anonymous real values.
+ValueShapes provides Julia types to describe the shape of values, like
+scalars, arrays and structures.
+
+Shapes provide a generic way to construct uninitialized values (e.g.
+multidimensional arrays) without using templates.
+
+Shapes also act as a bridge between structured and flat data representations:
+Mathematical and statistical algorithms (e.g. optimizers, fitters, solvers,
+etc.) often represent variables/parameters as flat vectors of nameless real
+values. But user code will usually be more concise and readable if
+variables/parameters can have names (e.g. via `NamedTuple`s) and non-scalar
+shapes. ValueShapes provides a duality of view between the two different data
+representations.
 
 See the documentation for details:
 
@@ -27,4 +36,4 @@ ValueShapes is designed to compose well with
 table packages). ValueShapes package has some overlap in functionality
 with [TransformVariables](https://github.com/tpapp/TransformVariables.jl), but
 provides a duality of view instead of transformations (and therefore uses data
-views instead of data copies).
+views instead of data copies, where possible).
