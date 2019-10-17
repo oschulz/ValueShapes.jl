@@ -10,6 +10,11 @@ Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 
 [compat]
+ArraysOfArrays = "0"
+ElasticArrays = "0"
+FillArrays = "0"
+Requires = "0"
+TypedTables = "1.2"
 julia = "1"
 
 [extras]
