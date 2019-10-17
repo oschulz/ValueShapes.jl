@@ -7,7 +7,6 @@ module ValueShapes
 using ArraysOfArrays
 using ElasticArrays
 using FillArrays
-using MacroTools
 using Requires
 
 import TypedTables
