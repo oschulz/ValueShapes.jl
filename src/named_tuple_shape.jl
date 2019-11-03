@@ -76,7 +76,16 @@ export NamedTupleShape
 
 @inline Base.values(shape::NamedTupleShape) = values(_accessors(shape))
 
-@inline Base.getproperty(shape::NamedTupleShape, p::Symbol) = getproperty(_accessors(shape), p)
+@inline function Base.getproperty(shape::NamedTupleShape, p::Symbol)
+    # Need to include internal fields of NamedTupleShape to make Zygote happy:
+    if p == :_accessors
+        getfield(shape, :_accessors)
+    elseif p == :_flatdof
+        getfield(shape, :_flatdof)
+    else
+        getproperty(_accessors(shape), p)
+    end
+end
 
 @inline Base.propertynames(shape::NamedTupleShape) = propertynames(_accessors(shape))
 
