@@ -40,4 +40,32 @@ using ElasticArrays, ArraysOfArrays
     @test eltype(eltype(@inferred(VectorOfSimilarVectors{Float32}(shape)))) == Float32
 
     @test valshape(shape.(push!(@inferred(VectorOfSimilarVectors(shape)), @inferred(Vector(undef, shape))))[1]) == valshape(shape(undef))
+
+    let
+        A = collect(1:8)
+        ac = ValueAccessor(ArrayShape{Real}(3), 2)
+        @test @inferred(getindex(A, ac)) == [3, 4, 5]
+        @test @inferred(view(A, ac)) == [3, 4, 5]
+        @test @inferred(setindex!(A, [7, 2, 6], ac)) === A
+        @test A[ac] == [7, 2, 6]
+    end
+
+    let
+        A = collect(1:6*6)
+        ac = ValueAccessor(ArrayShape{Real}(2,3), 17)
+        @test @inferred(getindex(A, ac)) == [18 20 22; 19 21 23]
+        @test @inferred(view(A, ac)) == [18 20 22; 19 21 23]
+        @test @inferred(setindex!(A, [6 4 3; 2 1 5], ac)) === A
+        @test A[ac] == [6 4 3; 2 1 5]
+    end
+
+    let
+        A = collect(reshape(1:6*6, 6, 6))
+        ac1 = ValueAccessor(ArrayShape{Real}(2), 2)
+        ac2 = ValueAccessor(ArrayShape{Real}(3), 3)
+        @test @inferred(getindex(A, ac1, ac2)) == [21 27 33; 22 28 34]
+        @test @inferred(view(A, ac1, ac2)) == [21 27 33; 22 28 34]
+        @test @inferred(setindex!(A, [6 4 3; 2 1 5], ac1, ac2)) === A
+        @test A[ac1, ac2] == [6 4 3; 2 1 5]
+    end
 end

@@ -50,9 +50,9 @@ end
 const ConstAccessor = ValueAccessor{ConstValueShape{T}} where {T}
 
 
-@inline Base.getindex(data::AbstractVector{<:Real}, va::ConstAccessor) = view(data, va)
+@inline vs_getindex(data::AbstractVector{<:Real}, va::ConstAccessor) = va.shape.value
 
-@inline Base.view(::AbstractVector, va::ConstAccessor) = va.shape.value
+@inline vs_unsafe_view(::AbstractVector, va::ConstAccessor) = va.shape.value
 
 
 @inline _bcasted_getindex(data::AbstractVectorOfSimilarVectors{<:Real}, va::ConstAccessor) =

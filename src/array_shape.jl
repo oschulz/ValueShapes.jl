@@ -92,13 +92,17 @@ end
 const ArrayAccessor{T,N} = ValueAccessor{ArrayShape{T,N}} where {T,N}
 
 
-Base.@propagate_inbounds Base.getindex(data::AbstractVector{<:Real}, va::ArrayAccessor) = view(data, va)
+Base.@propagate_inbounds vs_getindex(data::AbstractVector{<:Real}, va::ArrayAccessor) = view(data, va)
 
-Base.@propagate_inbounds Base.view(data::AbstractVector{<:Real}, va::ArrayAccessor{T,1}) where {T} =
-    view(data, view_idxs(axes(data, 1), va))
+Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ArrayAccessor{T,1}) where {T} =
+    Base.unsafe_view(data, view_idxs(axes(data, 1), va))
 
-Base.@propagate_inbounds Base.view(data::AbstractVector{<:Real}, va::ArrayAccessor{T,N}) where {T,N} =
-    reshape(view(data, view_idxs(axes(data, 1), va)), size(va.shape)...)
+Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ArrayAccessor{T,N}) where {T,N} =
+    reshape(Base.unsafe_view(data, view_idxs(axes(data, 1), va)), size(va.shape)...)
+
+
+Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::ArrayAccessor) where {T} =
+    setindex!(data, v, view_idxs(axes(data, 1), va))
 
 
 Base.@propagate_inbounds function _bcasted_getindex(data::AbstractVectorOfSimilarVectors{<:Real}, va::ArrayAccessor{T,1}) where {T,N}

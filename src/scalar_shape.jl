@@ -84,11 +84,15 @@ const ScalarAccessor{T} = ValueAccessor{ScalarShape{T}} where {T}
 # ToDo: view_idxs for scalars with dof greater than 1 (complex, etc.)
 
 
-Base.@propagate_inbounds Base.getindex(data::AbstractVector{<:Real}, va::ScalarAccessor) =
+Base.@propagate_inbounds vs_getindex(data::AbstractVector{<:Real}, va::ScalarAccessor) =
     data[view_idxs(axes(data, 1), va)]
 
-Base.@propagate_inbounds Base.view(data::AbstractVector{<:Real}, va::ScalarAccessor) =
-    view(data, view_idxs(axes(data, 1), va))
+Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ScalarAccessor) =
+    Base.unsafe_view(data, view_idxs(axes(data, 1), va))
+
+
+Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::ScalarAccessor) =
+    setindex!(data, v, view_idxs(axes(data, 1), va))
 
 
 Base.@propagate_inbounds function _bcasted_getindex(data::AbstractVectorOfSimilarVectors{<:Real}, va::ScalarAccessor)
