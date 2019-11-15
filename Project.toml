@@ -4,6 +4,7 @@ version = "0.5.1"
 
 [deps]
 ArraysOfArrays = "65a8f2f4-9b39-5baf-92e2-a9cc46fdf018"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 ElasticArrays = "fdbdab4c-e67f-52f5-8c3f-e7b388dad3d4"
 FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
@@ -11,6 +12,7 @@ TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 
 [compat]
 ArraysOfArrays = "0"
+Distributions = "< 2.0"
 ElasticArrays = "1.0"
 FillArrays = "0"
 Requires = "0"
@@ -18,9 +20,8 @@ TypedTables = "1.2"
 julia = "1"
 
 [extras]
-Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Distributions", "Random", "Test"]
+test = ["Random", "Test"]

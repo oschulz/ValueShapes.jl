@@ -5,6 +5,7 @@ __precompile__(true)
 module ValueShapes
 
 using ArraysOfArrays
+using Distributions
 using ElasticArrays
 using FillArrays
 using Requires
@@ -16,10 +17,7 @@ include("value_accessor.jl")
 include("scalar_shape.jl")
 include("array_shape.jl")
 include("const_value_shape.jl")
+include("distributions.jl")
 include("named_tuple_shape.jl")
-
-function __init__()
-    @require Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f" include("distributions_support.jl")
-end
 
 end # module
