@@ -17,6 +17,7 @@ include("value_accessor.jl")
 include("scalar_shape.jl")
 include("array_shape.jl")
 include("const_value_shape.jl")
+include("functions.jl")
 include("distributions.jl")
 include("named_tuple_shape.jl")
 

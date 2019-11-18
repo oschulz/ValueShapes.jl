@@ -7,7 +7,9 @@ using Distributions
 
 
 @testset "distributions" begin
-    @test @inferred(valshape(Normal())) == ScalarShape{Real}()
-    @test @inferred(valshape(MvNormal([2. 1.; 1. 3.]))) == ArrayShape{Real}(2)
-    @test @inferred(valshape(MatrixBeta(4, 6, 6))) == ArrayShape{Real}(4, 4)
+    @test @inferred(varshape(Normal())) == ScalarShape{Real}()
+    @test @inferred(varshape(MvNormal([2. 1.; 1. 3.]))) == ArrayShape{Real}(2)
+    @test @inferred(varshape(MatrixBeta(4, 6, 6))) == ArrayShape{Real}(4, 4)
+
+    @test @inferred(vardof(MvNormal([2. 1.; 1. 3.]))) == 2
 end
