@@ -61,8 +61,7 @@ shape(data) == [1 3 5; 2 4 6]
 
 In return,
 
-    Base.Vector{T}(undef, shape::AbstractValueShape)
-    Base.Vector(undef, shape::AbstractValueShape)
+    Base.Vector{<:Real}(undef, shape::AbstractValueShape)
 
 will create a suitable uninitialized vector of the right length to hold such
 flat data for the given shape. If no type `T` is given, a suitable data
@@ -70,14 +69,13 @@ type will be chosen automatically.
 
 When dealing with multiple vectors of flattened data, use
     
-    shape.(data::ArrayOfArrays.AbstractVectorOfSimilarVectors)
+    shape.(data::ArraysOfArrays.AbstractVectorOfSimilarVectors)
 
 ValueShapes supports this via specialized broadcasting.
 
 In return,
 
-    ArraysOfArrays.VectorOfSimilarVectors{T}(shape::AbstractValueShape)
-    ArraysOfArrays.VectorOfSimilarVectors(shape::AbstractValueShape)
+    ArraysOfArrays.VectorOfSimilarVectors{<:Real}(shape::AbstractValueShape)
 
 will create a suitable vector (of length zero) of vectors that can hold
 flattened data for the given shape. The result will be a
@@ -97,6 +95,34 @@ function _valshapeoftype end
 
 
 """
+    ValueShapes.default_unshaped_eltype(shape::AbstractValueShape)
+
+Returns the default real array element type to use for unshaped
+representations of data with shape `shape`.
+
+Subtypes of `AbstractValueShape` must implemenent
+`ValueShapes.default_unshaped_eltype`.
+"""
+function default_unshaped_eltype end
+
+
+"""
+    ValueShapes.shaped_type(shape::AbstractValueShape, ::Type{T}) where {T<:Real}
+    ValueShapes.shaped_type(shape::AbstractValueShape)
+
+Returns the type the will result from reshaping a real-valued vector (of
+element type `T`, if specified) with `shape`.
+
+Subtypes of `AbstractValueShape` must implement
+
+    ValueShapes.shaped_type(shape::AbstractValueShape, ::Type{T}) where {T<:Real}
+"""
+function shaped_type end
+
+shaped_type(shape::AbstractValueShape) = shaped_type(shape, default_unshaped_eltype(shape))
+
+
+"""
     valshape(x)::AbstractValueShape
     valshape(acc::ValueAccessor)::AbstractValueShape
 
@@ -107,6 +133,17 @@ function valshape end
 export valshape
 
 @inline valshape(x::T) where T = _valshapeoftype(T)
+
+
+"""
+    elshape(x)::AbstractValueShape
+
+Get the shape of the elements of x
+"""
+function elshape end
+export elshape
+
+@inline elshape(x::T) where T = _valshapeoftype(eltype(T))
 
 
 """
@@ -121,7 +158,33 @@ function totalndof end
 export totalndof
 
 
-@inline nonabstract_eltype(shape::AbstractValueShape) = default_datatype(eltype(shape))
+"""
+    unshaped(x)::AbstractVector{<:Real}
+
+Retrieve the unshaped underlying data of x, assuming x is a structured view
+(based on some [`AbstractValueShape`](@ref)) of a flat/unstructured
+real-valued data vector.
+
+Example:
+
+```julia
+shape = NamedTupleShape(
+    a = ScalarShape{Real}(),
+    b = ArrayShape{Real}(2, 3)
+)
+data = [1, 2, 3, 4, 5, 6, 7]
+x = shape(data)
+@assert unshaped(x) == data
+@assert unshaped(x.a) == view(data, 1:1)
+@assert unshaped(x.b) == view(data, 2:7)
+```
+"""
+function unshaped end
+export unshaped
+
+unshaped(x::SubArray{T,0}) where T = view(parent(x), x.indices[1]:x.indices[1])
+unshaped(x::SubArray{T,1}) where T = x
+unshaped(x::Base.ReshapedArray{T,N,<:AbstractArray{T,1}}) where {T,N} = parent(x)
 
 
 function _checkcompat(shape::AbstractValueShape, data::AbstractVector{<:Real})
@@ -134,32 +197,27 @@ function _checkcompat(shape::AbstractValueShape, data::AbstractVector{<:Real})
 end
 
 
+@inline function _apply_shape_to_data(shape::AbstractValueShape, data::AbstractVector{<:Real})
+    @boundscheck _checkcompat(shape, data)
+    view(data, ValueAccessor(shape, 0))
+end
+
 @static if VERSION >= v"1.3"
     @inline function (shape::AbstractValueShape)(data::AbstractVector{<:Real})
-        @boundscheck _checkcompat(shape, data)
-        data[ValueAccessor(shape, 0)]
+        _apply_shape_to_data(shape, data)
     end
 else
-    # Workaround for Julia issue #14919
-    @inline function _apply_shape_to_data(shape::AbstractValueShape, data::AbstractVector{<:Real})
-        @boundscheck _checkcompat(shape, data)
-        data[ValueAccessor(shape, 0)]
-    end
+    # With Julia < v1.3, need to define (shape::SomeShape)(...) explicitly for
+    # each shape type, see source code for the respective shapes.
 end
 
 
-Base.Vector{T}(::UndefInitializer, shape::AbstractValueShape) where T =
+Base.Vector{T}(::UndefInitializer, shape::AbstractValueShape) where {T <: Real} =
     Vector{T}(undef, totalndof(shape))
 
-Base.Vector(::UndefInitializer, shape::AbstractValueShape) =
-    Vector{nonabstract_eltype(shape)}(undef, totalndof(shape))
 
-
-ArraysOfArrays.VectorOfSimilarVectors{T}(shape::AbstractValueShape) where T =
+ArraysOfArrays.VectorOfSimilarVectors{T}(shape::AbstractValueShape) where {T<:Real} =
     VectorOfSimilarVectors(ElasticArray{T}(undef, totalndof(shape), 0))
-
-ArraysOfArrays.VectorOfSimilarVectors(shape::AbstractValueShape) =
-    VectorOfSimilarVectors(ElasticArray{nonabstract_eltype(shape)}(undef, totalndof(shape), 0))
 
 
 const VSBroadcasted1{F,T} = Base.Broadcast.Broadcasted{
@@ -180,4 +238,10 @@ const VSBroadcasted2{F,T1,T2} = Base.Broadcast.Broadcasted{
 
 # Specialize (::AbstractValueShape).(::AbstractVector{<:AbstractVector}):
 Base.copy(instance::VSBroadcasted1{<:AbstractValueShape,AbstractVector{<:AbstractVector}}) =
-    broadcast(getindex, instance.args[1], ValueAccessor(instance.f, 0))    
+    broadcast(view, instance.args[1], ValueAccessor(instance.f, 0))    
+
+
+function _zerodim_array(x::T) where T
+    A = Array{T,0}(undef)
+    A[0] = x
+end

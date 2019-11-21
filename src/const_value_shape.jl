@@ -30,7 +30,11 @@ export ConstValueShape
 @inline Base.size(shape::ConstValueShape) = size(shape.value)
 @inline Base.length(shape::ConstValueShape) = length(shape.value)
 
-@inline Base.eltype(shape::ConstValueShape) = Int
+
+@inline default_unshaped_eltype(shape::ConstValueShape) = Int32
+
+@inline shaped_type(shape::ConstValueShape, ::Type{T}) where {T<:Real} = typeof(shape.value)
+
 
 @inline totalndof(::ConstValueShape) = 0
 
@@ -55,8 +59,17 @@ const ConstAccessor = ValueAccessor{ConstValueShape{T}} where {T}
 @inline vs_unsafe_view(::AbstractVector, va::ConstAccessor) = va.shape.value
 
 
-@inline _bcasted_getindex(data::AbstractVectorOfSimilarVectors{<:Real}, va::ConstAccessor) =
+function vs_setindex!(data::AbstractVector{<:Real}, v, va::ConstAccessor)
+    v == va.shape.value || throw(ArgumentError("Cannot set constant value to a different value"))
+    data
+end
+x =
+
+@inline _bcasted_view(data::AbstractVectorOfSimilarVectors{<:Real}, va::ConstAccessor) =
     Fill(va.shape.value, size(data,1))
 
 Base.copy(instance::VSBroadcasted2{typeof(getindex),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ConstAccessor}}) =
-    _bcasted_getindex(instance.args[1], instance.args[2][])    
+    _bcasted_view(instance.args[1], instance.args[2][])
+
+Base.copy(instance::VSBroadcasted2{typeof(view),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ConstAccessor}}) =
+    _bcasted_view(instance.args[1], instance.args[2][])

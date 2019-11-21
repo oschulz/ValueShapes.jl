@@ -13,20 +13,19 @@ using ElasticArrays, ArraysOfArrays
     @test @inferred(valshape(rand(3))) == ArrayShape{Float64,1}((3,))
     @test @inferred(valshape(rand(3, 4, 5))) == ArrayShape{Float64,3}((3, 4, 5))
 
-    @inferred(ValueShapes.nonabstract_eltype(ArrayShape{Complex,3}((3, 4, 5)))) == Complex{Float64}
+    @test @inferred(ValueShapes.default_unshaped_eltype(ArrayShape{Complex,3}((3, 4, 5)))) == Float64
+    @test @inferred(ValueShapes.default_unshaped_eltype(ArrayShape{Complex{Float32},3}((3, 4, 5)))) == Float32
+
+    @test @inferred(ValueShapes.shaped_type(ArrayShape{Real}(2, 3, 4))) == Array{Float64, 3}
+    @test @inferred(ValueShapes.shaped_type(ArrayShape{Complex}(2))) == Array{Complex{Float64}, 1}
+    @test @inferred(ValueShapes.shaped_type(ArrayShape{Complex{Real}}(2), Float32)) == Array{Complex{Float32}, 1}
+    @test @inferred(ValueShapes.shaped_type(ArrayShape{Complex{Int16}}(2, 3))) == Array{Complex{Int16}, 2}
 
     @test @inferred(totalndof(ArrayShape{Float64,1}((3,)))) == 3
     @test @inferred(totalndof(ArrayShape{Complex,3}((3, 4, 5)))) == 120
 
-    @test valshape(@inferred(Array(undef, ArrayShape{Complex,3}((3, 4, 5))))) == ArrayShape{Complex{Float64},3}((3, 4, 5))
-    @test typeof(@inferred(Array(undef, ArrayShape{Complex,3}((3, 4, 5))))) == Array{Complex{Float64},3}
-    @test size(@inferred(Array(undef, ArrayShape{Complex,3}((3, 4, 5))))) == (3, 4, 5)
-    @test typeof(@inferred(Array{Float32}(undef, ArrayShape{Real,1}((3,))))) == Array{Float32,1}
-
-    @test valshape(@inferred(ElasticArray(undef, ArrayShape{Complex,3}((3, 4, 5))))) == ArrayShape{Complex{Float64},3}((3, 4, 5))
-    @test typeof(@inferred(ElasticArray(undef, ArrayShape{Complex,3}((3, 4, 5))))) == ElasticArray{Complex{Float64},3,2}
-    @test size(@inferred(ElasticArray(undef, ArrayShape{Complex,3}((3, 4, 5))))) == (3, 4, 5)
-    @test typeof(@inferred(ElasticArray{Float32}(undef, ArrayShape{Real,2}((3,4))))) == ElasticArray{Float32,2,1}
+    @test size(@inferred(Vector{Float64}(undef, ArrayShape{Complex}((2, 1, 3))))) == (2 * 2*1*3,)
+    @test size(flatview(@inferred(VectorOfSimilarVectors{Float32}(ArrayShape{Complex}((2, 1, 3)))))) == (2 * 2*1*3, 0)
 
     shape = ArrayShape{Real}(2,3)
     A = @inferred(shape(undef))
@@ -39,7 +38,7 @@ using ElasticArrays, ArraysOfArrays
     @test eltype(@inferred(Vector{Float32}(undef, shape))) == Float32
     @test eltype(eltype(@inferred(VectorOfSimilarVectors{Float32}(shape)))) == Float32
 
-    @test valshape(shape.(push!(@inferred(VectorOfSimilarVectors(shape)), @inferred(Vector(undef, shape))))[1]) == valshape(shape(undef))
+    @test valshape(shape.(push!(@inferred(VectorOfSimilarVectors{Float64}(shape)), @inferred(Vector{Float64}(undef, shape))))[1]) == valshape(shape(undef))
 
     let
         A = collect(1:8)

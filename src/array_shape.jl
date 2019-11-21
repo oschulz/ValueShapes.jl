@@ -15,22 +15,6 @@ e.g.
 
     shape = ArrayShape{Real}(2, 3)
 
-In addition to using the shape as a value constructor
-
-    size(shape(undef)) == (2, 3)
-    eltype(shape(undef)) == Float64
-
-(see [`AbstractValueShape`](@ref)), a shape can also be used as an argument of
-certains array type constructors to explicitly construct standard `Array`s
-or `ElasticArray`s:
-
-    using ElasticArrays
-
-    size(Array(undef, shape)) == (2, 3)
-    eltype(Array(undef, shape)) == Float64
-
-    size(ElasticArray(undef, shape)) == (2, 3)
-
 See also the documentation of [`AbstractValueShape`](@ref).
 """
 struct ArrayShape{T,N} <: AbstractValueShape
@@ -47,10 +31,16 @@ ArrayShape{T}(dims::Integer...) where {T} = ArrayShape{T}(dims)
 @inline Base.size(shape::ArrayShape) = shape.dims
 Base.length(shape::ArrayShape) = prod(size(shape))
 
-@inline Base.eltype(::ArrayShape{T}) where {T} = T
-
 
 @inline _valshapeoftype(T::Type{<:AbstractArray}) = throw(ArgumentError("Type $T does not have a fixed shape"))
+
+
+@inline default_unshaped_eltype(shape::ArrayShape{T}) where {T} =
+    default_unshaped_eltype(_valshapeoftype(T))
+
+@inline shaped_type(shape::ArrayShape{T,N}, ::Type{U}) where {T,N,U<:Real} =
+    Array{shaped_type(_valshapeoftype(T),U),N}
+
 
 @inline function valshape(x::AbstractArray{T}) where T
     _valshapeoftype(T) # ensure T has a fixed shape
@@ -64,7 +54,7 @@ totalndof(shape::ArrayShape{T}) where{T} =
     prod(size(shape)) * totalndof(_valshapeoftype(T))
 
 
-(shape::ArrayShape{T,N})(::UndefInitializer) where {T,N} = Array{nonabstract_eltype(shape),N}(undef, size(shape)...)
+(shape::ArrayShape{T,N})(::UndefInitializer) where {T,N} = Array{default_datatype(T),N}(undef, size(shape)...)
 
 
 @static if VERSION < v"1.3"
@@ -74,25 +64,11 @@ totalndof(shape::ArrayShape{T}) where{T} =
 end
 
 
-@inline Array{U}(::UndefInitializer, shape::ArrayShape{T}) where {T,U<:T} =
-    Array{U}(undef, size(shape)...)
-
-@inline Array(::UndefInitializer, shape::ArrayShape) =
-    Array{nonabstract_eltype(shape)}(undef, shape)
-
-
-@inline ElasticArray{U}(::UndefInitializer, shape::ArrayShape{T}) where {T,U<:T} =
-    ElasticArray{U}(undef, size(shape)...)
-
-@inline ElasticArray(::UndefInitializer, shape::ArrayShape) =
-    ElasticArray{nonabstract_eltype(shape)}(undef, shape)
-
-
 
 const ArrayAccessor{T,N} = ValueAccessor{ArrayShape{T,N}} where {T,N}
 
 
-Base.@propagate_inbounds vs_getindex(data::AbstractVector{<:Real}, va::ArrayAccessor) = view(data, va)
+Base.@propagate_inbounds vs_getindex(data::AbstractVector{<:Real}, va::ArrayAccessor) = copy(view(data, va))
 
 Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ArrayAccessor{T,1}) where {T} =
     Base.unsafe_view(data, view_idxs(axes(data, 1), va))
@@ -105,14 +81,14 @@ Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::Array
     setindex!(data, v, view_idxs(axes(data, 1), va))
 
 
-Base.@propagate_inbounds function _bcasted_getindex(data::AbstractVectorOfSimilarVectors{<:Real}, va::ArrayAccessor{T,1}) where {T,N}
+Base.@propagate_inbounds function _bcasted_view(data::AbstractVectorOfSimilarVectors{<:Real}, va::ArrayAccessor{T,1}) where {T,N}
     flat_data = flatview(data)
     idxs = view_idxs(axes(flat_data, 1), va)
     fpview = view(flat_data, idxs, :)
     VectorOfSimilarVectors(fpview)
 end
 
-Base.@propagate_inbounds function _bcasted_getindex(data::AbstractVectorOfSimilarVectors{<:Real}, va::ArrayAccessor{T,N}) where {T,N}
+Base.@propagate_inbounds function _bcasted_view(data::AbstractVectorOfSimilarVectors{<:Real}, va::ArrayAccessor{T,N}) where {T,N}
     flat_data = flatview(data)
     idxs = view_idxs(axes(flat_data, 1), va)
     fpview = view(flat_data, idxs, :)
@@ -120,8 +96,10 @@ Base.@propagate_inbounds function _bcasted_getindex(data::AbstractVectorOfSimila
 end
 
 Base.copy(instance::VSBroadcasted2{typeof(getindex),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ArrayAccessor}}) =
-    _bcasted_getindex(instance.args[1], instance.args[2][])    
+    copy(_bcasted_view(instance.args[1], instance.args[2][]))
 
+Base.copy(instance::VSBroadcasted2{typeof(view),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ArrayAccessor}}) =
+    _bcasted_view(instance.args[1], instance.args[2][])
 
 # TODO: Add support for StaticArray.
 

@@ -29,7 +29,7 @@ ConstValueShape([1 2; 3 4])
 Array shapes can be used to construct a compatible real-valued data vector:
 
 ```julia
-Array(undef, ArrayShape{Real}(2, 3)) isa Array{Float64,2}
+Vector{Float64}(undef, ArrayShape{Real}(2, 3)) isa Vector{Float64}
 ```
 
 ValueShapes also provides a way to define the shape of a `NamedTuple`.
@@ -69,8 +69,10 @@ which can again be viewed as a `NamedTuple` described by `shape` via
 ```julia
 data_as_ntuple = parshapes(data)
 
-typeof(data_as_ntuple) <: NamedTuple{(:a, :b, :c)}
+data_as_ntuple isa ShapedAsNT{<:NamedTuple{(:a, :b, :c)}}
 ```
+
+(See [`ShapedAsNT`](@ref).)
 
 Note: The package [EponymTuples](https://github.com/tpapp/EponymTuples.jl)
 may come in handy to define functions that take such tuples as
@@ -81,9 +83,10 @@ to unpack `NamedTuple`s selectively.
 
 ValueShapes can also handle multiple values for sets of variables and
 is designed to compose well with
-[ArraysOfArrays](https://github.com/oschulz/ArraysOfArrays.jl) and
-[TypedTables](https://github.com/FugroRoames/TypedTables.jl)
-(and similar table packages):
+[ArraysOfArrays.jl](https://github.com/oschulz/ArraysOfArrays.jl) and
+[Tables.jl](https://github.com/JuliaData/Tables.jl)
+(and similar table packages). Broadcasting a shape over a vector of
+real-valued vectors will create a view that implements the Tables.jl API:
 
 ```julia
 using ArraysOfArrays, Tables, TypedTables
@@ -92,8 +95,31 @@ multidata = VectorOfSimilarVectors{Int}(parshapes)
 resize!(multidata, 10)
 rand!(flatview(multidata), 0:99)
 
-table = parshapes.(multidata)
-keys(Tables.columns(table)) == (:a, :b, :c)
+A = parshapes.(multidata)
+keys(Tables.columns(A)) == (:a, :b, :c)
 ```
 
-ValueShapes supports this via specialized broadcasting.
+ValueShapes supports this via specialized broadcasting. `A` is now a
+table-like view into the data (see [`ShapedAsNTArray`](@ref)), and shares
+memory with `multidata`. To create an independent copy, using a contiguous
+memory layout for each table columns, use `Tables.columns(A)`:
+
+```julia
+tcols = Tables.columns(A)
+flatview(tcols.b) isa Array{Int}
+```
+
+`getindex` operations on `A`, as well a constructing a `TypedTables.Table`,
+`DataFrames.DataFrame` or similar from `A` will have the same effect:
+
+```julia
+A[1] isa NamedTuple
+A[:] isa Table
+flatview(A[:].b) isa Array{Int}
+
+using TypedTables
+flatview(Table(A).b) isa Array{Int}
+
+using DataFrames
+flatview(DataFrame(A).b) isa Array{Int}
+```

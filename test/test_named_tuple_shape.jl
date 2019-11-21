@@ -32,11 +32,17 @@ import TypedTables
         shape = @inferred NamedTupleShape(;named_shapes...)
         @test @inferred(NamedTupleShape(named_shapes)) == shape
 
+        @test @inferred(ValueShapes.default_unshaped_eltype(NamedTupleShape(a = ScalarShape{Int}(), b = ArrayShape{Float32}(2, 3)))) == Float32
+        @test @inferred(ValueShapes.default_unshaped_eltype(shape)) == Float64
+
+        @test @inferred(ValueShapes.shaped_type(shape)) == NamedTuple{(:a, :b, :c, :x, :y),Tuple{Array{Float64,2},Float64,Float64,Array{Int,2},Array{Float64,1}}}
+        @test @inferred(ValueShapes.shaped_type(shape, Float32)) == NamedTuple{(:a, :b, :c, :x, :y),Tuple{Array{Float32,2},Float32,Float64,Array{Int,2},Array{Float32,1}}}
+
         @test @inferred(get_y(shape)) === ValueShapes._accessors(shape).y
         @test @inferred(Base.propertynames(shape)) == (:a, :b, :c, :x, :y)
         @test @inferred(totalndof(shape)) == 11
 
-        @test @inferred(shape(data[1])) == ref_table[1]
+        @test @inferred(shape(data[1])[]) == ref_table[1]
         @test @inferred(broadcast(shape, data)) == ref_table
 
         @test @inferred(merge((foo = 42,), shape)) == merge((foo = 42,), named_shapes)
@@ -45,10 +51,76 @@ import TypedTables
         @test typeof(@inferred(shape(undef))) == NamedTuple{(:a, :b, :c, :x, :y),Tuple{Array{Float64,2},Float64,Float64,Array{Int,2},Array{Float64,1}}}
         @test typeof(@inferred(valshape(shape(undef)))) <: NamedTupleShape
         @test typeof(valshape(shape(undef))(undef)) == NamedTuple{(:a, :b, :c, :x, :y),Tuple{Array{Float64,2},Float64,Float64,Array{Int,2},Array{Float64,1}}}
-        @test @inferred(shape(collect(1:11))) == (a = [1 3 5; 2 4 6], b = 7, c = 4.2, x = [11 21; 12 22], y = [8, 9, 10, 11])
+        @test @inferred(shape(collect(1:11))[]) == (a = [1 3 5; 2 4 6], b = 7, c = 4.2, x = [11 21; 12 22], y = [8, 9, 10, 11])
         @test_throws ArgumentError shape(collect(1:12))
 
-        @test valshape(shape.(push!(@inferred(VectorOfSimilarVectors(shape)), @inferred(Vector(undef, shape))))[1]) == valshape(shape(undef))
+        @test valshape(shape.(push!(@inferred(VectorOfSimilarVectors{Float64}(shape)), @inferred(Vector{Float64}(undef, shape))))[1]) == valshape(shape(undef))
+
+        @testset "ValueShapes.ShapedAsNT" begin
+            UA = copy(data[1])
+            @test @inferred(size(@inferred(ValueShapes.ShapedAsNT(UA, shape)))) == ()
+            A = ValueShapes.ShapedAsNT(UA, shape)
+
+            @test @inferred(propertynames(A)) == (:a, :b, :c, :x, :y)
+            @test propertynames(A, true) == (:a, :b, :c, :x, :y, :__internal_data, :__internal_valshape)
+            @test @inferred(get_y(A)) == [8, 9, 10, 11]
+
+            @test typeof(A.b) <: AbstractArray{Int,0}
+
+            @test @inferred(valshape(A)) === shape
+
+            @assert @inferred(unshaped(A)) === UA
+            @assert @inferred(unshaped(A.a)) == view(UA, 1:6)
+            @assert @inferred(unshaped(A.b)) == view(UA, 7:7)
+            @assert @inferred(unshaped(A.y)) == view(UA, 8:11)
+
+            @test @inferred(copy(A)) == A
+            @test typeof(copy(A)) == typeof(A)
+
+            @test @inferred((X -> (Y = copy(X); Y.a = [5 3 5; 9 4 5]; unshaped(Y)))(A)) == [5, 9, 3, 4, 5, 5, 7, 8, 9, 10, 11]
+            @test @inferred((X -> (Y = copy(X); Y.b = 9; unshaped(Y)))(A)) == [1, 2, 3, 4, 5, 6, 9, 8, 9, 10, 11]
+            @test @inferred((X -> (Y = copy(X); Y.c = 4.2; unshaped(Y)))(A)) == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+            @test_throws ArgumentError (X -> (Y = copy(X); Y.c = 4.3; unshaped(Y)))(A)
+            @test @inferred((X -> (Y = copy(X); Y.y = [4, 7, 5, 6]; unshaped(Y)))(A)) == [1, 2, 3, 4, 5, 6, 7, 4, 7, 5, 6]
+
+            x = (a = [5 3 5; 9 4 5], b = 9, c = 4.2, x = [11 21; 12 22], y = [4, 7, 5, 6])
+            @test (B = copy(A); B[] = x; B[1]) == x
+            @test (B = copy(A); B[1] = x; B[]) == x
+            @test_throws ArgumentError copy(A)[] = (a = [5 3 5; 9 4 5], b = 9, c = 4.2, x = [11 21; 12 23], y = [4, 7, 5, 6])
+        end
+
+        @testset "ValueShapes.ShapedAsNTArray" begin
+            UA = Array(data)
+            @test @inferred(size(@inferred(ValueShapes.ShapedAsNTArray(UA, shape)))) == (2,)
+            A = ValueShapes.ShapedAsNTArray(UA, shape)
+
+            @inferred typeof(@inferred broadcast(shape, data)) == typeof(A)
+            @test shape.(data) == A
+
+            @test @inferred(propertynames(A)) == (:a, :b, :c, :x, :y)
+            @test propertynames(A, true) == (:a, :b, :c, :x, :y, :__internal_data, :__internal_elshape)
+            @test @inferred(get_y(A)) == [[8, 9, 10, 11], [19, 20, 21, 22]]
+
+            @test @inferred(elshape(A)) === shape
+
+            @test @inferred(broadcast(unshaped, A)) === UA
+
+            @test @inferred(A[1]) == (a = [1 3 5; 2 4 6], b = 7, c = 4.2, x = [11 21; 12 22], y = [8, 9, 10, 11])
+            @test @inferred(view(A, 2)[]) == A[2]
+
+            @test @inferred(append!(copy(A), copy(A)))[3:4] == @inferred(A[1:2])
+            @test @inferred(vcat(A, A))[3:4] == @inferred(A[1:2])
+
+            @test @inferred(copy(A)) == A
+            @test typeof(copy(A)) == typeof(A)
+
+            @test @inferred(TypedTables.Table(A)) == A
+            @test typeof(@inferred flatview(TypedTables.Table(shape.(data)).y)) == Array{Int,2}
+
+            A_zero() = shape.(nestedview(zeros(totalndof(shape), 2)))
+            @test (B = A_zero(); B[:] = A; B) == A
+            @test (B = A_zero(); B[:] = TypedTables.Table(A); B) == A
+        end
     end
 
 

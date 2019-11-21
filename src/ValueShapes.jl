@@ -10,6 +10,7 @@ using ElasticArrays
 using FillArrays
 using Requires
 
+import Tables
 import TypedTables
 
 include("value_shape.jl")

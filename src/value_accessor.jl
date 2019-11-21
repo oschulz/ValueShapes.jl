@@ -23,6 +23,7 @@ acc = ValueAccessor(ArrayShape{Real}(2,3), 2)
 valshape(acc) == ArrayShape{Real,2}((2, 3))
 data = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 data[acc] == [3 5 7; 4 6 8]
+```
 
 Note: Subtypes of [`AbstractValueShape`](@ref) should specialize
 [`ValueShapes.vs_getindex`](@ref), [`ValueShapes.vs_unsafe_view`](@ref) and
@@ -30,7 +31,6 @@ Note: Subtypes of [`AbstractValueShape`](@ref) should specialize
 Specializing `Base.getindex`, `Base.view`, `Base.unsafe_view` or
 `Base.setindex!` directly may result in method ambiguities with custom array
 tapes that specialize these functions in a very generic fashion.
-```
 """
 struct ValueAccessor{S<:AbstractValueShape}
     shape::S
@@ -47,10 +47,10 @@ ValueAccessor(shape::S, offset::Int) where {S<:AbstractValueShape} = ValueAccess
 
 
 # Value accessors behave as scalars under broadcasting:
-@inline Base.Broadcast.broadcastable(shape::ValueAccessor) = Ref(shape)
+@inline Base.Broadcast.broadcastable(va::ValueAccessor) = Ref(va)
 
 
-nonabstract_eltype(va::ValueAccessor) = nonabstract_eltype(va.shape)
+default_unshaped_eltype(va::ValueAccessor) = default_unshaped_eltype(va.shape)
 
 
 Base.size(va::ValueAccessor) = size(va.shape)

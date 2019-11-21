@@ -14,13 +14,14 @@ import TypedTables
     @inferred(totalndof(ConstValueShape(42))) == 0
 
     @inferred(size(ConstValueShape(rand(2,3)))) == (2,3)
-    @inferred(eltype(ConstValueShape(rand(Float32,2,3)))) == Float32
+    @inferred(ValueShapes.default_unshaped_eltype(ConstValueShape(rand(Float32,2,3)))) == Float32
     @inferred(totalndof(ConstValueShape(rand(2,3)))) == 0
 
     @test @inferred(ConstValueShape([1 4; 3 2])(undef)) == [1 4; 3 2]
     @test @inferred(ConstValueShape([1 4; 3 2])(Int[])) == [1 4; 3 2]
 
     shape = ConstValueShape([1 4; 3 2])
-    @test typeof(@inferred(Vector(undef, shape))) == Vector{Int}
-    @test size(@inferred(Vector(undef, shape))) == (0,)
+
+    @test typeof(@inferred(Vector{Int32}(undef, shape))) == Vector{Int32}
+    @test size(@inferred(Vector{Int32}(undef, shape))) == (0,)
 end

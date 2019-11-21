@@ -11,7 +11,7 @@ using Test
     )
 
     x_flat = rand(@inferred totalndof(shape))
-    x = @inferred shape(x_flat)
+    x = @inferred shape(x_flat)[]
 
     f(x) = sum(x.a * x.b)
 

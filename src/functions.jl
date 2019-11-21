@@ -42,9 +42,11 @@ varshape(fws::FuncWithVarShape) = fws.varshape
 
 Base.@propagate_inbounds (fws::FuncWithVarShape)(x::Any) = fws.f(x)
 
-Base.@propagate_inbounds (fws::FuncWithVarShape)(x::AbstractVector{<:Real}) =
-    fws.f(varshape(fws)(x))
-
+Base.@propagate_inbounds function (fws::FuncWithVarShape)(x::AbstractVector{<:Real})
+    # ToDo: Check performance:
+    x_shaped = varshape(fws)(x)[]
+    fws.f(x_shaped)
+end
 
 import Base.>>
 @inline >>(varshape::AbstractValueShape, f::Function) = FuncWithVarShape(f, varshape)

@@ -9,10 +9,22 @@ abstract type AbstractScalarShape{T} <: AbstractValueShape end
 export AbstractScalarShape
 
 
-@inline Base.eltype(shape::AbstractScalarShape{T}) where {T} = T
-
 @inline Base.size(::AbstractScalarShape) = ()
 @inline Base.length(::AbstractScalarShape) = 1
+
+
+@inline default_unshaped_eltype(shape::AbstractScalarShape{T}) where {T<:Real} =
+    default_datatype(T)
+
+@inline default_unshaped_eltype(shape::AbstractScalarShape{Complex}) = default_datatype(Real)
+
+@inline default_unshaped_eltype(shape::AbstractScalarShape{<:Complex{T}}) where {T} =
+    default_unshaped_eltype(_valshapeoftype(T))
+
+
+@inline shaped_type(shape::AbstractScalarShape{<:Real}, ::Type{T}) where {T<:Real} = T
+
+@inline shaped_type(shape::AbstractScalarShape{<:Complex}, ::Type{T}) where {T<:Real} = Complex{T}
 
 
 
@@ -65,7 +77,7 @@ export ScalarShape
     end
 end
 
-(shape::ScalarShape{<:Number})(::UndefInitializer) = zero(nonabstract_eltype(shape))
+(shape::ScalarShape{T})(::UndefInitializer) where {T<:Number} = zero(default_datatype(T))
 
 
 @static if VERSION < v"1.3"
@@ -95,11 +107,14 @@ Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::Scala
     setindex!(data, v, view_idxs(axes(data, 1), va))
 
 
-Base.@propagate_inbounds function _bcasted_getindex(data::AbstractVectorOfSimilarVectors{<:Real}, va::ScalarAccessor)
+Base.@propagate_inbounds function _bcasted_view(data::AbstractVectorOfSimilarVectors{<:Real}, va::ScalarAccessor)
     flat_data = flatview(data)
     idxs = view_idxs(axes(flat_data, 1), va)
     view(flat_data, idxs, :)
 end
 
 Base.copy(instance::VSBroadcasted2{typeof(getindex), AbstractVectorOfSimilarVectors{<:Real},Ref{<:ScalarAccessor}}) =
-    _bcasted_getindex(instance.args[1], instance.args[2][])    
+    copy(_bcasted_view(instance.args[1], instance.args[2][]))
+
+Base.copy(instance::VSBroadcasted2{typeof(view), AbstractVectorOfSimilarVectors{<:Real},Ref{<:ScalarAccessor}}) =
+    _bcasted_view(instance.args[1], instance.args[2][])

@@ -20,8 +20,15 @@ import TypedTables
     @test @inferred(size(ScalarShape{Real}())) == ()
     @test @inferred(size(ScalarShape{Complex}())) == ()
 
-    @test @inferred(eltype(ScalarShape{Real}())) == Real
-    @test @inferred(ValueShapes.nonabstract_eltype(ScalarShape{Real}())) == Float64
+    @test @inferred(ValueShapes.default_unshaped_eltype(ScalarShape{Real}())) == Float64
+    @test @inferred(ValueShapes.default_unshaped_eltype(ScalarShape{Complex{Real}}())) == Float64
+    @test @inferred(ValueShapes.default_unshaped_eltype(ScalarShape{Complex{Int32}}())) == Int32
+
+    @test @inferred(ValueShapes.shaped_type(ScalarShape{Real}())) == Float64
+    @test @inferred(ValueShapes.shaped_type(ScalarShape{Real}(), Float32)) == Float32
+    @test @inferred(ValueShapes.shaped_type(ScalarShape{Complex}())) == Complex{Float64}
+    @test @inferred(ValueShapes.shaped_type(ScalarShape{Complex{Real}}(), Float32)) == Complex{Float32}
+    @test @inferred(ValueShapes.shaped_type(ScalarShape{Complex{Int16}}())) == Complex{Int16}
 
     @test @inferred(totalndof(ScalarShape{Int}())) == 1
     @test @inferred(totalndof(ScalarShape{Complex{Float64}}())) == 2
@@ -29,11 +36,12 @@ import TypedTables
     @test @inferred(ScalarShape{Real}()(undef)) === zero(Float64)
     @test @inferred(ScalarShape{Complex}()(undef)) === zero(Complex{Float64})
 
-    @test @inferred(ScalarShape{Real}()([42])) == 42
+    @test typeof(@inferred(ScalarShape{Real}()([42]))) <: SubArray{Int,0}
+    @test @inferred(ScalarShape{Real}()([42])[]) == 42
 
     @test begin
         shape = ScalarShape{Real}()
-        valshape(shape.(push!(@inferred(VectorOfSimilarVectors(shape)), @inferred(Vector(undef, shape))))[1]) == valshape(shape(undef))
+        valshape(shape.(push!(@inferred(VectorOfSimilarVectors{Float64}(shape)), @inferred(Vector{Float64}(undef, shape))))[1]) == valshape(shape(undef))
     end
 
     let
