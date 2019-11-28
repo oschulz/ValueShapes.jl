@@ -369,7 +369,7 @@ Base.copy(instance::VSBroadcasted1{typeof(unshaped),ShapedAsNTArray}) =
         data = _data(A)
         shape = _elshape(A)
         va = getproperty(_accessors(shape), p)
-        view.(data, va)
+        view.(data, Ref(va))
     end
 end
 

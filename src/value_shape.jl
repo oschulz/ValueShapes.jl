@@ -87,8 +87,9 @@ abstract type AbstractValueShape end
 export AbstractValueShape
 
 
-# Value shapes behave as scalars under broadcasting:
-@inline Base.Broadcast.broadcastable(shape::AbstractValueShape) = Ref(shape)
+# Reserve broadcasting semantics for value shapes:
+@inline Base.Broadcast.broadcastable(shape::AbstractValueShape) =
+    throw(ArgumentError("broadcasting over `AbstractValueShape`s is reserved"))
 
 
 function _valshapeoftype end
@@ -238,7 +239,7 @@ const VSBroadcasted2{F,T1,T2} = Base.Broadcast.Broadcasted{
 
 # Specialize (::AbstractValueShape).(::AbstractVector{<:AbstractVector}):
 Base.copy(instance::VSBroadcasted1{<:AbstractValueShape,AbstractVector{<:AbstractVector}}) =
-    broadcast(view, instance.args[1], ValueAccessor(instance.f, 0))    
+    broadcast(view, instance.args[1], Ref(ValueAccessor(instance.f, 0)))
 
 
 function _zerodim_array(x::T) where T

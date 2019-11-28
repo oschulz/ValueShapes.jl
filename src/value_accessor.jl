@@ -46,8 +46,9 @@ export ValueAccessor
 ValueAccessor(shape::S, offset::Int) where {S<:AbstractValueShape} = ValueAccessor{S}(shape, offset)
 
 
-# Value accessors behave as scalars under broadcasting:
-@inline Base.Broadcast.broadcastable(va::ValueAccessor) = Ref(va)
+# Reserve broadcasting semantics for value accessors:
+@inline Base.Broadcast.broadcastable(va::ValueAccessor) =
+    throw(ArgumentError("broadcasting over `ValueAccessor`s is reserved"))
 
 
 default_unshaped_eltype(va::ValueAccessor) = default_unshaped_eltype(va.shape)
