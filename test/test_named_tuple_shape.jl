@@ -69,10 +69,10 @@ import TypedTables
 
             @test @inferred(valshape(A)) === shape
 
-            @assert @inferred(unshaped(A)) === UA
-            @assert @inferred(unshaped(A.a)) == view(UA, 1:6)
-            @assert @inferred(unshaped(A.b)) == view(UA, 7:7)
-            @assert @inferred(unshaped(A.y)) == view(UA, 8:11)
+            @test @inferred(unshaped(A)) === UA
+            @test @inferred(unshaped(A.a)) == view(UA, 1:6)
+            @test @inferred(unshaped(A.b)) == view(UA, 7:7)
+            @test @inferred(unshaped(A.y)) == view(UA, 8:11)
 
             @test @inferred(copy(A)) == A
             @test typeof(copy(A)) == typeof(A)
