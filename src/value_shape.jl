@@ -190,6 +190,40 @@ unshaped(x::SubArray{T,1}) where T = x
 unshaped(x::Base.ReshapedArray{T,N,<:AbstractArray{T,1}}) where {T,N} = parent(x)
 
 
+"""
+    stripscalar(x)
+
+Dereference value `x`.
+
+If x is a scalar-like object, like a 0-dimensional array or a `Ref`,
+`stripscalar` returns it's inner value. Otherwise, `x` is returned unchanged.
+
+Useful to strip shaped scalar-like views of their 0-dim array semantics
+(if present), but leave array-like views unchanged.
+
+Example:
+
+```julia
+data = [1, 2, 3]
+shape1 = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2))
+x1 = shape1(data)
+@assert x1 isa AbstractArray{<:NamedTuple,0}
+@assert stripscalar(x) isa NamedTuple
+
+shape2 = ArrayShape{Real}(3)
+x2 = shape2(data)
+@assert x2 isa AbstractArray{Int,1}
+@assert ref(x2) isa AbstractArray{Int,1}
+```
+"""
+function stripscalar end
+export stripscalar
+
+stripscalar(x::Any) = x
+stripscalar(x::Ref) = x[]
+stripscalar(x::AbstractArray{T,0}) where T = x[]
+
+
 function _checkcompat(shape::AbstractValueShape, data::AbstractVector{<:Real})
     n_shape = totalndof(shape)
     n_data = length(eachindex(data))

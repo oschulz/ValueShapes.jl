@@ -69,6 +69,13 @@ import TypedTables
 
             @test @inferred(valshape(A)) === shape
 
+            @test @inferred(stripscalar(A)) == A[]
+            @test @inferred(stripscalar(A.a)) == A.a
+            @test @inferred(stripscalar(A.b)) == A.b[]
+            @test @inferred(stripscalar(A.c)) == A.c
+            @test @inferred(stripscalar(A.x)) === A.x
+            @test @inferred(unshaped(A.y)) === A.y
+
             @test @inferred(unshaped(A)) === UA
             @test @inferred(unshaped(A.a)) == view(UA, 1:6)
             @test @inferred(unshaped(A.b)) == view(UA, 7:7)
