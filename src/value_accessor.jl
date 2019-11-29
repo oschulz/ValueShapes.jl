@@ -56,7 +56,11 @@ nonabstract_eltype(va::ValueAccessor) = nonabstract_eltype(va.shape)
 Base.size(va::ValueAccessor) = size(va.shape)
 Base.length(va::ValueAccessor) = length(va.shape)
 
-Base.to_indices(A::AbstractArray{T,N}, I::NTuple{N,ValueAccessor}) where {T<:Real,N} = I
+# Can't use `idxs::Vararg{ValueAccessor,N}`, would cause ambiguities with
+# Base for N == 0.
+Base.to_indices(A::AbstractArray{T,1}, I::Tuple{ValueAccessor}) where {T<:Real} = I
+Base.to_indices(A::AbstractArray{T,2}, I::Tuple{ValueAccessor,ValueAccessor}) where {T<:Real} = I
+Base.to_indices(A::AbstractArray{T,3}, I::Tuple{ValueAccessor,ValueAccessor,ValueAccessor}) where {T<:Real} = I
 
 Base.checkindex(::Type{Bool}, inds::AbstractUnitRange, i::ValueAccessor) =
     checkindex(Bool, inds, view_idxs(inds, i))
@@ -98,11 +102,14 @@ Base.@propagate_inbounds function vs_getindex(
     getindex(data, view_idxs(axes(data, 1), va_row), view_idxs(axes(data, 2), va_col))
 end
 
-Base.@propagate_inbounds Base._getindex(::IndexStyle, data::AbstractVector{<:Real}, idx::ValueAccessor) =
-    vs_getindex(data, idx)
-
-Base.@propagate_inbounds Base._getindex(::IndexStyle, data::AbstractArray{<:Real,N}, idxs::Vararg{ValueAccessor,N}) where N =
-    vs_getindex(data, idxs...)
+# Can't use `idxs::Vararg{ValueAccessor,N}`, would cause ambiguities with
+# Base for N == 0.
+Base.@propagate_inbounds Base._getindex(::IndexStyle, data::AbstractArray{<:Real,1}, idx1::ValueAccessor) =
+    vs_getindex(data, idx1)
+Base.@propagate_inbounds Base._getindex(::IndexStyle, data::AbstractArray{<:Real,2}, idx1::ValueAccessor, idx2::ValueAccessor) =
+    vs_getindex(data, idx1, idx2)
+Base.@propagate_inbounds Base._getindex(::IndexStyle, data::AbstractArray{<:Real,3}, idx1::ValueAccessor, idx2::ValueAccessor, idx3::ValueAccessor) =
+    vs_getindex(data, idx1, idx2, idx3)
 
 
 """
@@ -120,11 +127,14 @@ Base.@propagate_inbounds function vs_unsafe_view(
     Base.unsafe_view(data, view_idxs(axes(data, 1), va_row), view_idxs(axes(data, 2), va_col))
 end
 
-Base.@propagate_inbounds Base.unsafe_view(data::AbstractVector{<:Real}, idx::ValueAccessor) =
-    vs_unsafe_view(data, idx)
-
-Base.@propagate_inbounds Base.unsafe_view(data::AbstractArray{<:Real,N}, idxs::Vararg{ValueAccessor,N}) where N =
-    vs_unsafe_view(data, idxs...)
+# Can't use `idxs::Vararg{ValueAccessor,N}`, would cause ambiguities with
+# Base for N == 0.
+Base.@propagate_inbounds Base.unsafe_view(data::AbstractArray{<:Real,1}, idx1::ValueAccessor) =
+    vs_unsafe_view(data, idx1)
+Base.@propagate_inbounds Base.unsafe_view(data::AbstractArray{<:Real,2}, idx1::ValueAccessor, idx2::ValueAccessor) =
+    vs_unsafe_view(data, idx1, idx2)
+Base.@propagate_inbounds Base.unsafe_view(data::AbstractArray{<:Real,3}, idx1::ValueAccessor, idx2::ValueAccessor, idx3::ValueAccessor) =
+    vs_unsafe_view(data, idx1, idx2, idx3)
 
 
 """
@@ -142,8 +152,11 @@ Base.@propagate_inbounds function vs_setindex!(
     setindex!(data, v, view_idxs(axes(data, 1), va_row), view_idxs(axes(data, 2), va_col))
 end
 
-Base.@propagate_inbounds Base._setindex!(::IndexStyle, data::AbstractVector{<:Real}, v, idx::ValueAccessor) =
-    vs_setindex!(data, v, idx)
-
-Base.@propagate_inbounds Base._setindex!(::IndexStyle, data::AbstractArray{<:Real,N}, v, idxs::Vararg{ValueAccessor,N}) where N =
-    vs_setindex!(data, v, idxs...)
+# Can't use `idxs::Vararg{ValueAccessor,N}`, would cause ambiguities with
+# Base for N == 0.
+Base.@propagate_inbounds Base._setindex!(::IndexStyle, data::AbstractArray{<:Real,1}, v, idx1::ValueAccessor) =
+    vs_setindex!(data, v, idx1)
+Base.@propagate_inbounds Base._setindex!(::IndexStyle, data::AbstractArray{<:Real,2}, v, idx1::ValueAccessor, idx2::ValueAccessor) =
+    vs_setindex!(data, v, idx1, idx2)
+Base.@propagate_inbounds Base._setindex!(::IndexStyle, data::AbstractArray{<:Real,3}, v, idx1::ValueAccessor, idx2::ValueAccessor, idx3::ValueAccessor) =
+    vs_setindex!(data, v, idx1, idx2, idx3)
