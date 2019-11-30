@@ -8,8 +8,11 @@ using ArraysOfArrays
 using Distributions
 using ElasticArrays
 using FillArrays
+using Random
 using Requires
+using Statistics
 
+import IntervalSets
 import Tables
 import TypedTables
 
@@ -18,8 +21,10 @@ include("value_accessor.jl")
 include("scalar_shape.jl")
 include("array_shape.jl")
 include("const_value_shape.jl")
+include("named_tuple_shape.jl")
 include("functions.jl")
 include("distributions.jl")
-include("named_tuple_shape.jl")
+include("const_value_dist.jl")
+include("named_tuple_dist.jl")
 
 end # module

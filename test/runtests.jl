@@ -8,7 +8,9 @@ Test.@testset "Package ValueShapes" begin
     include("test_scalar_shape.jl")
     include("test_array_shape.jl")
     include("test_const_value_shape.jl")
+    include("test_named_tuple_shape.jl")
     include("test_functions.jl")
     include("test_distributions.jl")
-    include("test_named_tuple_shape.jl")
+    include("test_const_value_dist.jl")
+    include("test_named_tuple_dist.jl")
 end # testset

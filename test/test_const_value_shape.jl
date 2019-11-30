@@ -3,10 +3,6 @@
 using ValueShapes
 using Test
 
-using Random
-using ArraysOfArrays
-import TypedTables
-
 
 @testset "const_value_shape" begin
     @inferred(size(ConstValueShape(42))) == ()
