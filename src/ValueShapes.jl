@@ -11,6 +11,7 @@ using FillArrays
 using Random
 using Requires
 using Statistics
+using StatsBase
 
 import IntervalSets
 import Tables
