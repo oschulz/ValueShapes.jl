@@ -28,6 +28,8 @@ Distributions.minimum(d::ConstValueDist{Univariate}) = x.value
 Distributions.maximum(d::ConstValueDist{Univariate}) = x.value
 Distributions.insupport(d::ConstValueDist{Univariate}, x::Real) = x == d.value
 
+StatsBase.mode(d::ConstValueDist) = d.value
+
 Base.size(d::ConstValueDist) = size(d.value)
 Base.length(d::ConstValueDist) = prod(size(d))
 Base.eltype(d::ConstValueDist) = eltype(d.value)

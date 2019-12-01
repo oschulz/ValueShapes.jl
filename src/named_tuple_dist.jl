@@ -145,7 +145,42 @@ function Distributions._rand!(rng::AbstractRNG, d::NamedTupleDist, x::AbstractVe
     x
 end
 
-#Random.rand(rng::AbstractRNG, d::NamedTupleDist) = rand!(rng, d, Vector{Float64}(undef, length(d)))
+
+function _ntd_mode!(
+    dist::ConstValueDist,
+    acc::ValueShapes.ValueAccessor{<:ConstValueShape},
+    params::AbstractVector{<:Real}
+)
+    nothing
+end
+
+function _ntd_mode!(
+    dist::Distribution,
+    acc::ValueShapes.ValueAccessor,
+    params::AbstractVector{<:Real}
+)
+    view(params, acc) .= mode(dist)
+    nothing
+end
+
+# Workaround, Distributions.jl doesn't define mode for Product:
+function _ntd_mode!(
+    dist::Distributions.Product,
+    acc::ValueShapes.ValueAccessor,
+    params::AbstractVector{<:Real}
+)
+    view(params, acc) .= map(mode, dist.v)
+    nothing
+end
+
+function StatsBase.mode(d::NamedTupleDist)
+    distributions = values(d)
+    shape = varshape(d)
+    accessors = values(shape)
+    params = Vector{default_unshaped_eltype(shape)}(undef,shape)
+    map((dist, acc) -> _ntd_mode!(dist, acc, params), distributions, accessors)
+    params
+end
 
 
 function _ntd_var_or_cov!(A_cov::AbstractArray{<:Real,0}, dist::Distribution{Univariate})
