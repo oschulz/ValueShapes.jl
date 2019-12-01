@@ -17,9 +17,8 @@ _ntd_dist_and_shape(x::AbstractArray{<:Number}) = _ntd_dist_and_shape(ConstValue
 
 A distribution with `NamedTuple`-typed variates.
 
-Can be used to describe the distribution of each parameter in a set of
-named parameters. If the distribution is used as a Bayesian prior,
-the `NamedTupleDist` then specifies the prior on each named parameter.
+`NamedTupleDist` provides an effective mechanism to specify the distribution
+of each variable/parameter in a set of named variables/parameters.
 
 Calling `varshape` on a `NamedTupleDist` will yield a
 [`NamedTupleShape`](@ref).
@@ -36,15 +35,15 @@ end
 export NamedTupleDist
 
 
-function NamedTupleDist(param_priors::NamedTuple{names}) where {names}
-    dsb = map(_ntd_dist_and_shape, param_priors)
+function NamedTupleDist(dists::NamedTuple{names}) where {names}
+    dsb = map(_ntd_dist_and_shape, dists)
     NamedTupleDist(
         map(x -> x[1], dsb),
         NamedTupleShape(map(x -> x[2], dsb))
     )
 end
 
-@inline NamedTupleDist(;named_priors...) = NamedTupleDist(values(named_priors))
+@inline NamedTupleDist(;named_dists...) = NamedTupleDist(values(named_dists))
 
 
 
@@ -90,34 +89,34 @@ Base.length(d::NamedTupleDist) = sum(_ntd_length, values(d))
 function _ntd_logpdf(
     dist::ConstValueDist,
     acc::ValueShapes.ValueAccessor{<:ConstValueShape},
-    params::AbstractVector{<:Real}
+    x::AbstractVector{<:Real}
 )
-    float(zero(eltype(params)))
+    float(zero(eltype(x)))
 end
 
 function _ntd_logpdf(
     dist::Distribution,
     acc::ValueShapes.ValueAccessor,
-    params::AbstractVector{<:Real}
+    x::AbstractVector{<:Real}
 )
-    logpdf(dist, float(params[acc]))
+    logpdf(dist, float(x[acc]))
 end
 
-function Distributions.logpdf(d::NamedTupleDist, params::AbstractVector{<:Real})
+function Distributions.logpdf(d::NamedTupleDist, x::AbstractVector{<:Real})
     distributions = values(d)
     accessors = values(varshape(d))
-    sum(map((dist, acc) -> _ntd_logpdf(dist, acc, params), distributions, accessors))
+    sum(map((dist, acc) -> _ntd_logpdf(dist, acc, x), distributions, accessors))
 end
 
 
 # ConstValueDist has no dof, so NamedTupleDist logpdf contribution must be zero:
-_ntd_logpdf(dist::ConstValueDist, params::Any) = zero(Float32)
+_ntd_logpdf(dist::ConstValueDist, x::Any) = zero(Float32)
 
-_ntd_logpdf(dist::Distribution, params::Any) = logpdf(dist, params)
+_ntd_logpdf(dist::Distribution, x::Any) = logpdf(dist, x)
 
-function Distributions.logpdf(d::NamedTupleDist{names}, params::NamedTuple{names}) where names
+function Distributions.logpdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names
     distributions = values(d)
-    parvalues = values(params)
+    parvalues = values(x)
     sum(map((dist, d) -> _ntd_logpdf(dist, d), distributions, parvalues))
 end
 
@@ -125,7 +124,7 @@ end
 function _ntd_rand!(
     rng::AbstractRNG, dist::ConstValueDist,
     acc::ValueShapes.ValueAccessor{<:ConstValueShape},
-    params::AbstractVector{<:Real}
+    x::AbstractVector{<:Real}
 )
     nothing
 end
@@ -133,17 +132,17 @@ end
 function _ntd_rand!(
     rng::AbstractRNG, dist::Distribution,
     acc::ValueShapes.ValueAccessor,
-    params::AbstractVector{<:Real}
+    x::AbstractVector{<:Real}
 )
-    rand!(rng, dist, view(params, acc))
+    rand!(rng, dist, view(x, acc))
     nothing
 end
 
-function Distributions._rand!(rng::AbstractRNG, d::NamedTupleDist, params::AbstractVector{<:Real})
+function Distributions._rand!(rng::AbstractRNG, d::NamedTupleDist, x::AbstractVector{<:Real})
     distributions = values(d)
     accessors = values(varshape(d))
-    map((dist, acc) -> _ntd_rand!(rng, dist, acc, params), distributions, accessors)
-    params
+    map((dist, acc) -> _ntd_rand!(rng, dist, acc, x), distributions, accessors)
+    x
 end
 
 #Random.rand(rng::AbstractRNG, d::NamedTupleDist) = rand!(rng, d, Vector{Float64}(undef, length(d)))

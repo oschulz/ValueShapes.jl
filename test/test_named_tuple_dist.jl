@@ -6,15 +6,15 @@ using Test
 using Distributions, IntervalSets
 
 @testset "NamedTupleDist" begin
-    prior = @inferred NamedTupleDist(a = 5, b = Normal(), c = -4..5, d = MvNormal([1.2 0.5; 0.5 2.1]), e = [Normal(1.1, 0.2)] )
+    dist = @inferred NamedTupleDist(a = 5, b = Normal(), c = -4..5, d = MvNormal([1.2 0.5; 0.5 2.1]), e = [Normal(1.1, 0.2)] )
 
-    @test typeof(@inferred varshape(prior)) <: NamedTupleShape
+    @test typeof(@inferred varshape(dist)) <: NamedTupleShape
 
-    parshapes = varshape(prior)
+    shape = varshape(dist)
 
-    @test (@inferred logpdf(prior, [0.2, -0.4, 0.3, -0.5, 0.9])) == logpdf(Normal(), 0.2) + logpdf(Uniform(-4, 5), -0.4) + logpdf(MvNormal([1.2 0.5; 0.5 2.1]), [0.3, -0.5]) + logpdf(Normal(1.1, 0.2), 0.9)
+    @test (@inferred logpdf(dist, [0.2, -0.4, 0.3, -0.5, 0.9])) == logpdf(Normal(), 0.2) + logpdf(Uniform(-4, 5), -0.4) + logpdf(MvNormal([1.2 0.5; 0.5 2.1]), [0.3, -0.5]) + logpdf(Normal(1.1, 0.2), 0.9)
 
-    @test (@inferred logpdf(prior, parshapes([0.2, -0.4, 0.3, -0.5, 0.9])[])) == logpdf(Normal(), 0.2) + logpdf(Uniform(-4, 5), -0.4) + logpdf(MvNormal([1.2 0.5; 0.5 2.1]), [0.3, -0.5]) + logpdf(Normal(1.1, 0.2), 0.9)
+    @test (@inferred logpdf(dist, shape([0.2, -0.4, 0.3, -0.5, 0.9])[])) == logpdf(Normal(), 0.2) + logpdf(Uniform(-4, 5), -0.4) + logpdf(MvNormal([1.2 0.5; 0.5 2.1]), [0.3, -0.5]) + logpdf(Normal(1.1, 0.2), 0.9)
 
     @test begin
         ref_cov = 
@@ -25,9 +25,9 @@ using Distributions, IntervalSets
              0.0  0.0   0.0  0.0 0.04 ]
 
         @static if VERSION >= v"1.2"
-            (@inferred cov(prior)) ≈ ref_cov
+            (@inferred cov(dist)) ≈ ref_cov
         else
-            (cov(prior)) ≈ ref_cov
+            (cov(dist)) ≈ ref_cov
         end
     end
 

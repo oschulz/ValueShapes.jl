@@ -34,8 +34,8 @@ Base.eltype(d::ConstValueDist) = eltype(d.value)
 
 Random.rand(rng::AbstractRNG, d::ConstValueDist) = d.value
 
-function Random._rand!(rng::AbstractRNG, d::ConstValueDist, params::AbstractArray{<:Real})
-    copyto!(params, d.value)
+function Random._rand!(rng::AbstractRNG, d::ConstValueDist, x::AbstractArray{<:Real})
+    copyto!(x, d.value)
 end
 
 
