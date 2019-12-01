@@ -6,7 +6,13 @@ using Test
 using Distributions, IntervalSets
 
 @testset "NamedTupleDist" begin
-    dist = @inferred NamedTupleDist(a = 5, b = Normal(), c = -4..5, d = MvNormal([1.2 0.5; 0.5 2.1]), e = [Normal(1.1, 0.2)] )
+    dist = @inferred NamedTupleDist(
+        a = 5, b = Normal(),
+        c = -4..5,
+        d = MvNormal([1.2 0.5; 0.5 2.1]),
+        x = [3 4; 2 5],
+        e = [Normal(1.1, 0.2)]
+    )
 
     @test typeof(@inferred varshape(dist)) <: NamedTupleShape
 
