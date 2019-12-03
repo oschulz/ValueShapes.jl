@@ -14,5 +14,8 @@ import TypedTables
         @test @inferred(ValueShapes.default_datatype(AbstractFloat)) == Float64
         @test @inferred(ValueShapes.default_datatype(Real)) == Float64
         @test @inferred(ValueShapes.default_datatype(Complex)) == Complex{Float64}
+
+        @test @inferred(elshape(Complex(1.0, 2.0))) == ScalarShape{Complex{Float64}}()
+        @test @inferred(elshape([[3, 5], [3, 2]])) == ArrayShape{Int,1}((2,))
     end
 end

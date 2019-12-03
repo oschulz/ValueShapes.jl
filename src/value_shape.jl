@@ -146,7 +146,7 @@ export elshape
 
 @inline elshape(x::T) where T = _valshapeoftype(eltype(T))
 
-@inline elshape(A::AbstractArray{T,N}) where {T,N} = ArrayShape{T}{innersize(A)}
+@inline elshape(A::AbstractArray{<:AbstractArray}) = ArrayShape{eltype(eltype(A))}(innersize(A)...)
 
 
 """
