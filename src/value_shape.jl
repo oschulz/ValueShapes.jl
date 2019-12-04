@@ -227,7 +227,17 @@ stripscalar(x::AbstractArray{T,0}) where T = x[]
 function _checkcompat(shape::AbstractValueShape, data::AbstractVector{<:Real})
     n_shape = totalndof(shape)
     n_data = length(eachindex(data))
-    if n_shape != length(eachindex(data))
+    if n_shape != n_data
+        throw(ArgumentError("Data vector of length $(n_data) incompatible with value shape with $(n_shape) degrees of freedom"))
+    end
+    nothing
+end
+
+
+function _checkcompat_inner(shape::AbstractValueShape, data::AbstractVector{<:AbstractVector{<:Real}})
+    n_shape = totalndof(shape)
+    n_data = prod(innersize(data))
+    if n_shape != n_data
         throw(ArgumentError("Data vector of length $(n_data) incompatible with value shape with $(n_shape) degrees of freedom"))
     end
     nothing
@@ -276,8 +286,8 @@ const VSBroadcasted2{F,T1,T2} = Base.Broadcast.Broadcasted{
 }
 
 
-# Specialize (::AbstractValueShape).(::AbstractVector{<:AbstractVector}):
-Base.copy(instance::VSBroadcasted1{<:AbstractValueShape,AbstractVector{<:AbstractVector}}) =
+# Specialize (::AbstractValueShape).(::AbstractVector{<:AbstractVector{<:Real}}):
+Base.copy(instance::VSBroadcasted1{<:AbstractValueShape,AbstractVector{<:AbstractVector{<:Real}}}) =
     broadcast(view, instance.args[1], Ref(ValueAccessor(instance.f, 0)))
 
 

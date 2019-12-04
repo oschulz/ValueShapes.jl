@@ -101,6 +101,28 @@ Base.copy(instance::VSBroadcasted2{typeof(getindex),AbstractVectorOfSimilarVecto
 Base.copy(instance::VSBroadcasted2{typeof(view),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ArrayAccessor}}) =
     _bcasted_view(instance.args[1], instance.args[2][])
 
+
+function _bcasted_view_unchanged(data::AbstractArray{<:AbstractVector{T}}, shape::ArrayShape{U,1}) where {T<:Real,U>:T}
+    _checkcompat_inner(shape, data)
+    data
+end
+
+# Specialize (::ArrayShape{T,1}).(::AbstractArray{<:AbstractVector{<:Real}}):
+Base.copy(instance::VSBroadcasted1{ArrayShape{T,1},AbstractVector{<:AbstractVector{<:Real}}}) where T =
+    _bcasted_view_unchanged(instance.args[1], instance.f)
+Base.copy(instance::VSBroadcasted1{ArrayShape{T,1},AbstractArray{<:AbstractVector{<:Real}}}) where T =
+    _bcasted_view_unchanged(instance.args[1], instance.f)
+
+
+@inline _bcasted_unshaped(A::AbstractArrayOfSimilarArrays{<:Real,1}) = A
+
+# Specialize unshaped.(::AbstractArray{<:AbstractVector{<:Real}}):
+Base.copy(instance::VSBroadcasted1{typeof(unshaped),AbstractVector{<:AbstractVector{<:Real}}}) =
+    _bcasted_unshaped(instance.args[1])
+Base.copy(instance::VSBroadcasted1{typeof(unshaped),AbstractArray{<:AbstractVector{<:Real}}}) =
+    _bcasted_unshaped(instance.args[1])
+
+
 # TODO: Add support for StaticArray.
 
 # Possible extension: variable/flexible array shapes?

@@ -344,7 +344,7 @@ end
 
 
 # Specialize (::NamedTupleShape).(::AbstractVector{<:AbstractVector}):
-Base.copy(instance::VSBroadcasted1{<:NamedTupleShape,AbstractVector{<:AbstractVector}}) =
+Base.copy(instance::VSBroadcasted1{<:NamedTupleShape,AbstractVector{<:AbstractVector{<:Real}}}) =
     ShapedAsNTArray(instance.args[1], instance.f)
 
 
