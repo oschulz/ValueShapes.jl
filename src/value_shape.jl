@@ -185,9 +185,9 @@ x = shape(data)
 function unshaped end
 export unshaped
 
-unshaped(x::SubArray{T,0}) where T = view(parent(x), x.indices[1]:x.indices[1])
-unshaped(x::SubArray{T,1}) where T = x
-unshaped(x::Base.ReshapedArray{T,N,<:AbstractArray{T,1}}) where {T,N} = parent(x)
+unshaped(x::SubArray{T,0}) where {T<:Real} = view(parent(x), x.indices[1]:x.indices[1])
+unshaped(x::AbstractArray{T,1}) where {T<:Real} = x
+unshaped(x::Base.ReshapedArray{T,N,<:AbstractArray{T,1}}) where {T<:Real,N} = parent(x)
 
 
 """
@@ -251,6 +251,9 @@ end
 
 Base.Vector{T}(::UndefInitializer, shape::AbstractValueShape) where {T <: Real} =
     Vector{T}(undef, totalndof(shape))
+
+Base.Vector{<:Real}(::UndefInitializer, shape::AbstractValueShape) =
+    Vector{default_unshaped_eltype(shape)}(undef, shape)
 
 
 ArraysOfArrays.VectorOfSimilarVectors{T}(shape::AbstractValueShape) where {T<:Real} =
