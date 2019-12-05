@@ -3,7 +3,7 @@
 using ValueShapes
 using Test
 
-using Distributions, IntervalSets
+using Statistics, StatsBase, Distributions, IntervalSets
 
 @testset "NamedTupleDist" begin
     dist = @inferred NamedTupleDist(
@@ -38,6 +38,12 @@ using Distributions, IntervalSets
             (cov(dist)) ≈ ref_cov
         end
     end
+
+    dist_h = @inferred NamedTupleDist(
+        h1 = fit(Histogram, randn(10^5)),
+        h2 = fit(Histogram, (2 * randn(10^5), 3 * randn(10^5)))
+    )
+    @test isapprox(std(@inferred(rand(dist_h, 10^5)), dims = 2, corrected = true), [1, 2, 3], rtol = 0.1)
 
     # ToDo: Add more tests
 end
