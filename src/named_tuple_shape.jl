@@ -325,8 +325,8 @@ Tables.columns(Y)
 
 Use `unshaped.(Y)` to access `data` directly.
 
-`Tables.columns(Y)` and Y[:] will copy the data and yield a
-TypedTables.Table, using a memory layout as contiguous as possible for each
+`Tables.columns(Y)` will return a `NamedTuple` of columns. They will contain
+a copy the data, using a memory layout as contiguous as possible for each
 column.
 """
 struct ShapedAsNTArray{T<:NamedTuple,N,D<:AbstractArray{<:AbstractVector{<:Real},N},S<:NamedTupleShape} <: AbstractVector{T}
@@ -389,7 +389,7 @@ end
 
 
 Base.@propagate_inbounds _apply_ntshape_copy(data::AbstractArray{<:AbstractVector{<:Real}}, shape::NamedTupleShape) =
-    TypedTables.Table(ShapedAsNTArray(data, shape))
+    ShapedAsNTArray(data, shape)
 
 Base.getindex(A::ShapedAsNTArray, idxs...) = _apply_ntshape_copy(getindex(_data(A), idxs...), _elshape(A))
 

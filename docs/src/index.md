@@ -101,22 +101,18 @@ keys(Tables.columns(A)) == (:a, :b, :c)
 
 ValueShapes supports this via specialized broadcasting. `A` is now a
 table-like view into the data (see [`ShapedAsNTArray`](@ref)), and shares
-memory with `multidata`. To create an independent copy, using a contiguous
-memory layout for each table columns, use `Tables.columns(A)`:
+memory with `multidata`. To create an independent `NamedTuple` of columns,
+with a contiguous memory layout for each column, use `Tables.columns(A)`:
 
 ```julia
 tcols = Tables.columns(A)
 flatview(tcols.b) isa Array{Int}
 ```
 
-`getindex` operations on `A`, as well a constructing a `TypedTables.Table`,
-`DataFrames.DataFrame` or similar from `A` will have the same effect:
+Constructing a `TypedTables.Table`, `DataFrames.DataFrame` or similar from `A`
+will have the same effect:
 
 ```julia
-A[1] isa NamedTuple
-A[:] isa Table
-flatview(A[:].b) isa Array{Int}
-
 using TypedTables
 flatview(Table(A).b) isa Array{Int}
 
