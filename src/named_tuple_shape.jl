@@ -270,6 +270,10 @@ Base.@propagate_inbounds function Base.setindex!(A::ShapedAsNT, x, i::Integer)
 end
 
 
+Base.similar(A::ShapedAsNT{T}, ::Type{T}, ::Tuple{}) where T =
+    ShapedAsNT(similar(_data(A)), _valshape(A))
+
+
 Base.show(io::IO, ::MIME"text/plain", A::ShapedAsNT) = show(io, A)
 
 function Base.show(io::IO, A::ShapedAsNT)
@@ -406,8 +410,19 @@ function Base.setindex!(A::ShapedAsNTArray, x, idxs::Integer...)
 end
 
 
-Base.similar(A::ShapedAsNTArray{T,N,D,S}) where {T,N,D,S} =
-    ShapedAsNTArray{T,N,D,S}(similar(_data(A)), _elshape(A))
+function Base.similar(A::ShapedAsNTArray{T}, ::Type{T}, dims::Dims) where T
+    data = _data(A)
+    U = eltype(data)
+    newdata = similar(data, U, dims)
+    # In case newdata is not something like an ArrayOfSimilarVectors:
+    if !isempty(newdata) && !isdefined(newdata, firstindex(newdata))
+        for i in eachindex(newdata)
+            newdata[i] = similar(data[firstindex(data)])
+        end
+    end
+    ShapedAsNTArray(newdata, _elshape(A))
+end
+
 
 Base.empty(A::ShapedAsNTArray{T,N,D,S}) where {T,N,D,S} =
     ShapedAsNTArray{T,N,D,S}(empty(_data(A)), _elshape(A))

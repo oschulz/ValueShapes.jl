@@ -81,6 +81,8 @@ import TypedTables
             @test @inferred(unshaped(A.b)) == view(UA, 7:7)
             @test @inferred(unshaped(A.y)) == view(UA, 8:11)
 
+            @test size(@inferred similar(A)) == size(A)
+
             @test @inferred(copy(A)) == A
             @test typeof(copy(A)) == typeof(A)
 
@@ -117,6 +119,8 @@ import TypedTables
 
             @test @inferred(append!(copy(A), copy(A)))[3:4] == @inferred(A[1:2])
             @test @inferred(vcat(A, A))[3:4] == @inferred(A[1:2])
+
+            @test size(@inferred similar(A)) == size(A)
 
             @test @inferred(copy(A)) == A
             @test typeof(copy(A)) == typeof(A)
