@@ -18,7 +18,7 @@ arch:
 
 branches:
   only:
-    - first_test
+    - test_const_value_dist
 #   - master
 #   - dev
 #   - /^release-.*$/
