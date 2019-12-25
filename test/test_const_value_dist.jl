@@ -17,7 +17,8 @@ using Distributions
     @test @inferred size(cvd) == ()
     @test @inferred length(cvd) == 1
     
-    @test @inferred minimum(cvd.value) == maximum(cvd.value)
+    @test @inferred minimum(cvd.value) == 42
+    @test @inferred maximum(cvd.value) == 42
     
     @test @inferred pdf(cvd, 42) == Inf
     
@@ -27,5 +28,11 @@ using Distributions
     @test @inferred mode(cvd) == 42
 
     @test @inferred rand(cvd, 10) == fill(42, 10)
+
+    @test @inferred logpdf(cvd, -1) == -Inf 
+    @test @inferred logpdf(cvd, 41.999) == -Inf 
+    @test @inferred logpdf(cvd, 42) == Inf 
+    @test @inferred logpdf(cvd, 43.999) == Inf 
+
 
 end
