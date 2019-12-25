@@ -18,10 +18,11 @@ arch:
 
 branches:
   only:
-    - master
-    - dev
-    - /^release-.*$/
-    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
+    - first_test
+#   - master
+#   - dev
+#   - /^release-.*$/
+#   - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 
 notifications:
   email: false
