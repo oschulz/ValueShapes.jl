@@ -3,8 +3,8 @@
 [![Documentation for stable version](https://img.shields.io/badge/docs-stable-blue.svg)](https://oschulz.github.io/ValueShapes.jl/stable)
 [![Documentation for development version](https://img.shields.io/badge/docs-dev-blue.svg)](https://oschulz.github.io/ValueShapes.jl/dev)
 [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md)
-[![Travis Build Status](https://travis-ci.com/oschulz/ValueShapes.jl.svg?branch=master)](https://travis-ci.com/oschulz/ValueShapes.jl)
-[![Codecov](https://codecov.io/gh/oschulz/ValueShapes.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/oschulz/ValueShapes.jl)
+[![Travis Build Status](https://travis-ci.com/tldrma/ValueShapes.jl.svg?branch=master)](https://travis-ci.com/tldrma/ValueShapes.jl)
+[![Codecov](https://codecov.io/gh/tldrma/ValueShapes.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/tldrma/ValueShapes.jl)
 
 
 ## Documentation
