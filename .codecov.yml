@@ -1,1 +1,2 @@
-# comment: false
+codecov:
+  branch: test_named_tuple_shape
