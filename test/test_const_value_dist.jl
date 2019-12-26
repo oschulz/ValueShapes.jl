@@ -32,7 +32,7 @@ using Distributions
     @test @inferred logpdf(cvd, -1) == -Inf 
     @test @inferred logpdf(cvd, 41.999) == -Inf 
     @test @inferred logpdf(cvd, 42) == Inf 
-    @test @inferred logpdf(cvd, 43.999) == Inf 
+    @test @inferred logpdf(cvd, 43.999) == -Inf 
 
 
 end
