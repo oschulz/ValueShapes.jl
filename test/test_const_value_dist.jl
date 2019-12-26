@@ -4,10 +4,12 @@ using ValueShapes
 using Test
 
 using Distributions
+using Random
 
 
 @testset "const_value_dist" begin
-    cvd = ConstValueDist(42)
+    uni_dist = Normal(1, 0)
+    cvd = ConstValueDist(Int64(42))
     shape = varshape(cvd)
 
     @test @inferred insupport(cvd, 42) == true
@@ -17,13 +19,16 @@ using Distributions
     @test @inferred size(cvd) == ()
     @test @inferred length(cvd) == 1
     
+    # These two lines don't reach the expected section of code
     @test @inferred minimum(cvd.value) == 42
     @test @inferred maximum(cvd.value) == 42
+    @test @inferred maximum(pdf(cvd, -50:50)) == Inf
     
     @test @inferred pdf(cvd, 42) == Inf
     
     @test @inferred cdf(cvd, 41.999) == 0
     @test @inferred cdf(cvd, 42) == 1
+    @test @inferred cdf(cvd, Inf) == 1
 
     @test @inferred mode(cvd) == 42
 
@@ -33,6 +38,7 @@ using Distributions
     @test @inferred logpdf(cvd, 41.999) == -Inf 
     @test @inferred logpdf(cvd, 42) == Inf 
     @test @inferred logpdf(cvd, 43.999) == -Inf 
-
+    
+    @test @inferred eltype == Int64   
 
 end
