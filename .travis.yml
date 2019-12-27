@@ -8,7 +8,9 @@ os:
   - windows
 
 julia:
+  - 1.0
   - 1.3
+  - nightly
 
 arch:
   - amd64
@@ -17,10 +19,6 @@ arch:
 branches:
   only:
     - test_const_value_dist
-    - master
-    - dev
-    - /^release-.*$/
-    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 
 notifications:
   email: false
