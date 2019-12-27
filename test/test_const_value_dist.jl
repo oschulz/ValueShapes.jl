@@ -8,7 +8,6 @@ using Random
 
 
 @testset "const_value_dist" begin
-    uni_dist = Normal(1, 0)
     cvd = ConstValueDist(Int64(42))
     shape = varshape(cvd)
 
@@ -19,9 +18,8 @@ using Random
     @test @inferred size(cvd) == ()
     @test @inferred length(cvd) == 1
     
-    # These two lines don't reach the expected section of code
-    @test @inferred minimum(cvd.value) == 42
-    @test @inferred maximum(cvd.value) == 42
+    @test @inferred minimum(cvd) == 42
+    @test @inferred maximum(cvd) == 42
     @test @inferred maximum(pdf(cvd, -50:50)) == Inf
     
     @test @inferred pdf(cvd, 42) == Inf
