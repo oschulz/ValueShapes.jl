@@ -39,6 +39,5 @@ using Random
     @test @inferred logpdf(cvd, 42) == Inf 
     @test @inferred logpdf(cvd, 43.999) == -Inf 
     
-    @test @inferred eltype == Int64   
-
+    @test @inferred eltype(cvd) == Int64
 end
