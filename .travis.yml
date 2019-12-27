@@ -8,9 +8,7 @@ os:
   - windows
 
 julia:
-  - 1.0
   - 1.3
-  - nightly
 
 arch:
   - amd64
