@@ -32,6 +32,12 @@ import TypedTables
         shape = @inferred NamedTupleShape(;named_shapes...)
         @test @inferred(NamedTupleShape(named_shapes)) == shape
 
+        @test @inferred(length(shape) == 5)
+        @test @inferred(keys(shape) == (:a, :b, :c, :x, :y))
+        for k in keys(named_shapes)
+            @test @inferred(getindex(named_shapes, k) == named_shapes[k]) 
+        end
+
         @test @inferred(ValueShapes.default_unshaped_eltype(NamedTupleShape(a = ScalarShape{Int}(), b = ArrayShape{Float32}(2, 3)))) == Float32
         @test @inferred(ValueShapes.default_unshaped_eltype(shape)) == Float64
 
