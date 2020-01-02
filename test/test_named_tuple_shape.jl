@@ -79,7 +79,7 @@ import TypedTables
 
 
 
-            @test @inferred(IndexStyle(A) isa IndexLinear())
+            @test IndexStyle(A) isa IndexLinear
 
 
 
