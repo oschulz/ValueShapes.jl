@@ -32,11 +32,21 @@ import TypedTables
         shape = @inferred NamedTupleShape(;named_shapes...)
         @test @inferred(NamedTupleShape(named_shapes)) == shape
 
+
+
         @test @inferred(length(shape) == 5)
         @test @inferred(keys(shape) == (:a, :b, :c, :x, :y))
-        for k in keys(named_shapes)
-            @test @inferred(getindex(named_shapes, k) == named_shapes[k]) 
+        for i in 1:length(keys(named_shapes))
+            # src only has getindex(::NamedTupleShape, ::Integer). It also works with Symbol. Good practice to also have symbol function?
+            @test @inferred(getindex(named_shapes, i) == named_shapes[i])
         end
+        # Don't know how to convert between Int64 and Symbol types. The loop immediately above this goes to a part in the code that take type Int64 in its arg
+        # and this loop goes to a part that takes Symbol. Will fix soon. 
+        for k in keys(named_shapes)
+            @test @inferred(getproperty(named_shapes, k) == named_shapes[k])
+        end
+
+
 
         @test @inferred(ValueShapes.default_unshaped_eltype(NamedTupleShape(a = ScalarShape{Int}(), b = ArrayShape{Float32}(2, 3)))) == Float32
         @test @inferred(ValueShapes.default_unshaped_eltype(shape)) == Float64
@@ -66,6 +76,12 @@ import TypedTables
             UA = copy(data[1])
             @test @inferred(size(@inferred(ValueShapes.ShapedAsNT(UA, shape)))) == ()
             A = ValueShapes.ShapedAsNT(UA, shape)
+
+
+
+            @test @inferred(IndexStyle(A) isa IndexLinear())
+
+
 
             @test @inferred(propertynames(A)) == (:a, :b, :c, :x, :y)
             @test propertynames(A, true) == (:a, :b, :c, :x, :y, :__internal_data, :__internal_valshape)
