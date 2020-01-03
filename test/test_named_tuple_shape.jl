@@ -34,16 +34,32 @@ import TypedTables
 
 
 
+        # Don't hardcode these numbers like length.
         @test @inferred(length(shape) == 5)
         @test @inferred(keys(shape) == (:a, :b, :c, :x, :y))
+
+        # Get properties from ValueShapes.getproperty() function and test attributes
+        properties_valueaccessor = getproperty(shape, :_accessors)
         for i in 1:length(keys(named_shapes))
             # src only has getindex(::NamedTupleShape, ::Integer). It also works with Symbol. Good practice to also have symbol function?
             @test @inferred(getindex(named_shapes, i) == named_shapes[i])
         end
-        # Don't know how to convert between Int64 and Symbol types. The loop immediately above this goes to a part in the code that take type Int64 in its arg
-        # and this loop goes to a part that takes Symbol. Will fix soon. 
-        for k in keys(named_shapes)
-            @test @inferred(getproperty(named_shapes, k) == named_shapes[k])
+
+        # Test :_flatdof. Current concern: is shape.c.len supposed to be a dof, or the length? Length should be 1. but it return 0. 
+        let expected_flatdof = 0, actual_flatdof = getproperty(shape, :_flatdof)
+            for va in getproperty(shape, :_accessors)
+                expected_flatdof += va.len
+            end
+            @test expected_flatdof == actual_flatdof
+        end
+        
+        for (k,v) in zip(keys(named_shapes), named_shapes)
+       #    @test properties_valueaccessor[k].len == length(named_shapes[k])
+            @test length(properties_valueaccessor[k]) == length(named_shapes[k]) # <=== length(va) != va.len
+       #    @test properties_valueaccessor[k].len == length(named_shapes[k])
+       #    @test properties_valueaccessor[k].offset
+       #    scalars don't have shape
+       #    @test properties_valueaccessor[k].shape.dims
         end
 
 
@@ -79,8 +95,9 @@ import TypedTables
 
 
 
-            @test IndexStyle(A) isa IndexLinear
-
+            @test @inferred(IndexStyle(A) == IndexLinear())
+#           @test axes(A,1).stop == size(A)[1]
+#           @test axes(A,2).stop == size(A)[2]
 
 
             @test @inferred(propertynames(A)) == (:a, :b, :c, :x, :y)
