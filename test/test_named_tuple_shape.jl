@@ -34,15 +34,16 @@ import TypedTables
 
 
 
+
         # Don't hardcode these numbers like length.
         @test @inferred(length(shape) == 5)
         @test @inferred(keys(shape) == (:a, :b, :c, :x, :y))
 
         # Get properties from ValueShapes.getproperty() function and test attributes
         properties_valueaccessor = getproperty(shape, :_accessors)
-        for i in 1:length(keys(named_shapes))
+        for i in 1:length(keys(shape))
             # src only has getindex(::NamedTupleShape, ::Integer). It also works with Symbol. Good practice to also have symbol function?
-            @test @inferred(getindex(named_shapes, i) == named_shapes[i])
+            @test @inferred(getindex(shape, i).shape == named_shapes[i])
         end
 
         # Test :_flatdof. Current concern: is shape.c.len supposed to be a dof, or the length? Length should be 1. but it return 0. 
@@ -50,17 +51,23 @@ import TypedTables
             for va in getproperty(shape, :_accessors)
                 expected_flatdof += va.len
             end
-            @test expected_flatdof == actual_flatdof
+            @test @inferred(expected_flatdof == actual_flatdof)
         end
         
-        for (k,v) in zip(keys(named_shapes), named_shapes)
-       #    @test properties_valueaccessor[k].len == length(named_shapes[k])
-            @test length(properties_valueaccessor[k]) == length(named_shapes[k]) # <=== length(va) != va.len
-       #    @test properties_valueaccessor[k].len == length(named_shapes[k])
-       #    @test properties_valueaccessor[k].offset
-       #    scalars don't have shape
-       #    @test properties_valueaccessor[k].shape.dims
+        let expected_offset = 0
+            for (k,v) in zip(keys(named_shapes), named_shapes)
+               #@test properties_valueaccessor[k].len == length(named_shapes[k])
+                @test length(properties_valueaccessor[k]) == length(named_shapes[k]) # <=== length(va) != va.len
+           # Commented out while I figure out what .len is supposed to be
+           #   # I believe that: c.len == x.len, which means c, x, and y all have the same offset. Thus the line below won't work.
+           #   # What is .len supposed to actually be? dof? length (# of elements)?
+           #    @test properties_valueaccessor[k].offset == expected_offset
+               #scalars don't have shape
+               #@test properties_valueaccessor[k].shape.dims
+                expected_offset += sum(length(v))+1
+            end
         end
+
 
 
 
@@ -96,8 +103,18 @@ import TypedTables
 
 
             @test @inferred(IndexStyle(A) == IndexLinear())
+
+            # Property access testing
+            @test @inferred(getproperty(A, :__internal_data) == data[1])
+            @test @inferred(getproperty(A, :__internal_valshape) == valshape(A))
+            
+            @test_throws BoundsError @inferred(getindex(A, length(A)+1))
+            @test @inferred(getindex(A, 1) == A[1])
+
+                  
 #           @test axes(A,1).stop == size(A)[1]
 #           @test axes(A,2).stop == size(A)[2]
+
 
 
             @test @inferred(propertynames(A)) == (:a, :b, :c, :x, :y)
@@ -170,6 +187,27 @@ import TypedTables
             A_zero() = shape.(nestedview(zeros(totalndof(shape), 2)))
             @test (B = A_zero(); B[:] = A; B) == A
             @test (B = A_zero(); B[:] = TypedTables.Table(A); B) == A
+
+
+
+            @test @inferred(getproperty(A, :__internal_data) == ValueShapes._bcasted_unshaped(A))
+            @test @inferred(getproperty(A, :__internal_elshape) == A.__internal_elshape) 
+
+            @test @inferred(IndexStyle(A) == IndexStyle(getproperty(A, :__internal_data)))
+            
+            @test @inferred(axes(A)[1].stop == size(data)[1])
+
+            @test A == copy(A)
+              
+            let B = empty(A)
+                for p in propertynames(B)
+                    @test @inferred(isempty(getproperty(B, p)))
+                end
+            end
+
+            
+
+        
         end
     end
 
