@@ -51,6 +51,7 @@ end
 
 
 
+#const ConstAccessor = ValueAccessor{ConstValueShape{T}} where {T}
 const ConstAccessor = ValueAccessor{ConstValueShape{T}} where {T}
 
 

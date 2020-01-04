@@ -205,8 +205,33 @@ import TypedTables
                 end
             end
 
-            
+            @test typeof(TypedTables.showtable(stdout, A)).has_concrete_subtype
 
+            # Array manipulations
+            let B = copy(A), C = copy(A), D = copy(A)
+                for i in 1:length(A)-1
+                    b = pop!(B)
+                    c = popfirst!(C)  
+                    d = splice!(D, i)
+                    @test @inferred(c == d)
+                end
+                @test @inferred(C == D)
+                @test @inferred(B[end] == A[1])
+                @test @inferred(length(A) - length(B) == 1)
+                @test @inferred(C[1] == A[end])
+                @test @inferred(length(A) - length(C) == 1)
+                B = empty(B)
+                prepend!(B, A) # This could be better if I constructed a new array.
+                @test @inferred(B == A)
+                D = copy(A)
+                prepend!(D, A)
+                prepend!(D, A)
+                prepend!(D, A)
+                deleteat!(D, 1:length(A):length(D)) # Assumes even?
+                for i in 1:length(D)-1
+                    @test @inferred( D[i] == D[i+1])
+                end
+            end
         
         end
     end
