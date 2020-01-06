@@ -37,37 +37,20 @@ import TypedTables
 
         # Don't hardcode these numbers like length.
         @test @inferred(length(shape) == 5)
-        @test @inferred(keys(shape) == (:a, :b, :c, :x, :y))
+        @test @inferred(keys(shape) == propertynames(shape))
 
-        # Get properties from ValueShapes.getproperty() function and test attributes
-        properties_valueaccessor = getproperty(shape, :_accessors)
-        for i in 1:length(keys(shape))
-            # src only has getindex(::NamedTupleShape, ::Integer). It also works with Symbol. Good practice to also have symbol function?
-            @test @inferred(getindex(shape, i).shape == named_shapes[i])
-        end
-
-        # Test :_flatdof. Current concern: is shape.c.len supposed to be a dof, or the length? Length should be 1. but it return 0. 
-        let expected_flatdof = 0, actual_flatdof = getproperty(shape, :_flatdof)
-            for va in getproperty(shape, :_accessors)
-                expected_flatdof += va.len
+        # Test getproperty functionality
+        let flatdof = 0, accs = getproperty(shape, :_accessors)
+            for i in 1:length(keys(shape))
+                # src only has getindex(::NamedTupleShape, ::Integer). It also works with Symbol. Good practice to also have symbol function?
+                ishape = getindex(shape, i).shape
+                flatdof += accs[i].len 
+                @test ishape == named_shapes[i]
+                @test ishape == accs[i].shape
             end
-            @test @inferred(expected_flatdof == actual_flatdof)
+            @test getproperty(shape, :_flatdof) == flatdof
         end
         
-        let expected_offset = 0
-            for (k,v) in zip(keys(named_shapes), named_shapes)
-               #@test properties_valueaccessor[k].len == length(named_shapes[k])
-                @test length(properties_valueaccessor[k]) == length(named_shapes[k]) # <=== length(va) != va.len
-           # Commented out while I figure out what .len is supposed to be
-           #   # I believe that: c.len == x.len, which means c, x, and y all have the same offset. Thus the line below won't work.
-           #   # What is .len supposed to actually be? dof? length (# of elements)?
-           #    @test properties_valueaccessor[k].offset == expected_offset
-               #scalars don't have shape
-               #@test properties_valueaccessor[k].shape.dims
-                expected_offset += sum(length(v))+1
-            end
-        end
-
 
 
 
@@ -104,7 +87,7 @@ import TypedTables
 
             @test @inferred(IndexStyle(A) == IndexLinear())
 
-            # Property access testing
+            # Test getproperty functionality
             @test @inferred(getproperty(A, :__internal_data) == data[1])
             @test @inferred(getproperty(A, :__internal_valshape) == valshape(A))
             
@@ -205,7 +188,7 @@ import TypedTables
                 end
             end
 
-            @test typeof(TypedTables.showtable(stdout, A)).has_concrete_subtype
+#           @test typeof(TypedTables.showtable(stdout, A)).has_concrete_subtype
 
             # Array manipulations
             let B = copy(A), C = copy(A), D = copy(A)
