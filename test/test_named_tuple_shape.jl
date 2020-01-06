@@ -217,9 +217,9 @@ import Tables
                 end
             end
 
-            @test @inferred(Tables.istable(A) == true)
-            @test @inferred(Tables.rowaccess(A) == true)
-            @test @inferred(Tables.columnaccess(A) == true)
+            @test @inferred(Tables.istable(typeof(A)) == true)
+            @test @inferred(Tables.rowaccess(typeof(A)) == true)
+            @test @inferred(Tables.columnaccess(typeof(A)) == true)
             @test @inferred(Tables.schema(A).names == propertynames(A))
             @test @inferred(Tables.rows(A) == A)
         
