@@ -6,6 +6,7 @@ using Test
 using Random
 using ArraysOfArrays
 import TypedTables
+import Tables
 
 
 @testset "named_tuple_shape" begin
@@ -92,7 +93,7 @@ import TypedTables
             @test @inferred(getproperty(A, :__internal_valshape) == valshape(A))
             
             @test_throws BoundsError @inferred(getindex(A, length(A)+1))
-            @test @inferred(getindex(A, 1) == A[1])
+#           @test @inferred(getindex(A, 1) == A[1])
 
                   
 #           @test axes(A,1).stop == size(A)[1]
@@ -215,9 +216,16 @@ import TypedTables
                     @test @inferred( D[i] == D[i+1])
                 end
             end
+
+            @test @inferred(Tables.istable(A) == true)
+            @test @inferred(Tables.rowaccess(A) == true)
+            @test @inferred(Tables.columnaccess(A) == true)
+            @test @inferred(Tables.schema(A).names == propertynames(A))
+            @test @inferred(Tables.rows(A) == A)
         
         end
     end
+
 
 
     @testset "examples" begin
