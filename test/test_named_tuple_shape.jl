@@ -36,12 +36,7 @@ import Tables
 
 
 
-        # Temporary tests
-        @test ValueShapes.default_unshaped_eltype(NamedTupleShape(a=ScalarShape{Int}())) == Int
 
-
-        single_shape = NamedTupleShape(a=ArrayShape{Real}(2,2))
-#       @test typeof(valshape(getproperty(single_shape, :_accessors)).a.shape) == typeof(single_named_shape)
         
         # Don't hardcode these numbers like length.
         @test @inferred(length(shape) == 5)
@@ -59,6 +54,7 @@ import Tables
             @test getproperty(shape, :_flatdof) == flatdof
         end
         
+        @test ValueShapes.default_unshaped_eltype(NamedTupleShape(a=ScalarShape{Int}())) == Int
 
 
 
@@ -94,7 +90,8 @@ import Tables
 
 
             @test @inferred(IndexStyle(A) == IndexLinear())
-
+            @test @inferred(getindex(A, :)[1] == A[1])
+            
             # Test getproperty functionality
             @test @inferred(getproperty(A, :__internal_data) == data[1])
             @test @inferred(getproperty(A, :__internal_valshape) == valshape(A))
@@ -180,6 +177,10 @@ import Tables
             @test (B = A_zero(); B[:] = TypedTables.Table(A); B) == A
 
 
+            let vecA = Vec(A)
+              @test @inferred(A == vecA)
+            end
+            @test @inferred(vec(A) == A)
 
             @test @inferred(getproperty(A, :__internal_data) == ValueShapes._bcasted_unshaped(A))
             @test @inferred(getproperty(A, :__internal_elshape) == A.__internal_elshape) 
