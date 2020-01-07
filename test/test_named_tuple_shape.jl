@@ -36,13 +36,10 @@ import Tables
 
 
 
-        let shape2 = NamedTupleShape(named_shapes)
-            @test keys(shape) == keys(shape2)
-            @test shape2 == shape
-  #         for k in keys(shape)
-  #             @test getproperty(shape, k) == getproperty(shape2, k) <-- x fails
-        end
 
+        single_shape = NamedTupleShape((a=ArrayShape{Real}(2,2)))
+#       @test typeof(valshape(getproperty(single_shape, :_accessors)).a.shape) == typeof(single_named_shape)
+        
         # Don't hardcode these numbers like length.
         @test @inferred(length(shape) == 5)
         @test @inferred(keys(shape) == propertynames(shape))
