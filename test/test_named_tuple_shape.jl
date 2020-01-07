@@ -37,7 +37,7 @@ import Tables
 
 
 
-        single_shape = NamedTupleShape((a=ArrayShape{Real}(2,2)))
+        single_shape = NamedTupleShape(a=ArrayShape{Real}(2,2))
 #       @test typeof(valshape(getproperty(single_shape, :_accessors)).a.shape) == typeof(single_named_shape)
         
         # Don't hardcode these numbers like length.
