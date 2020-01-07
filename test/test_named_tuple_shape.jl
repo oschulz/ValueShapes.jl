@@ -177,10 +177,9 @@ import Tables
             @test (B = A_zero(); B[:] = TypedTables.Table(A); B) == A
 
 
-            let vecA = Vec(A)
-              @test @inferred(A == vecA)
+            let vecA = vec(A)
+              @test A == vecA
             end
-            @test @inferred(vec(A) == A)
 
             @test @inferred(getproperty(A, :__internal_data) == ValueShapes._bcasted_unshaped(A))
             @test @inferred(getproperty(A, :__internal_elshape) == A.__internal_elshape) 
