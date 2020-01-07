@@ -30,12 +30,19 @@ import Tables
             y = ArrayShape{Real}(4)
         )
 
+
         shape = @inferred NamedTupleShape(;named_shapes...)
         @test @inferred(NamedTupleShape(named_shapes)) == shape
 
 
 
+        # Temporary tests
+        @test ValueShapes.default_unshaped_eltype(NamedTupleShape(a=ScalarShape{Int}())) == Int
 
+
+        single_shape = NamedTupleShape(a=ArrayShape{Real}(2,2))
+#       @test typeof(valshape(getproperty(single_shape, :_accessors)).a.shape) == typeof(single_named_shape)
+        
         # Don't hardcode these numbers like length.
         @test @inferred(length(shape) == 5)
         @test @inferred(keys(shape) == propertynames(shape))
