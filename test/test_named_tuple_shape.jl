@@ -30,6 +30,10 @@ import Tables
             y = ArrayShape{Real}(4)
         )
 
+        let shape2 = NamedTupleShape(shape)
+            @test keys(shape2) == keys(shape)
+        end
+
         shape = @inferred NamedTupleShape(;named_shapes...)
         @test @inferred(NamedTupleShape(named_shapes)) == shape
 
