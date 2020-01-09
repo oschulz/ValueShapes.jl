@@ -30,22 +30,14 @@ import Tables
             y = ArrayShape{Real}(4)
         )
 
-
         shape = @inferred NamedTupleShape(;named_shapes...)
         @test @inferred(NamedTupleShape(named_shapes)) == shape
 
-
-
-
-        
-        # Don't hardcode these numbers like length.
         @test @inferred(length(shape) == 5)
         @test @inferred(keys(shape) == propertynames(shape))
 
-        # Test getproperty functionality
         let flatdof = 0, accs = getproperty(shape, :_accessors)
             for i in 1:length(keys(shape))
-                # src only has getindex(::NamedTupleShape, ::Integer). It also works with Symbol. Good practice to also have symbol function?
                 ishape = getindex(shape, i).shape
                 flatdof += accs[i].len 
                 @test ishape == named_shapes[i]
@@ -55,8 +47,6 @@ import Tables
         end
         
         @test ValueShapes.default_unshaped_eltype(NamedTupleShape(a=ScalarShape{Int}())) == Int
-
-
 
         @test @inferred(ValueShapes.default_unshaped_eltype(NamedTupleShape(a = ScalarShape{Int}(), b = ArrayShape{Float32}(2, 3)))) == Float32
         @test @inferred(ValueShapes.default_unshaped_eltype(shape)) == Float64
@@ -87,7 +77,6 @@ import Tables
             @test @inferred(size(@inferred(ValueShapes.ShapedAsNT(UA, shape)))) == ()
             A = ValueShapes.ShapedAsNT(UA, shape)
 
-
             let ntshape_view = ValueShapes._apply_ntshape_view(UA, shape)
                 @test ntshape_view == A
             end
@@ -95,16 +84,15 @@ import Tables
             @test @inferred(IndexStyle(A) == IndexLinear())
             @test @inferred(getindex(A, :)[1] == A[1])
             
-            # Test getproperty functionality
             @test @inferred(getproperty(A, :__internal_data) == data[1])
             @test @inferred(getproperty(A, :__internal_valshape) == valshape(A))
             
             @test_throws BoundsError @inferred(getindex(A, Integer(length(A)+1)))
            
-            viewA = view(A)
-            viewA1 = view(A, 1)
-            @test viewA == A
-            @test propertynames(viewA1) == keys(A[1])
+            let viewA = view(A), viewA1 = view(A,1)
+                @test viewA == A
+                @test propertynames(viewA1) == keys(A[1])
+            end
             
             @test @inferred(propertynames(A)) == (:a, :b, :c, :x, :y)
             @test propertynames(A, true) == (:a, :b, :c, :x, :y, :__internal_data, :__internal_valshape)
@@ -177,9 +165,6 @@ import Tables
             @test (B = A_zero(); B[:] = A; B) == A
             @test (B = A_zero(); B[:] = TypedTables.Table(A); B) == A
 
-
-
-            # Left off: data and A both are size (2,). Need to get (2, >1) to use the other vec function.
             @test @inferred(unshaped.(A) == data)
             let newshape = NamedTupleShape(a=ArrayShape{Real}(9,1), b=ArrayShape{Real}(1,2))
                 newA = ValueShapes.ShapedAsNTArray(data, newshape)
@@ -206,9 +191,6 @@ import Tables
                 end
             end
 
-#           @test typeof(TypedTables.showtable(stdout, A)).has_concrete_subtype
-
-            # Array manipulations
             let B = copy(A), C = copy(A), D = copy(A)
                 for i in 1:length(A)-1
                     b = pop!(B)
@@ -222,13 +204,13 @@ import Tables
                 @test @inferred(C[1] == A[end])
                 @test @inferred(length(A) - length(C) == 1)
                 B = empty(B)
-                prepend!(B, A) # This could be better if I constructed a new array.
+                prepend!(B, A) 
                 @test @inferred(B == A)
                 D = copy(A)
                 prepend!(D, A)
                 prepend!(D, A)
                 prepend!(D, A)
-                deleteat!(D, 1:length(A):length(D)) # Assumes even?
+                deleteat!(D, 1:length(A):length(D)) 
                 for i in 1:length(D)-1
                     @test @inferred( D[i] == D[i+1])
                 end
@@ -240,11 +222,8 @@ import Tables
             @test @inferred(Tables.schema(A).names == propertynames(A))
             @test @inferred(Tables.rows(A) == A)
 
-        
         end
     end
-
-
 
     @testset "examples" begin
         @test begin
