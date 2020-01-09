@@ -88,6 +88,9 @@ import Tables
             A = ValueShapes.ShapedAsNT(UA, shape)
 
 
+            let ntshape_view = ValueShapes._apply_ntshape_view(UA, shape)
+                @test ntshape_view == A
+            end
 
             @test @inferred(IndexStyle(A) == IndexLinear())
             @test @inferred(getindex(A, :)[1] == A[1])
@@ -96,17 +99,12 @@ import Tables
             @test @inferred(getproperty(A, :__internal_data) == data[1])
             @test @inferred(getproperty(A, :__internal_valshape) == valshape(A))
             
-            @test_throws BoundsError @inferred(getindex(A, length(A)+1))
-#           @test @inferred(getindex(A, 1) == A[1])
+            @test_throws BoundsError @inferred(getindex(A, Integer(length(A)+1)))
            
-            vA = view(A)
-#           vA1 = view(A, 1)
-            @test vA == A
-                  
-#           @test axes(A,1).stop == size(A)[1]
-#           @test axes(A,2).stop == size(A)[2]
-
-
+            viewA = view(A)
+            viewA1 = view(A, 1)
+            @test viewA == A
+            @test propertynames(viewA1) == keys(A[1])
             
             @test @inferred(propertynames(A)) == (:a, :b, :c, :x, :y)
             @test propertynames(A, true) == (:a, :b, :c, :x, :y, :__internal_data, :__internal_valshape)
