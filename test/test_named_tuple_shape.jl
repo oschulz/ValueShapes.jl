@@ -42,6 +42,11 @@ import Tables
         @test @inferred(length(shape) == 5)
         @test @inferred(keys(shape) == propertynames(shape))
 
+        let nt = (a=ArrayShape{Real}(2), b=ConstValueShape{Real}(24))
+            nts = NamedTupleShape(nt)
+            @test @inferred(nts._flatdof == 2)
+        end
+
         # Test getproperty functionality
         let flatdof = 0, accs = getproperty(shape, :_accessors)
             for i in 1:length(keys(shape))
