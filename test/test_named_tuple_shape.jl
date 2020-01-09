@@ -42,11 +42,6 @@ import Tables
         @test @inferred(length(shape) == 5)
         @test @inferred(keys(shape) == propertynames(shape))
 
-        let nt = (a=ArrayShape{Real}(2), b=ConstValueShape{Real}(24))
-            nts = NamedTupleShape(nt)
-            @test @inferred(nts._flatdof == 2)
-        end
-
         # Test getproperty functionality
         let flatdof = 0, accs = getproperty(shape, :_accessors)
             for i in 1:length(keys(shape))
@@ -103,7 +98,10 @@ import Tables
             
             @test_throws BoundsError @inferred(getindex(A, length(A)+1))
 #           @test @inferred(getindex(A, 1) == A[1])
-
+           
+            vA = view(A)
+#           vA1 = view(A, 1)
+            @test vA == A
                   
 #           @test axes(A,1).stop == size(A)[1]
 #           @test axes(A,2).stop == size(A)[2]
@@ -243,6 +241,7 @@ import Tables
             @test @inferred(Tables.columnaccess(typeof(A)) == true)
             @test @inferred(Tables.schema(A).names == propertynames(A))
             @test @inferred(Tables.rows(A) == A)
+
         
         end
     end
