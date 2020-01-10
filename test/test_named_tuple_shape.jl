@@ -33,8 +33,8 @@ import Tables
         shape = @inferred NamedTupleShape(;named_shapes...)
         @test @inferred(NamedTupleShape(named_shapes)) == shape
 
-        @test @inferred(length(shape) == 5)
-        @test @inferred(keys(shape) == propertynames(shape))
+        @test @inferred(length(shape)) == 5
+        @test @inferred(propertynames(shape)) == keys(shape)
 
         let flatdof = 0, accs = getproperty(shape, :_accessors)
             for i in 1:length(keys(shape))
@@ -81,7 +81,7 @@ import Tables
                 @test ntshape_view == A
             end
 
-            @test @inferred(IndexStyle(A) == IndexLinear())
+            @test @inferred(IndexStyle(A)) == IndexLinear()
             @test @inferred(getindex(A, :)[1] == A[1])
             
             @test @inferred(getproperty(A, :__internal_data) == data[1])
@@ -91,7 +91,7 @@ import Tables
            
             let viewA = view(A), viewA1 = view(A,1)
                 @test viewA == A
-                @test propertynames(viewA1) == keys(A[1])
+                @test @inferred(propertynames(viewA1)) == keys(A[1])
             end
             
             @test @inferred(propertynames(A)) == (:a, :b, :c, :x, :y)
@@ -155,7 +155,7 @@ import Tables
 
             @test size(@inferred similar(A)) == size(A)
 
-            @test @inferred(copy(A)) == A
+            @test copy(A) == A
             @test typeof(copy(A)) == typeof(A)
 
             @test @inferred(TypedTables.Table(A)) == A
@@ -165,7 +165,7 @@ import Tables
             @test (B = A_zero(); B[:] = A; B) == A
             @test (B = A_zero(); B[:] = TypedTables.Table(A); B) == A
 
-            @test @inferred(unshaped.(A) == data)
+            @test unshaped.(A) == data
             let newshape = NamedTupleShape(a=ArrayShape{Real}(9,1), b=ArrayShape{Real}(1,2))
                 newA = ValueShapes.ShapedAsNTArray(data, newshape)
                 vecA = vec(newA)
@@ -176,10 +176,10 @@ import Tables
               @test A == vecA
             end
 
-            @test @inferred(getproperty(A, :__internal_data) == ValueShapes._bcasted_unshaped(A))
-            @test @inferred(getproperty(A, :__internal_elshape) == A.__internal_elshape) 
+            @test getproperty(A, :__internal_data) == ValueShapes._bcasted_unshaped(A)
+            @test getproperty(A, :__internal_elshape) == A.__internal_elshape
 
-            @test @inferred(IndexStyle(A) == IndexStyle(getproperty(A, :__internal_data)))
+            @test @inferred(IndexStyle(A)) == IndexStyle(getproperty(A, :__internal_data))
             
             @test @inferred(axes(A)[1].stop == size(data)[1])
 
@@ -196,16 +196,16 @@ import Tables
                     b = pop!(B)
                     c = popfirst!(C)  
                     d = splice!(D, i)
-                    @test @inferred(c == d)
+                    @test c == d
                 end
-                @test @inferred(C == D)
-                @test @inferred(B[end] == A[1])
-                @test @inferred(length(A) - length(B) == 1)
-                @test @inferred(C[1] == A[end])
-                @test @inferred(length(A) - length(C) == 1)
+                @test C == D
+                @test B[end] == A[1]
+                @test @inferred(length(A) - length(B)) == 1
+                @test C[1] == A[end]
+                @test @inferred(length(A) - length(C)) == 1
                 B = empty(B)
                 prepend!(B, A) 
-                @test @inferred(B == A)
+                @test B == A
                 D = copy(A)
                 prepend!(D, A)
                 prepend!(D, A)
@@ -216,11 +216,11 @@ import Tables
                 end
             end
 
-            @test @inferred(Tables.istable(typeof(A)) == true)
-            @test @inferred(Tables.rowaccess(typeof(A)) == true)
-            @test @inferred(Tables.columnaccess(typeof(A)) == true)
+            @test @inferred(Tables.istable(typeof(A))) == true
+            @test @inferred(Tables.rowaccess(typeof(A))) == true
+            @test @inferred(Tables.columnaccess(typeof(A))) == true
             @test @inferred(Tables.schema(A).names == propertynames(A))
-            @test @inferred(Tables.rows(A) == A)
+            @test @inferred(Tables.rows(A)) == A
 
         end
     end
