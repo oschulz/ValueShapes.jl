@@ -148,7 +148,7 @@ import Tables
             @test @inferred(broadcast(unshaped, A)) === UA
 
             @test @inferred(A[1]) == (a = [1 3 5; 2 4 6], b = 7, c = 4.2, x = [11 21; 12 22], y = [8, 9, 10, 11])
-            @test @inferred(view(A, [2 1])[1] == A[2])
+            @test @inferred(view(A, 2)[] == A[2])
 
             @test @inferred(append!(copy(A), copy(A)))[3:4] == @inferred(A[1:2])
             @test @inferred(vcat(A, A))[3:4] == @inferred(A[1:2])
