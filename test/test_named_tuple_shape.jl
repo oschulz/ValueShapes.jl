@@ -6,6 +6,7 @@ using Test
 using Random
 using ArraysOfArrays
 import TypedTables
+import Tables
 
 
 @testset "named_tuple_shape" begin
@@ -32,6 +33,21 @@ import TypedTables
         shape = @inferred NamedTupleShape(;named_shapes...)
         @test @inferred(NamedTupleShape(named_shapes)) == shape
 
+        @test @inferred(length(shape)) == 5
+        @test @inferred(propertynames(shape)) == keys(shape)
+
+        let flatdof = 0, accs = getproperty(shape, :_accessors)
+            for i in 1:length(keys(shape))
+                ishape = getindex(shape, i).shape
+                flatdof += accs[i].len
+                @test ishape == named_shapes[i]
+                @test ishape == accs[i].shape
+            end
+            @test getproperty(shape, :_flatdof) == flatdof
+        end
+
+        @test ValueShapes.default_unshaped_eltype(NamedTupleShape(a=ScalarShape{Int}())) == Int
+
         @test @inferred(ValueShapes.default_unshaped_eltype(NamedTupleShape(a = ScalarShape{Int}(), b = ArrayShape{Float32}(2, 3)))) == Float32
         @test @inferred(ValueShapes.default_unshaped_eltype(shape)) == Float64
 
@@ -56,10 +72,28 @@ import TypedTables
 
         @test valshape(shape.(push!(@inferred(VectorOfSimilarVectors{Float64}(shape)), @inferred(Vector{Float64}(undef, shape))))[1]) == valshape(shape(undef))
 
+
         @testset "ValueShapes.ShapedAsNT" begin
             UA = copy(data[1])
             @test @inferred(size(@inferred(ValueShapes.ShapedAsNT(UA, shape)))) == ()
             A = ValueShapes.ShapedAsNT(UA, shape)
+
+            let ntshape_view = ValueShapes._apply_ntshape_view(UA, shape)
+                @test ntshape_view == A
+            end
+
+            @test @inferred(IndexStyle(A)) == IndexLinear()
+            @test @inferred(getindex(A, :)[1] == A[1])
+
+            @test @inferred(getproperty(A, :__internal_data) == data[1])
+            @test @inferred(getproperty(A, :__internal_valshape) == valshape(A))
+
+            @test_throws BoundsError @inferred(getindex(A, Integer(length(A)+1)))
+
+            let viewA = view(A), viewA1 = view(A,1)
+                @test viewA == A
+                @test @inferred(propertynames(viewA1)) == keys(A[1])
+            end
 
             @test @inferred(propertynames(A)) == (:a, :b, :c, :x, :y)
             @test propertynames(A, true) == (:a, :b, :c, :x, :y, :__internal_data, :__internal_valshape)
@@ -98,6 +132,7 @@ import TypedTables
             @test_throws ArgumentError copy(A)[] = (a = [5 3 5; 9 4 5], b = 9, c = 4.2, x = [11 21; 12 23], y = [4, 7, 5, 6])
         end
 
+
         @testset "ValueShapes.ShapedAsNTArray" begin
             UA = Array(data)
             @test @inferred(size(@inferred(ValueShapes.ShapedAsNTArray(UA, shape)))) == (2,)
@@ -115,14 +150,14 @@ import TypedTables
             @test @inferred(broadcast(unshaped, A)) === UA
 
             @test @inferred(A[1]) == (a = [1 3 5; 2 4 6], b = 7, c = 4.2, x = [11 21; 12 22], y = [8, 9, 10, 11])
-            @test @inferred(view(A, 2)[]) == A[2]
+            @test @inferred(view(A, 2)[] == A[2])
 
             @test @inferred(append!(copy(A), copy(A)))[3:4] == @inferred(A[1:2])
             @test @inferred(vcat(A, A))[3:4] == @inferred(A[1:2])
 
             @test size(@inferred similar(A)) == size(A)
 
-            @test @inferred(copy(A)) == A
+            @test copy(A) == A
             @test typeof(copy(A)) == typeof(A)
 
             @test @inferred(TypedTables.Table(A)) == A
@@ -131,6 +166,64 @@ import TypedTables
             A_zero() = shape.(nestedview(zeros(totalndof(shape), 2)))
             @test (B = A_zero(); B[:] = A; B) == A
             @test (B = A_zero(); B[:] = TypedTables.Table(A); B) == A
+
+            @test unshaped.(A) == data
+            let newshape = NamedTupleShape(a=ArrayShape{Real}(9,1), b=ArrayShape{Real}(1,2))
+                newA = ValueShapes.ShapedAsNTArray(data, newshape)
+                vecA = vec(newA)
+                @test newA == vecA
+            end
+
+            let vecA = vec(A)
+              @test A == vecA
+            end
+
+            @test getproperty(A, :__internal_data) == ValueShapes._bcasted_unshaped(A)
+            @test getproperty(A, :__internal_elshape) == A.__internal_elshape
+
+            @test @inferred(IndexStyle(A)) == IndexStyle(getproperty(A, :__internal_data))
+
+            @test @inferred(axes(A)[1].stop == size(data)[1])
+
+            @test A == copy(A)
+
+            let B = empty(A)
+                for p in propertynames(B)
+                    @test @inferred(isempty(getproperty(B, p)))
+                end
+            end
+
+            let B = copy(A), C = copy(A), D = copy(A)
+                for i in 1:length(A)-1
+                    b = pop!(B)
+                    c = popfirst!(C)
+                    d = splice!(D, i)
+                    @test c == d
+                end
+                @test C == D
+                @test B[end] == A[1]
+                @test @inferred(length(A) - length(B)) == 1
+                @test C[1] == A[end]
+                @test @inferred(length(A) - length(C)) == 1
+                B = empty(B)
+                prepend!(B, A)
+                @test B == A
+                D = copy(A)
+                prepend!(D, A)
+                prepend!(D, A)
+                prepend!(D, A)
+                deleteat!(D, 1:length(A):length(D))
+                for i in 1:length(D)-1
+                    @test @inferred( D[i] == D[i+1])
+                end
+            end
+
+            @test @inferred(Tables.istable(typeof(A))) == true
+            @test @inferred(Tables.rowaccess(typeof(A))) == true
+            @test @inferred(Tables.columnaccess(typeof(A))) == true
+            @test @inferred(Tables.schema(A).names == propertynames(A))
+            @test @inferred(Tables.rows(A)) == A
+
         end
     end
 
