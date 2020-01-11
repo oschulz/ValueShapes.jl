@@ -24,8 +24,8 @@ Distributions._logpdf(d::ConstValueDist, x::AbstractArray{<:Real}) = d.value == 
 
 Distributions.cdf(d::ConstValueDist{Univariate}, x::Real) = d.value <= x ? Float32(1) : Float32(0)
 Distributions.quantile(d::ConstValueDist{Univariate}, q::Real) = d.value # Sensible?
-Distributions.minimum(d::ConstValueDist{Univariate}) = x.value
-Distributions.maximum(d::ConstValueDist{Univariate}) = x.value
+Distributions.minimum(d::ConstValueDist{Univariate}) = d.value
+Distributions.maximum(d::ConstValueDist{Univariate}) = d.value
 Distributions.insupport(d::ConstValueDist{Univariate}, x::Real) = x == d.value
 
 StatsBase.mode(d::ConstValueDist) = d.value
