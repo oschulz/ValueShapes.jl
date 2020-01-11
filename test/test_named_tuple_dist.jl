@@ -55,7 +55,8 @@ using Statistics, StatsBase, Distributions, IntervalSets
     end
     for key in keys(internalshapes)
         @test getproperty(getproperty(internalshapes, key), :shape) == valshape(getproperty(internalshapes, key))
-#       propnames = propertynames(internalshapes, key) 
+    end
+
 
     # ToDo: Add more tests
 end
