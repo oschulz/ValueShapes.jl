@@ -22,6 +22,7 @@ branches:
     - dev
     - /^release-.*$/
     - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
+    - test_named_tuple_dist
 
 notifications:
   email: false
