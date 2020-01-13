@@ -16,8 +16,15 @@ using Test
     @test @inferred(ConstValueShape([1 4; 3 2])(undef)) == [1 4; 3 2]
     @test @inferred(ConstValueShape([1 4; 3 2])(Int[])) == [1 4; 3 2]
 
+    data = [1 4; 3 2]
     shape = ConstValueShape([1 4; 3 2])
+
 
     @test typeof(@inferred(Vector{Int32}(undef, shape))) == Vector{Int32}
     @test size(@inferred(Vector{Int32}(undef, shape))) == (0,)
+
+    @test @inferred(length(shape)) == 4
+
+    @test @inferred(ValueShapes.shaped_type(shape)) <: typeof(data)
+    @test @inferred(ValueShapes.shaped_type(shape)) == typeof(data)
 end
