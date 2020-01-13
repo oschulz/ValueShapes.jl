@@ -31,6 +31,8 @@ using ElasticArrays, ArraysOfArrays
     A = @inferred(shape(undef))
     @test typeof(A) == Array{Float64,2}
     @test size(A) == (2, 3)
+    @test @inferred(length(shape)) == shape.dims[1]*shape.dims[2]
+    @test @inferred(length(shape)) == prod(shape.dims)
     @test @inferred(valshape(A)) == ArrayShape{Float64}(2,3)
     @test @inferred(shape([1, 2, 3, 4, 5, 6])) == [1 3 5; 2 4 6]
     @test_throws ArgumentError shape([1, 2, 3, 4, 5, 6, 7])
