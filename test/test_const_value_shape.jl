@@ -25,6 +25,7 @@ using Test
 
     @test @inferred(length(shape)) == 4
 
-    @test @inferred(ValueShapes.shaped_type(shape)) <: typeof(data)
-    @test @inferred(ValueShapes.shaped_type(shape)) == typeof(data)
+    @test @inferred(ValueShapes.shaped_type(shape), Real) == typeof(data)
+
+    
 end
