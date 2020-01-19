@@ -1,1 +1,3 @@
 # comment: false
+codecov:
+  branch: test_value_shape
