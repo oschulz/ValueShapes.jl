@@ -28,8 +28,6 @@ import TypedTables
         shapedasnt = ntshape(data)       
         @test stripscalar(Ref(shapedasnt)) == Ref(shapedasnt)[]
 
-        @test ValueShapes._checkcompat_inner
-        
  
     end
 end
