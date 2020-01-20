@@ -20,8 +20,9 @@ import TypedTables
         @test @inferred(elshape([[3, 5], [3, 2]])) == ArrayShape{Int,1}((2,))
         
         arrshape = ArrayShape{Real, 2}((2,3))
-        @test @inferred(length(Vector{Real}(undef, arrshape))) == 6
-        @test @inferred(size(Vector{Real}(undef, arrshape))) == (6,)
+        vec = Vector{Real}(undef, arrshape)
+        @test @inferred(length(vec)) == 6
+        @test @inferred(size(vec)) == (6,)
         
         data1 = [1;2;3;4;7;8;9]
         scalarshape = ScalarShape{Real}()
