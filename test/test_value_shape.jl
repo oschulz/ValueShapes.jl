@@ -5,6 +5,7 @@ using Test
 
 using Random
 using ElasticArrays
+using ArraysOfArrays
 import TypedTables
 
 
@@ -22,12 +23,25 @@ import TypedTables
         @test @inferred(length(Vector{Real}(undef, arrshape))) == 6
         @test @inferred(size(Vector{Real}(undef, arrshape))) == (6,)
         
-        data = [1;2;3;4;7;8;9]
+        data1 = [1;2;3;4;7;8;9]
         scalarshape = ScalarShape{Real}()
         ntshape = NamedTupleShape(a=arrshape, b=scalarshape)
-        shapedasnt = ntshape(data)       
+        shapedasnt = ntshape(data1)       
         @test stripscalar(Ref(shapedasnt)) == Ref(shapedasnt)[]
 
- 
+        @test_throws ArgumentError Broadcast.broadcastable(ntshape) 
+
+        named_shapes = (
+            a = ArrayShape{Real}(2, 3),
+            b = ScalarShape{Real}(),
+            c = ConstValueShape(4.2),
+            x = ConstValueShape([11 21; 12 22]),
+            y = ArrayShape{Real}(4)
+        )
+        shape = NamedTupleShape(;named_shapes...)
+        data2 = VectorOfSimilarVectors(reshape(collect(1:22), 11, 2))
+        @test_throws ArgumentError ValueShapes._checkcompat_inner(ntshape, data2)
+        @test ValueShapes._checkcompat_inner(shape, data2) == nothing
+        
     end
 end
