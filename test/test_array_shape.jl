@@ -73,6 +73,7 @@ using ElasticArrays, ArraysOfArrays
     let d1 = [11, 12, 13, 14], d2 = [21, 22]
         d = vcat(d1, d2)
         reshaped = shape(d)
+        @test reshaped == reshape(d, (2,3))
     end
 
 end

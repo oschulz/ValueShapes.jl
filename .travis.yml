@@ -22,7 +22,6 @@ branches:
     - dev
     - /^release-.*$/
     - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
-    - test_array_shape
 
 notifications:
   email: false
