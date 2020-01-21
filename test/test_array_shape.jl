@@ -69,4 +69,10 @@ using ElasticArrays, ArraysOfArrays
         @test @inferred(setindex!(A, [6 4 3; 2 1 5], ac1, ac2)) === A
         @test A[ac1, ac2] == [6 4 3; 2 1 5]
     end
+
+    let d1 = [11, 12, 13, 14], d2 = [21, 22]
+        d = vcat(d1, d2)
+        reshaped = shape(d)
+    end
+
 end
