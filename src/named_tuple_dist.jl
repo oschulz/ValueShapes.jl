@@ -62,7 +62,7 @@ end
     # Need to include internal fields of NamedTupleShape to make Zygote happy:
     if s == :_internal_distributions
         getfield(d, :_internal_distributions)
-    elseif s == :_shapes
+    elseif s == :_internal_shapes
         getfield(d, :_internal_shapes)
     else
         getproperty(_distributions(d), s)

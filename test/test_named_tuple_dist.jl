@@ -42,8 +42,18 @@ using Statistics, StatsBase, Distributions, IntervalSets
     dist_h = @inferred NamedTupleDist(
         h1 = fit(Histogram, randn(10^5)),
         h2 = fit(Histogram, (2 * randn(10^5), 3 * randn(10^5)))
-    )
+)
     @test isapprox(std(@inferred(rand(dist_h, 10^5)), dims = 2, corrected = true), [1, 2, 3], rtol = 0.1)
 
-    # ToDo: Add more tests
+    propnames = propertynames(dist, true)
+    @test propnames == (:a, :b, :c, :d, :x, :e, :_internal_distributions, :_internal_shapes)
+    @test @inferred(keys(dist)) == propertynames(dist, false)
+    internaldists = getproperty(dist, :_internal_distributions)
+    internalshapes = getproperty(dist, :_internal_shapes)
+    for i in 1:length(internaldists)
+        @test typeof(getindex(internaldists, i)) == typeof(getproperty(dist, keys(dist)[i]))
+    end
+    for key in keys(internalshapes)
+        @test getproperty(getproperty(internalshapes, key), :shape) == valshape(getproperty(internalshapes, key))
+    end
 end

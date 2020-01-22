@@ -1,6 +1,6 @@
 name = "ValueShapes"
 uuid = "136a8f8c-c49b-4edb-8b98-f3d64d48be8f"
-version = "0.6.0"
+version = "0.6.1"
 
 [deps]
 ArraysOfArrays = "65a8f2f4-9b39-5baf-92e2-a9cc46fdf018"
@@ -17,11 +17,11 @@ TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 
 [compat]
 ArraysOfArrays = "0.4"
-Distributions = "< 2.0"
+Distributions = "0.21, 0.22"
 ElasticArrays = "1.0"
 EmpiricalDistributions = "0.1"
-FillArrays = "0.7,0.8"
-IntervalSets = "0.3.0"
+FillArrays = "0.7, 0.8"
+IntervalSets = "0.3"
 StatsBase = "0.32"
 Tables = "0.2"
 TypedTables = "1.2"
