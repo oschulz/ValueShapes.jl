@@ -293,5 +293,5 @@ Base.copy(instance::VSBroadcasted1{<:AbstractValueShape,AbstractVector{<:Abstrac
 
 function _zerodim_array(x::T) where T
     A = Array{T,0}(undef)
-    A[0] = x
+    A[] = x
 end
