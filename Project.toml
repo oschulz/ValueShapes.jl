@@ -1,6 +1,6 @@
 name = "ValueShapes"
 uuid = "136a8f8c-c49b-4edb-8b98-f3d64d48be8f"
-version = "0.6.1"
+version = "0.6.2"
 
 [deps]
 ArraysOfArrays = "65a8f2f4-9b39-5baf-92e2-a9cc46fdf018"
