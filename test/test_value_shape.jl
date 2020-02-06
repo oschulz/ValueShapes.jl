@@ -18,7 +18,11 @@ import TypedTables
 
         @test @inferred(elshape(Complex(1.0, 2.0))) == ScalarShape{Complex{Float64}}()
         @test @inferred(elshape([[3, 5], [3, 2]])) == ArrayShape{Int,1}((2,))
-        
+
+        @test ValueShapes.stripscalar(Ref(ScalarShape{Real})) == ScalarShape{Real}
+
+        # @test Vector{Real}(undef, ArrayShape{Real}((2,1))) ==  # weird typing going on with default_unshaped_eltype
+
         arrshape = ArrayShape{Real, 2}((2,3))
         vec = Vector{Real}(undef, arrshape)
         @test @inferred(length(vec)) == 6
@@ -43,6 +47,5 @@ import TypedTables
         data2 = VectorOfSimilarVectors(reshape(collect(1:22), 11, 2))
         @test_throws ArgumentError ValueShapes._checkcompat_inner(ntshape, data2)
         @test ValueShapes._checkcompat_inner(shape, data2) == nothing
-        
     end
 end
