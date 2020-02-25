@@ -56,4 +56,13 @@ using Statistics, StatsBase, Distributions, IntervalSets
     for key in keys(internalshapes)
         @test getproperty(getproperty(internalshapes, key), :shape) == valshape(getproperty(internalshapes, key))
     end
+
+    @test @inferred(merge((a = 42,), NamedTupleDist(x = 5, z = Normal()))) == (a = 42, x = ConstValueDist(5), z = Normal())
+    @test @inferred(NamedTupleDist((;dist...))) == dist
+    @test @inferred(merge(dist)) === dist
+    @test @inferred(merge(
+        NamedTupleDist(x = Normal(), y = 42),
+        NamedTupleDist(y = Normal(4, 5)),
+        NamedTupleDist(z = Exponential(3), a = 4.2),
+    )) == NamedTupleDist(x = Normal(), y = Normal(4, 5), z = Exponential(3), a = 4.2)
 end

@@ -79,6 +79,14 @@ end
 end
 
 
+@inline Base.map(f, dist::NamedTupleDist) = map(f, _distributions(dist))
+
+
+Base.merge(a::NamedTuple, dist::NamedTupleDist{names}) where {names} = merge(a, _distributions(dist))
+Base.merge(a::NamedTupleDist) = a
+Base.merge(a::NamedTupleDist, b::NamedTupleDist, cs::NamedTupleDist...) = merge(NamedTupleDist(;a..., b...), cs...)
+
+
 ValueShapes.varshape(d::NamedTupleDist) = _shapes(d)
 
 
