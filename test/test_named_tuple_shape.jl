@@ -63,6 +63,12 @@ import Tables
 
         @test @inferred(merge((foo = 42,), shape)) == merge((foo = 42,), named_shapes)
         @test @inferred(NamedTupleShape(;shape...)) == shape
+        @test @inferred(merge(shape)) === shape
+        @test @inferred(merge(
+            NamedTupleShape(x = ScalarShape{Real}(), y = ScalarShape{Real}()),
+            NamedTupleShape(y = ArrayShape{Real}(3)),
+            NamedTupleShape(z = ScalarShape{Real}(), a = ArrayShape{Real}(2, 4)),
+        )) == NamedTupleShape(x = ScalarShape{Real}(), y = ArrayShape{Real}(3), z = ScalarShape{Real}(), a = ArrayShape{Real}(2, 4))
 
         @test typeof(@inferred(shape(undef))) == NamedTuple{(:a, :b, :c, :x, :y),Tuple{Array{Float64,2},Float64,Float64,Array{Int,2},Array{Float64,1}}}
         @test typeof(@inferred(valshape(shape(undef)))) <: NamedTupleShape

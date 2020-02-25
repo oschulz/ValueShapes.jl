@@ -95,9 +95,13 @@ end
 
 @inline Base.map(f, shape::NamedTupleShape) = map(f, _accessors(shape))
 
+
 function Base.merge(a::NamedTuple, shape::NamedTupleShape{names}) where {names}
     merge(a, NamedTuple{names}(map(x -> valshape(x), values(shape))))
 end
+
+Base.merge(a::NamedTupleShape) = a
+Base.merge(a::NamedTupleShape, b::NamedTupleShape, cs::NamedTupleShape...) = merge(NamedTupleShape(;a..., b...), cs...)
 
 
 valshape(x::NamedTuple) = NamedTupleShape(map(valshape, x))
