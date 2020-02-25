@@ -24,7 +24,6 @@ using Random
 
     @test @inferred(minimum(univariate_cvd)) == 42
     @test @inferred(maximum(univariate_cvd)) == 42
-    @test @inferred(maximum(@inferred(pdf(univariate_cvd, -50:50)))) == Inf
 
     @test @inferred(pdf(univariate_cvd, 42)) == Inf
 
