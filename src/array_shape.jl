@@ -108,8 +108,6 @@ function _bcasted_view_unchanged(data::AbstractArray{<:AbstractVector{T}}, shape
 end
 
 # Specialize (::ArrayShape{T,1}).(::AbstractArray{<:AbstractVector{<:Real}}):
-Base.copy(instance::VSBroadcasted1{1,ArrayShape{T,1},AbstractVector{<:AbstractVector{<:Real}}}) where T =
-    _bcasted_view_unchanged(instance.args[1], instance.f)
 Base.copy(instance::VSBroadcasted1{N,ArrayShape{T,1},AbstractArray{<:AbstractVector{<:Real},N}}) where {T,N} =
     _bcasted_view_unchanged(instance.args[1], instance.f)
 
@@ -117,8 +115,6 @@ Base.copy(instance::VSBroadcasted1{N,ArrayShape{T,1},AbstractArray{<:AbstractVec
 @inline _bcasted_unshaped(A::AbstractArrayOfSimilarArrays{<:Real,1}) = A
 
 # Specialize unshaped.(::AbstractArray{<:AbstractVector{<:Real}}):
-Base.copy(instance::VSBroadcasted1{1,typeof(unshaped),AbstractVector{<:AbstractVector{<:Real}}}) =
-    _bcasted_unshaped(instance.args[1])
 Base.copy(instance::VSBroadcasted1{N,typeof(unshaped),AbstractArray{<:AbstractVector{<:Real},N}}) where N =
     _bcasted_unshaped(instance.args[1])
 
