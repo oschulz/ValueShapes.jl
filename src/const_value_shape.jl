@@ -65,11 +65,11 @@ function vs_setindex!(data::AbstractVector{<:Real}, v, va::ConstAccessor)
 end
 x =
 
-@inline _bcasted_view(data::AbstractVectorOfSimilarVectors{<:Real}, va::ConstAccessor) =
-    Fill(va.shape.value, size(data,1))
+@inline _bcasted_view(data::AbstractArrayOfSimilarVectors{<:Real,N}, va::ConstAccessor) where N =
+    Fill(va.shape.value, size(data)...)
 
-Base.copy(instance::VSBroadcasted2{typeof(getindex),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ConstAccessor}}) =
+Base.copy(instance::VSBroadcasted2{N,typeof(getindex),AbstractArrayOfSimilarVectors{<:Real,N},Ref{<:ConstAccessor}}) where N =
     _bcasted_view(instance.args[1], instance.args[2][])
 
-Base.copy(instance::VSBroadcasted2{typeof(view),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ConstAccessor}}) =
+Base.copy(instance::VSBroadcasted2{N,typeof(view),AbstractArrayOfSimilarVectors{<:Real,N},Ref{<:ConstAccessor}}) where N =
     _bcasted_view(instance.args[1], instance.args[2][])

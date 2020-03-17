@@ -107,14 +107,15 @@ Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::Scala
     setindex!(data, v, view_idxs(axes(data, 1), va))
 
 
-Base.@propagate_inbounds function _bcasted_view(data::AbstractVectorOfSimilarVectors{<:Real}, va::ScalarAccessor)
+Base.@propagate_inbounds function _bcasted_view(data::AbstractArrayOfSimilarVectors{<:Real,N}, va::ScalarAccessor) where N
     flat_data = flatview(data)
     idxs = view_idxs(axes(flat_data, 1), va)
-    view(flat_data, idxs, :)
+    colons = map(_ -> :, Base.tail(axes(flat_data)))
+    view(flat_data, idxs, colons...)
 end
 
-Base.copy(instance::VSBroadcasted2{typeof(getindex), AbstractVectorOfSimilarVectors{<:Real},Ref{<:ScalarAccessor}}) =
+Base.copy(instance::VSBroadcasted2{N,typeof(getindex), AbstractArrayOfSimilarVectors{<:Real,N},Ref{<:ScalarAccessor}}) where N =
     copy(_bcasted_view(instance.args[1], instance.args[2][]))
 
-Base.copy(instance::VSBroadcasted2{typeof(view), AbstractVectorOfSimilarVectors{<:Real},Ref{<:ScalarAccessor}}) =
+Base.copy(instance::VSBroadcasted2{N,typeof(view), AbstractArrayOfSimilarVectors{<:Real,N},Ref{<:ScalarAccessor}}) where N =
     _bcasted_view(instance.args[1], instance.args[2][])

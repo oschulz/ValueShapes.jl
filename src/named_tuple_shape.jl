@@ -352,7 +352,7 @@ end
 
 
 # Specialize (::NamedTupleShape).(::AbstractVector{<:AbstractVector}):
-Base.copy(instance::VSBroadcasted1{<:NamedTupleShape,AbstractVector{<:AbstractVector{<:Real}}}) =
+Base.copy(instance::VSBroadcasted1{1,<:NamedTupleShape,AbstractVector{<:AbstractVector{<:Real}}}) =
     ShapedAsNTArray(instance.args[1], instance.f)
 
 
@@ -363,7 +363,7 @@ Base.copy(instance::VSBroadcasted1{<:NamedTupleShape,AbstractVector{<:AbstractVe
 
 @inline _bcasted_unshaped(A::ShapedAsNTArray) = _data(A)
 
-Base.copy(instance::VSBroadcasted1{typeof(unshaped),ShapedAsNTArray}) =
+Base.copy(instance::VSBroadcasted1{N,typeof(unshaped),ShapedAsNTArray{T,N}}) where {T,N} =
     _bcasted_unshaped(instance.args[1])
 
 

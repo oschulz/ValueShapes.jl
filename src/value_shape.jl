@@ -270,16 +270,16 @@ ArraysOfArrays.VectorOfSimilarVectors{T}(shape::AbstractValueShape) where {T<:Re
     VectorOfSimilarVectors(ElasticArray{T}(undef, totalndof(shape), 0))
 
 
-const VSBroadcasted1{F,T} = Base.Broadcast.Broadcasted{
-    <:Base.Broadcast.AbstractArrayStyle{1},
+const VSBroadcasted1{N,F,T} = Base.Broadcast.Broadcasted{
+    <:Base.Broadcast.AbstractArrayStyle{N},
     <:Any,
     F,
     <:Tuple{T}
 }
 
 
-const VSBroadcasted2{F,T1,T2} = Base.Broadcast.Broadcasted{
-    <:Base.Broadcast.AbstractArrayStyle{1},
+const VSBroadcasted2{N,F,T1,T2} = Base.Broadcast.Broadcasted{
+    <:Base.Broadcast.AbstractArrayStyle{N},
     <:Any,
     F,
     <:Tuple{T1,T2}
@@ -287,7 +287,7 @@ const VSBroadcasted2{F,T1,T2} = Base.Broadcast.Broadcasted{
 
 
 # Specialize (::AbstractValueShape).(::AbstractVector{<:AbstractVector{<:Real}}):
-Base.copy(instance::VSBroadcasted1{<:AbstractValueShape,AbstractVector{<:AbstractVector{<:Real}}}) =
+Base.copy(instance::VSBroadcasted1{N,<:AbstractValueShape,AbstractArray{<:AbstractVector{<:Real},N}}) where N =
     broadcast(view, instance.args[1], Ref(ValueAccessor(instance.f, 0)))
 
 

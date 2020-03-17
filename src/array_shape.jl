@@ -95,10 +95,10 @@ Base.@propagate_inbounds function _bcasted_view(data::AbstractVectorOfSimilarVec
     VectorOfSimilarArrays(reshape(fpview, size(va.shape)..., :))
 end
 
-Base.copy(instance::VSBroadcasted2{typeof(getindex),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ArrayAccessor}}) =
+Base.copy(instance::VSBroadcasted2{1,typeof(getindex),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ArrayAccessor}}) =
     copy(_bcasted_view(instance.args[1], instance.args[2][]))
 
-Base.copy(instance::VSBroadcasted2{typeof(view),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ArrayAccessor}}) =
+Base.copy(instance::VSBroadcasted2{1,typeof(view),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ArrayAccessor}}) =
     _bcasted_view(instance.args[1], instance.args[2][])
 
 
@@ -108,18 +108,18 @@ function _bcasted_view_unchanged(data::AbstractArray{<:AbstractVector{T}}, shape
 end
 
 # Specialize (::ArrayShape{T,1}).(::AbstractArray{<:AbstractVector{<:Real}}):
-Base.copy(instance::VSBroadcasted1{ArrayShape{T,1},AbstractVector{<:AbstractVector{<:Real}}}) where T =
+Base.copy(instance::VSBroadcasted1{1,ArrayShape{T,1},AbstractVector{<:AbstractVector{<:Real}}}) where T =
     _bcasted_view_unchanged(instance.args[1], instance.f)
-Base.copy(instance::VSBroadcasted1{ArrayShape{T,1},AbstractArray{<:AbstractVector{<:Real}}}) where T =
+Base.copy(instance::VSBroadcasted1{N,ArrayShape{T,1},AbstractArray{<:AbstractVector{<:Real},N}}) where {T,N} =
     _bcasted_view_unchanged(instance.args[1], instance.f)
 
 
 @inline _bcasted_unshaped(A::AbstractArrayOfSimilarArrays{<:Real,1}) = A
 
 # Specialize unshaped.(::AbstractArray{<:AbstractVector{<:Real}}):
-Base.copy(instance::VSBroadcasted1{typeof(unshaped),AbstractVector{<:AbstractVector{<:Real}}}) =
+Base.copy(instance::VSBroadcasted1{1,typeof(unshaped),AbstractVector{<:AbstractVector{<:Real}}}) =
     _bcasted_unshaped(instance.args[1])
-Base.copy(instance::VSBroadcasted1{typeof(unshaped),AbstractArray{<:AbstractVector{<:Real}}}) =
+Base.copy(instance::VSBroadcasted1{N,typeof(unshaped),AbstractArray{<:AbstractVector{<:Real},N}}) where N =
     _bcasted_unshaped(instance.args[1])
 
 
