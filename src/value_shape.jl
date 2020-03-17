@@ -234,7 +234,7 @@ function _checkcompat(shape::AbstractValueShape, data::AbstractVector{<:Real})
 end
 
 
-function _checkcompat_inner(shape::AbstractValueShape, data::AbstractVector{<:AbstractVector{<:Real}})
+function _checkcompat_inner(shape::AbstractValueShape, data::AbstractArray{<:AbstractVector{<:Real}})
     n_shape = totalndof(shape)
     n_data = prod(innersize(data))
     if n_shape != n_data
