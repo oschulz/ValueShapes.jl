@@ -17,7 +17,7 @@ TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 
 [compat]
 ArraysOfArrays = "0.4"
-Distributions = "0.21, 0.22"
+Distributions = "0.21, 0.22, 0.23"
 ElasticArrays = "1.0"
 EmpiricalDistributions = "0.1"
 FillArrays = "0.7, 0.8"
