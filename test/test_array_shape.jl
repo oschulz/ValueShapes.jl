@@ -70,10 +70,68 @@ using ElasticArrays, ArraysOfArrays
         @test A[ac1, ac2] == [6 4 3; 2 1 5]
     end
 
+    let A = collect(reshape(1:5*5*5, 5, 5, 5))
+        ac1 = ValueAccessor(ArrayShape{Real}(size(A)[1]), 0)
+        ac2 = ValueAccessor(ArrayShape{Real}(1), 0)
+        ac3 = ValueAccessor(ArrayShape{Real}(1), 2)
+        @test @inferred(getindex(A, ac1, ac1, ac1)) == A
+        @test @inferred(getindex(A, ac2, ac2, ac2))[1] == A[1]
+        @test @inferred(getindex(A, ac3, ac3, ac3))[1] == 63
+        @test @inferred(view(A, ac1, ac1, ac1)) == A
+        @test @inferred(view(A, ac2, ac2, ac2))[1] == A[1]
+        @test @inferred(view(A, ac3, ac3, ac3))[1] == 63
+    end
+
     let d1 = [11, 12, 13, 14], d2 = [21, 22]
         d = vcat(d1, d2)
         reshaped = shape(d)
         @test reshaped == reshape(d, (2,3))
     end
+end
 
+@testset "broadcasting and copy" begin
+    data1d = [rand(4), rand(4), rand(4), rand(4)]
+    data2d = [[rand(4,)] [rand(4,)] [rand(4,)]]
+
+    VoV = VectorOfVectors(data1d)
+
+    shape1 = ArrayShape{Float64, 1}((4,))
+    shape2 = ArrayShape{Float64}(1,4)
+    shape3 = ArrayShape{Float64}(2,2)
+
+    shape1_VoV_bcast = broadcast(shape1, VoV)
+    shape2_VoV_bcast = broadcast(shape2, VoV)
+    shape3_VoV_bcast = broadcast(shape3, VoV)
+
+    shape1_bcast = broadcast(shape1, data1d)
+    shape1_data_bcast = broadcast(shape1, data1d)
+    shape1_data_dcast = shape1.(data1d)
+    shape2_data_bcast = broadcast(shape2, data1d)
+    shape3_data_bcast = broadcast(shape3, data1d)
+
+    @test shape1_data_dcast == shape1_data_bcast
+    @test isapprox(shape1_VoV_bcast, shape1_data_bcast)
+    @test isapprox(shape2_VoV_bcast, shape2_data_bcast)
+    @test isapprox(shape3_VoV_bcast, shape3_data_bcast)
+
+    AoSV = ArrayOfSimilarVectors{Float64}(data1d)
+    AoSA = ArrayOfSimilarArrays{Float64}(data2d)
+
+    shaped_AoSV_bcast = broadcast(shape1, AoSV)
+    shaped_AoSV_dcast = shape1.(AoSV)
+
+    shaped_AoSA_bcast = broadcast(shape1, AoSA)
+    shaped_AoSA_dcast = shape1.(AoSA)
+
+    @test shaped_AoSV_bcast == AoSV
+    @test shaped_AoSV_dcast == shaped_AoSV_bcast
+    @test shape1.(VoV) == VoV
+
+    shape1_bcast = broadcast(shape1, data2d)
+    @test shape1_bcast == shape1.(data2d)
+    for i in 1:length(data2d)
+        @test shape1_bcast[i] == data2d[i]
+    end
+    unshaped1 = unshaped.(shaped_AoSA_bcast)
+    @test unshaped1 == data2d
 end

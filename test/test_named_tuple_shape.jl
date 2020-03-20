@@ -35,6 +35,7 @@ import Tables
 
         @test @inferred(length(shape)) == 5
         @test @inferred(propertynames(shape)) == keys(shape)
+        @test propertynames(shape, true) == (propertynames(shape)..., :_flatdof, :_accessors)
 
         let flatdof = 0, accs = getproperty(shape, :_accessors)
             for i in 1:length(keys(shape))
@@ -146,6 +147,7 @@ import Tables
 
             @inferred typeof(@inferred broadcast(shape, data)) == typeof(A)
             @test shape.(data) == A
+            @test @inferred(broadcast(unshaped, shape.(data))) == data
 
             @test @inferred(propertynames(A)) == (:a, :b, :c, :x, :y)
             @test propertynames(A, true) == (:a, :b, :c, :x, :y, :__internal_data, :__internal_elshape)
@@ -225,10 +227,17 @@ import Tables
             end
 
             @test @inferred(Tables.istable(typeof(A))) == true
-            @test @inferred(Tables.rowaccess(typeof(A))) == true
+            @test @inferred(Tables.rowaccess(typeof(A))) == @inferred(Tables.rowaccess(A))
+            @test @inferred(Tables.rowaccess(A)) == true
             @test @inferred(Tables.columnaccess(typeof(A))) == true
             @test @inferred(Tables.schema(A).names == propertynames(A))
             @test @inferred(Tables.rows(A)) == A
+
+#           d = [[11 12 13; 14 15 16], [21. 22. 23.; 24. 25. 26.]]
+#           nt = (a = d[1], b = d[2])
+# typeof(d) <: AbstractArray{<:AbstractVector{<:Real}}
+            d = [[rand(4,)] [rand(4,)] [rand(4,)]]
+            nt = (a=ArrayShape{Int64, 2}((2,3)), b=ArrayShape{Float64, 2}((3,2)))
 
         end
     end

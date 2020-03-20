@@ -17,6 +17,12 @@ using Statistics, StatsBase, Distributions, IntervalSets
     @test typeof(@inferred varshape(dist)) <: NamedTupleShape
 
     shape = varshape(dist)
+    shapes = map(varshape, dist)
+    
+    for k in keys(dist)
+        @test getproperty(shapes, k) == varshape(getproperty(dist, k))
+    end
+        
 
     @test (@inferred logpdf(dist, [0.2, -0.4, 0.3, -0.5, 0.9])) == logpdf(Normal(), 0.2) + logpdf(Uniform(-4, 5), -0.4) + logpdf(MvNormal([1.2 0.5; 0.5 2.1]), [0.3, -0.5]) + logpdf(Normal(1.1, 0.2), 0.9)
 

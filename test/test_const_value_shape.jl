@@ -34,5 +34,12 @@ using ArraysOfArrays
     for (index,value) in enumerate(bcv[1])
         @test value == vecs_of_vecs[1][index] 
     end
-    
+    aosv = ArrayOfSimilarVectors([ [1,2,3] [4,5,6] ])
+    va = ValueAccessor(ConstValueShape{Real}(1), 0)
+    inds = getindex.(aosv, Ref(va))
+    for i in inds
+        @test i == 1
+    end
+    views = view.(aosv, Ref(va))
+    @test views === inds
 end
