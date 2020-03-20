@@ -32,7 +32,7 @@ using ArraysOfArrays
     va = ValueAccessor(ArrayShape{Real}(11,1), 0)
     bcv = ValueShapes._bcasted_view(vecs_of_vecs, va)
     for (index,value) in enumerate(bcv[1])
-        @test value == vecs_of_vecs[1][index] 
+        @test value == vecs_of_vecs[1][index]
     end
     aosv = ArrayOfSimilarVectors([ [1,2,3] [4,5,6] ])
     va = ValueAccessor(ConstValueShape{Real}(1), 0)

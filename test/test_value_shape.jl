@@ -27,14 +27,14 @@ import TypedTables
         vec = Vector{Real}(undef, arrshape)
         @test @inferred(length(vec)) == 6
         @test @inferred(size(vec)) == (6,)
-        
+
         data1 = [1;2;3;4;7;8;9]
         scalarshape = ScalarShape{Real}()
         ntshape = NamedTupleShape(a=arrshape, b=scalarshape)
-        shapedasnt = ntshape(data1)       
+        shapedasnt = ntshape(data1)
         @test stripscalar(Ref(shapedasnt)) == Ref(shapedasnt)[]
 
-        @test_throws ArgumentError Broadcast.broadcastable(ntshape) 
+        @test_throws ArgumentError Broadcast.broadcastable(ntshape)
 
         named_shapes = (
             a = ArrayShape{Real}(2, 3),

@@ -45,6 +45,7 @@ using ElasticArrays, ArraysOfArrays
     let
         A = collect(1:8)
         ac = ValueAccessor(ArrayShape{Real}(3), 2)
+
         @test @inferred(getindex(A, ac)) == [3, 4, 5]
         @test @inferred(view(A, ac)) == [3, 4, 5]
         @test @inferred(setindex!(A, [7, 2, 6], ac)) === A
@@ -54,6 +55,7 @@ using ElasticArrays, ArraysOfArrays
     let
         A = collect(1:6*6)
         ac = ValueAccessor(ArrayShape{Real}(2,3), 17)
+
         @test @inferred(getindex(A, ac)) == [18 20 22; 19 21 23]
         @test @inferred(view(A, ac)) == [18 20 22; 19 21 23]
         @test @inferred(setindex!(A, [6 4 3; 2 1 5], ac)) === A
@@ -64,6 +66,7 @@ using ElasticArrays, ArraysOfArrays
         A = collect(reshape(1:6*6, 6, 6))
         ac1 = ValueAccessor(ArrayShape{Real}(2), 2)
         ac2 = ValueAccessor(ArrayShape{Real}(3), 3)
+
         @test @inferred(getindex(A, ac1, ac2)) == [21 27 33; 22 28 34]
         @test @inferred(view(A, ac1, ac2)) == [21 27 33; 22 28 34]
         @test @inferred(setindex!(A, [6 4 3; 2 1 5], ac1, ac2)) === A
@@ -73,13 +76,20 @@ using ElasticArrays, ArraysOfArrays
     let A = collect(reshape(1:5*5*5, 5, 5, 5))
         ac1 = ValueAccessor(ArrayShape{Real}(size(A)[1]), 0)
         ac2 = ValueAccessor(ArrayShape{Real}(1), 0)
-        ac3 = ValueAccessor(ArrayShape{Real}(1), 2)
+        ac3 = ValueAccessor(ArrayShape{Real}(1), 1)
+        ac4 = ValueAccessor(ArrayShape{Real}(1), 2)
+
         @test @inferred(getindex(A, ac1, ac1, ac1)) == A
         @test @inferred(getindex(A, ac2, ac2, ac2))[1] == A[1]
-        @test @inferred(getindex(A, ac3, ac3, ac3))[1] == 63
+        @test @inferred(getindex(A, ac4, ac4, ac4))[1] == 63
+
         @test @inferred(view(A, ac1, ac1, ac1)) == A
         @test @inferred(view(A, ac2, ac2, ac2))[1] == A[1]
-        @test @inferred(view(A, ac3, ac3, ac3))[1] == 63
+        @test @inferred(view(A, ac4, ac4, ac4))[1] == 63
+
+        first_layer = @inferred(getindex(A, ac1, ac1, ac2))
+        setindex!(A, first_layer, ac1, ac1, ac3)
+        @test @inferred(A[:,:,1]) == @inferred(A[:,:,2])
     end
 
     let d1 = [11, 12, 13, 14], d2 = [21, 22]

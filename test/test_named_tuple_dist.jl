@@ -18,11 +18,11 @@ using Statistics, StatsBase, Distributions, IntervalSets
 
     shape = varshape(dist)
     shapes = map(varshape, dist)
-    
+
     for k in keys(dist)
         @test getproperty(shapes, k) == varshape(getproperty(dist, k))
     end
-        
+
 
     @test (@inferred logpdf(dist, [0.2, -0.4, 0.3, -0.5, 0.9])) == logpdf(Normal(), 0.2) + logpdf(Uniform(-4, 5), -0.4) + logpdf(MvNormal([1.2 0.5; 0.5 2.1]), [0.3, -0.5]) + logpdf(Normal(1.1, 0.2), 0.9)
 
@@ -31,11 +31,11 @@ using Statistics, StatsBase, Distributions, IntervalSets
     @test (@inferred mode(dist)) == [0.0, 0.5, 0.0, 0.0, 1.1]
 
     @test begin
-        ref_cov = 
+        ref_cov =
             [1.0  0.0   0.0  0.0 0.0;
              0.0  6.75  0.0  0.0 0.0;
              0.0  0.0   1.2  0.5 0.0;
-             0.0  0.0   0.5  2.1 0.0; 
+             0.0  0.0   0.5  2.1 0.0;
              0.0  0.0   0.0  0.0 0.04 ]
 
         @static if VERSION >= v"1.2"
