@@ -16,5 +16,5 @@ using Test
     @test @inferred(length(acc)) == length(getproperty(acc, :shape))
 
     @test @inferred(ValueShapes.default_unshaped_eltype(acc)) == @inferred(ValueShapes.default_unshaped_eltype(getproperty(acc, :shape)))
-    
+
 end

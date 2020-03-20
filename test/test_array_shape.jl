@@ -45,6 +45,7 @@ using ElasticArrays, ArraysOfArrays
     let
         A = collect(1:8)
         ac = ValueAccessor(ArrayShape{Real}(3), 2)
+
         @test @inferred(getindex(A, ac)) == [3, 4, 5]
         @test @inferred(view(A, ac)) == [3, 4, 5]
         @test @inferred(setindex!(A, [7, 2, 6], ac)) === A
@@ -54,6 +55,7 @@ using ElasticArrays, ArraysOfArrays
     let
         A = collect(1:6*6)
         ac = ValueAccessor(ArrayShape{Real}(2,3), 17)
+
         @test @inferred(getindex(A, ac)) == [18 20 22; 19 21 23]
         @test @inferred(view(A, ac)) == [18 20 22; 19 21 23]
         @test @inferred(setindex!(A, [6 4 3; 2 1 5], ac)) === A
@@ -64,10 +66,30 @@ using ElasticArrays, ArraysOfArrays
         A = collect(reshape(1:6*6, 6, 6))
         ac1 = ValueAccessor(ArrayShape{Real}(2), 2)
         ac2 = ValueAccessor(ArrayShape{Real}(3), 3)
+
         @test @inferred(getindex(A, ac1, ac2)) == [21 27 33; 22 28 34]
         @test @inferred(view(A, ac1, ac2)) == [21 27 33; 22 28 34]
         @test @inferred(setindex!(A, [6 4 3; 2 1 5], ac1, ac2)) === A
         @test A[ac1, ac2] == [6 4 3; 2 1 5]
+    end
+
+    let A = collect(reshape(1:5*5*5, 5, 5, 5))
+        ac1 = ValueAccessor(ArrayShape{Real}(size(A)[1]), 0)
+        ac2 = ValueAccessor(ArrayShape{Real}(1), 0)
+        ac3 = ValueAccessor(ArrayShape{Real}(1), 1)
+        ac4 = ValueAccessor(ArrayShape{Real}(1), 2)
+
+        @test @inferred(getindex(A, ac1, ac1, ac1)) == A
+        @test @inferred(getindex(A, ac2, ac2, ac2))[1] == A[1]
+        @test @inferred(getindex(A, ac4, ac4, ac4))[1] == 63
+
+        @test @inferred(view(A, ac1, ac1, ac1)) == A
+        @test @inferred(view(A, ac2, ac2, ac2))[1] == A[1]
+        @test @inferred(view(A, ac4, ac4, ac4))[1] == 63
+
+        first_layer = @inferred(getindex(A, ac1, ac1, ac2))
+        setindex!(A, first_layer, ac1, ac1, ac3)
+        @test @inferred(A[:,:,1]) == @inferred(A[:,:,2])
     end
 
     let d1 = [11, 12, 13, 14], d2 = [21, 22]
@@ -75,5 +97,51 @@ using ElasticArrays, ArraysOfArrays
         reshaped = shape(d)
         @test reshaped == reshape(d, (2,3))
     end
+end
 
+@testset "broadcasting and copy" begin
+    data1d = [rand(4), rand(4), rand(4), rand(4)]
+    data2d = [[rand(4,)] [rand(4,)] [rand(4,)]]
+
+    VoV = VectorOfVectors(data1d)
+
+    shape1 = ArrayShape{Float64, 1}((4,))
+    shape2 = ArrayShape{Float64}(1,4)
+    shape3 = ArrayShape{Float64}(2,2)
+
+    shape1_VoV_bcast = broadcast(shape1, VoV)
+    shape2_VoV_bcast = broadcast(shape2, VoV)
+    shape3_VoV_bcast = broadcast(shape3, VoV)
+
+    shape1_bcast = broadcast(shape1, data1d)
+    shape1_data_bcast = broadcast(shape1, data1d)
+    shape1_data_dcast = shape1.(data1d)
+    shape2_data_bcast = broadcast(shape2, data1d)
+    shape3_data_bcast = broadcast(shape3, data1d)
+
+    @test shape1_data_dcast == shape1_data_bcast
+    @test isapprox(shape1_VoV_bcast, shape1_data_bcast)
+    @test isapprox(shape2_VoV_bcast, shape2_data_bcast)
+    @test isapprox(shape3_VoV_bcast, shape3_data_bcast)
+
+    AoSV = ArrayOfSimilarVectors{Float64}(data1d)
+    AoSA = ArrayOfSimilarArrays{Float64}(data2d)
+
+    shaped_AoSV_bcast = broadcast(shape1, AoSV)
+    shaped_AoSV_dcast = shape1.(AoSV)
+
+    shaped_AoSA_bcast = broadcast(shape1, AoSA)
+    shaped_AoSA_dcast = shape1.(AoSA)
+
+    @test shaped_AoSV_bcast == AoSV
+    @test shaped_AoSV_dcast == shaped_AoSV_bcast
+    @test shape1.(VoV) == VoV
+
+    shape1_bcast = broadcast(shape1, data2d)
+    @test shape1_bcast == shape1.(data2d)
+    for i in 1:length(data2d)
+        @test shape1_bcast[i] == data2d[i]
+    end
+    unshaped1 = unshaped.(shaped_AoSA_bcast)
+    @test unshaped1 == data2d
 end
