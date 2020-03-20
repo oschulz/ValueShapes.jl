@@ -97,12 +97,6 @@ with certain custom array types.
 """
 function vs_getindex end
 
-Base.@propagate_inbounds function vs_getindex(
-    data::AbstractMatrix{<:Real}, va_row::ValueAccessor, va_col::ValueAccessor
-)
-    getindex(data, view_idxs(axes(data, 1), va_row), view_idxs(axes(data, 2), va_col))
-end
-
 # Can't use `idxs::Vararg{ValueAccessor,N}`, would cause ambiguities with
 # Base for N == 0.
 Base.@propagate_inbounds Base._getindex(::IndexStyle, data::AbstractArray{<:Real,1}, idx1::ValueAccessor) =
@@ -122,12 +116,6 @@ ambiguities with with certain custom array types.
 """
 function vs_unsafe_view end
 
-Base.@propagate_inbounds function vs_unsafe_view(
-    data::AbstractMatrix{<:Real}, va_row::ValueAccessor, va_col::ValueAccessor
-)
-    Base.unsafe_view(data, view_idxs(axes(data, 1), va_row), view_idxs(axes(data, 2), va_col))
-end
-
 # Can't use `idxs::Vararg{ValueAccessor,N}`, would cause ambiguities with
 # Base for N == 0.
 Base.@propagate_inbounds Base.unsafe_view(data::AbstractArray{<:Real,1}, idx1::ValueAccessor) =
@@ -146,12 +134,6 @@ Specialize `ValueShapes.vs_setindex!` instead of `Base.setindex!` or for
 certain custom array types.
 """
 function vs_setindex! end
-
-Base.@propagate_inbounds function vs_setindex!(
-    data::AbstractMatrix{<:Real}, v, va_row::ValueAccessor, va_col::ValueAccessor
-)
-    setindex!(data, v, view_idxs(axes(data, 1), va_row), view_idxs(axes(data, 2), va_col))
-end
 
 # Can't use `idxs::Vararg{ValueAccessor,N}`, would cause ambiguities with
 # Base for N == 0.

@@ -67,18 +67,58 @@ end
 
 const ArrayAccessor{T,N} = ValueAccessor{ArrayShape{T,N}} where {T,N}
 
+const RealScalarOrVectorAccessor = ValueAccessor{<:Union{ScalarShape{<:Real},ArrayShape{<:Real,1}}}
 
-Base.@propagate_inbounds vs_getindex(data::AbstractVector{<:Real}, va::ArrayAccessor) = copy(view(data, va))
 
-Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ArrayAccessor{T,1}) where {T} =
+Base.@propagate_inbounds vs_getindex(data::AbstractVector{<:Real}, va::ArrayAccessor{<:Real}) = copy(view(data, va))
+
+@static if VERSION < v"1.4"
+    # To avoid ambiguity with Julia v1.0 (and v1.1 to v1.3?)
+    Base.@propagate_inbounds vs_getindex(data::AbstractVector{<:Real}, va::ArrayAccessor{<:Real,1}) = copy(view(data, va))
+end
+
+Base.@propagate_inbounds function vs_getindex(
+    data::AbstractArray{<:Real,N},
+    idxs::Vararg{RealScalarOrVectorAccessor,N}
+) where N
+    idxs_mapped = map(view_idxs, axes(data), idxs)
+    getindex(data, idxs_mapped...)
+end
+
+
+Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ArrayAccessor{<:Real,1}) where {T} =
     Base.unsafe_view(data, view_idxs(axes(data, 1), va))
 
-Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ArrayAccessor{T,N}) where {T,N} =
+Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ArrayAccessor{<:Real,N}) where {T,N} =
     reshape(Base.unsafe_view(data, view_idxs(axes(data, 1), va)), size(va.shape)...)
 
+Base.@propagate_inbounds function vs_unsafe_view(
+    data::AbstractArray{<:Real,N},
+    idxs::Vararg{RealScalarOrVectorAccessor,N}
+) where N
+    idxs_mapped = map(view_idxs, axes(data), idxs)
+    Base.view(data, idxs_mapped...)
+end
 
-Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::ArrayAccessor) where {T} =
+
+
+Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::ArrayAccessor{<:Real}) where {T} =
     setindex!(data, v, view_idxs(axes(data, 1), va))
+
+@static if VERSION < v"1.4"
+    # To avoid ambiguity with Julia v1.0 (and v1.1 to v1.3?)
+    Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::ArrayAccessor{<:Real,1}) where {T} =
+        setindex!(data, v, view_idxs(axes(data, 1), va))
+end
+
+Base.@propagate_inbounds function vs_setindex!(
+    data::AbstractArray{<:Real,N},
+    v,
+    idxs::Vararg{RealScalarOrVectorAccessor,N}
+) where N
+    idxs_mapped = map(view_idxs, axes(data), idxs)
+    setindex!(data, v, idxs_mapped...)
+end
 
 
 Base.@propagate_inbounds function _bcasted_view(data::AbstractVectorOfSimilarVectors{<:Real}, va::ArrayAccessor{T,1}) where {T,N}
