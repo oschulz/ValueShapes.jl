@@ -168,7 +168,7 @@ end
 export ShapedAsNT
 
 
-Base.@propagate_inbounds function ShapedAsNT(data::D, shape::S) where {N,T<:Real,D<:AbstractVector{T},S<:NamedTupleShape}
+Base.@propagate_inbounds function ShapedAsNT(data::D, shape::S) where {T<:Real,D<:AbstractVector{T},S<:NamedTupleShape}
     @boundscheck _checkcompat(shape, data)
     NT_T = shaped_type(shape, T)
     ShapedAsNT{NT_T,D,S}(data, shape)

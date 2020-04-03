@@ -86,10 +86,10 @@ Base.@propagate_inbounds function vs_getindex(
 end
 
 
-Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ArrayAccessor{<:Real,1}) where {T} =
+Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ArrayAccessor{<:Real,1}) =
     Base.unsafe_view(data, view_idxs(axes(data, 1), va))
 
-Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ArrayAccessor{<:Real,N}) where {T,N} =
+Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ArrayAccessor{<:Real,N}) where {N} =
     reshape(Base.unsafe_view(data, view_idxs(axes(data, 1), va)), size(va.shape)...)
 
 Base.@propagate_inbounds function vs_unsafe_view(
@@ -102,12 +102,12 @@ end
 
 
 
-Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::ArrayAccessor{<:Real}) where {T} =
+Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::ArrayAccessor{<:Real}) =
     setindex!(data, v, view_idxs(axes(data, 1), va))
 
 @static if VERSION < v"1.4"
     # To avoid ambiguity with Julia v1.0 (and v1.1 to v1.3?)
-    Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::ArrayAccessor{<:Real,1}) where {T} =
+    Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::ArrayAccessor{<:Real,1}) =
         setindex!(data, v, view_idxs(axes(data, 1), va))
 end
 
@@ -121,7 +121,7 @@ Base.@propagate_inbounds function vs_setindex!(
 end
 
 
-Base.@propagate_inbounds function _bcasted_view(data::AbstractVectorOfSimilarVectors{<:Real}, va::ArrayAccessor{T,1}) where {T,N}
+Base.@propagate_inbounds function _bcasted_view(data::AbstractVectorOfSimilarVectors{<:Real}, va::ArrayAccessor{T,1}) where {T}
     flat_data = flatview(data)
     idxs = view_idxs(axes(flat_data, 1), va)
     fpview = view(flat_data, idxs, :)
