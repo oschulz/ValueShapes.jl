@@ -28,4 +28,11 @@ include("distributions.jl")
 include("const_value_dist.jl")
 include("named_tuple_dist.jl")
 
+
+"""
+ValueShapes provides Julia types to describe the shape of values, like
+scalars, arrays and structures.
+"""
+ValueShapes
+
 end # module
