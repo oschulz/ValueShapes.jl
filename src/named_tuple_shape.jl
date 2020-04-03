@@ -260,7 +260,7 @@ Base.@propagate_inbounds function Base.setindex!(A::ShapedAsNT{<:NamedTuple{name
         data = _data(A)
         shape = _valshape(A)
         accessors = _accessors(shape)
-        Expr(:block, map(p -> :(A.$p = x.$p), nms)...)
+        Expr(:block, map(p -> :(A.$p = x.$p), names)...)
     end
 
     A
