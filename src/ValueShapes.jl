@@ -2,6 +2,12 @@
 
 __precompile__(true)
 
+"""
+    ValueShapes
+
+Provides a Julia API to describe the shape of values, like scalars, arrays
+and structures.
+"""
 module ValueShapes
 
 using ArraysOfArrays
@@ -27,12 +33,5 @@ include("functions.jl")
 include("distributions.jl")
 include("const_value_dist.jl")
 include("named_tuple_dist.jl")
-
-
-"""
-ValueShapes provides Julia types to describe the shape of values, like
-scalars, arrays and structures.
-"""
-ValueShapes
 
 end # module
