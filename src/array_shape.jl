@@ -64,6 +64,12 @@ totalndof(shape::ArrayShape{T}) where{T} =
 end
 
 
+@inline function _apply_shape_to_data(shape::ArrayShape{<:Real,1}, data::AbstractVector{<:Real})
+    @boundscheck _checkcompat(shape, data)
+    data
+end
+
+
 
 const ArrayAccessor{T,N} = ValueAccessor{ArrayShape{T,N}} where {T,N}
 
