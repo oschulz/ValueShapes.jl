@@ -47,6 +47,11 @@ Base.length(shape::ArrayShape) = prod(size(shape))
     ArrayShape{T}(size(x))
 end
 
+@inline function valshape(x::AbstractArray{T,0}) where T
+    _valshapeoftype(T) # ensure T has a fixed shape
+    ScalarShape{T}()
+end
+
 # Possible extension: valshape(x::AbstractArrayOfSimilarArrays{...})
 
 
