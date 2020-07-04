@@ -185,8 +185,9 @@ x = shape(data)
 function unshaped end
 export unshaped
 
-unshaped(x::SubArray{T,0}) where {T<:Real} = view(parent(x), x.indices[1]:x.indices[1])
-unshaped(x::AbstractArray{T,1}) where {T<:Real} = x
+unshaped(x::AbstractArray{<:Real,0}) = view(x, firstindex(x):firstindex(x))
+unshaped(x::SubArray{<:Real,0}) = view(parent(x), x.indices[1]:x.indices[1])
+unshaped(x::AbstractArray{<:Real,1}) = x
 unshaped(x::Base.ReshapedArray{T,N,<:AbstractArray{T,1}}) where {T<:Real,N} = parent(x)
 
 
@@ -289,6 +290,21 @@ const VSBroadcasted2{N,F,T1,T2} = Base.Broadcast.Broadcasted{
 # Specialize (::AbstractValueShape).(::AbstractVector{<:AbstractVector{<:Real}}):
 Base.copy(instance::VSBroadcasted1{N,<:AbstractValueShape,AbstractArray{<:AbstractVector{<:Real},N}}) where N =
     broadcast(view, instance.args[1], Ref(ValueAccessor(instance.f, 0)))
+
+
+# Specialize unshaped for real vectors (semantically vectors of scalar-shaped values)
+function Base.copy(instance::VSBroadcasted1{1,typeof(unshaped),AbstractVector{<:Real}})
+    x = instance.args[1]
+    nestedview(reshape(view(x, :), 1, length(eachindex(x))))
+end
+
+# Specialize unshaped for real vectors that are array slices:
+const _MatrixSliceFirstDim{T} = SubArray{T,1,<:AbstractArray{T,2},<:Tuple{Int,AbstractArray{Int}}}
+function Base.copy(instance::VSBroadcasted1{1,typeof(unshaped),<:_MatrixSliceFirstDim{<:Real}})
+    instance
+    x = instance.args[1]
+    nestedview(view(parent(x), x.indices[1]:x.indices[1], x.indices[2]))
+end
 
 
 function _zerodim_array(x::T) where T

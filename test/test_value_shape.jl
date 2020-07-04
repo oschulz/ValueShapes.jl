@@ -47,5 +47,20 @@ import TypedTables
         data2 = VectorOfSimilarVectors(reshape(collect(1:22), 11, 2))
         @test_throws ArgumentError ValueShapes._checkcompat_inner(ntshape, data2)
         @test ValueShapes._checkcompat_inner(shape, data2) == nothing
+
+        @inferred(unshaped(view([0,0], 1))) isa SubArray{Int,1,Vector{Int}}
+        @inferred(unshaped(Array(view([0,0], 1)))) isa SubArray{Int,1,Vector{Int}}
+        let x = rand(15)
+            @test @inferred(unshaped(x)) === x
+            @test @inferred(unshaped(Base.ReshapedArray(x, (3, 5), ()))) === x
+
+            @test @inferred(broadcast(unshaped, x)) isa ArrayOfSimilarArrays{Float64,1,1,2,<:Base.ReshapedArray}
+            @test broadcast(unshaped, x) == nestedview(reshape(x, 1, 15))
+        end
+
+        let A = rand(1,15)
+            @test @inferred(broadcast(unshaped, view(A, 1, :))) isa ArrayOfSimilarArrays{Float64,1,1,2,<:SubArray}
+            @test broadcast(unshaped, view(A, 1, :)) == nestedview(A)
+        end
     end
 end
