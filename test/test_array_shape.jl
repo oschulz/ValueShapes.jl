@@ -37,6 +37,11 @@ using ElasticArrays, ArraysOfArrays
     @test @inferred(shape([1, 2, 3, 4, 5, 6])) == [1 3 5; 2 4 6]
     @test_throws ArgumentError shape([1, 2, 3, 4, 5, 6, 7])
 
+    @test @inferred(ArrayShape{Float64}(4,5) <= ArrayShape{Real}(4,5)) == true
+    @test @inferred(ArrayShape{Real}(4,5) >= ArrayShape{Float64}(4,5)) == true
+    @test (ArrayShape{Float64}(4,5) <= ArrayShape{Integer}(4,5)) == false
+    @test (ArrayShape{Float64}(2,2) <= ArrayShape{Float64}(3,3)) == false
+    
     @test eltype(@inferred(Vector{Float32}(undef, shape))) == Float32
     @test eltype(eltype(@inferred(VectorOfSimilarVectors{Float32}(shape)))) == Float32
 

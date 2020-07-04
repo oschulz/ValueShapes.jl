@@ -31,6 +31,10 @@ export ConstValueShape
 @inline Base.length(shape::ConstValueShape) = length(shape.value)
 
 
+import Base.<=
+@inline <=(a::ConstValueShape{T}, b::ConstValueShape{U}) where {T,U} = T<:U && a.value ≈ b.value
+
+
 @inline default_unshaped_eltype(shape::ConstValueShape) = Int32
 
 @inline shaped_type(shape::ConstValueShape, ::Type{T}) where {T<:Real} = typeof(shape.value)

@@ -81,10 +81,31 @@ will create a suitable vector (of length zero) of vectors that can hold
 flattened data for the given shape. The result will be a
 `VectorOfSimilarVectors` wrapped around a 2-dimensional `ElasticArray`.
 This way, all data is stored in a single contiguous chunk of memory.
+
+`AbstractValueShape`s can be compared with `<=` and `>=`, with semantics that
+are similar to compare type with `<:` and `>:`:
+
+```julia
+a::AbstractValueShape <= b::AbstractValueShape == true
+```
+
+implies that values of shape `a` are can be used in contexts that expect
+values of shape `b`. E.g.:
+
+```julia
+(ArrayShape{Float64}(4,5) <= ArrayShape{Real}(4,5)) == true
+(ArrayShape{Float64}(4,5) <= ArrayShape{Integer}(4,5)) == false
+(ArrayShape{Float64}(2,2) <= ArrayShape{Float64}(3,3)) == false
+(ScalarShape{Real}() >= ScalarShape{Int}()) == true
+```
 """
 abstract type AbstractValueShape end
 
 export AbstractValueShape
+
+
+import Base.>=
+@inline >=(a::AbstractValueShape, b::AbstractValueShape) = b <= a
 
 
 # Reserve broadcasting semantics for value shapes:

@@ -32,6 +32,10 @@ ArrayShape{T}(dims::Integer...) where {T} = ArrayShape{T}(dims)
 Base.length(shape::ArrayShape) = prod(size(shape))
 
 
+import Base.<=
+@inline <=(a::ArrayShape{T,N}, b::ArrayShape{U,N}) where {T,U,N} = T<:U && size(a) == size(b)
+
+
 @inline _valshapeoftype(T::Type{<:AbstractArray}) = throw(ArgumentError("Type $T does not have a fixed shape"))
 
 

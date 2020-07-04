@@ -79,6 +79,18 @@ import Tables
 
         @test valshape(shape.(push!(@inferred(VectorOfSimilarVectors{Float64}(shape)), @inferred(Vector{Float64}(undef, shape))))[1]) == valshape(shape(undef))
 
+        let
+            a = NamedTupleShape(x = ScalarShape{Int}(), y = ArrayShape{AbstractFloat}(2))
+            b1 = NamedTupleShape(x = ScalarShape{Real}(), y = ArrayShape{Real}(2))
+            b2 = NamedTupleShape(x = ScalarShape{Real}(), y = ArrayShape{Real}(3))
+            c = NamedTupleShape(x = ScalarShape{Real}(), z = ArrayShape{Real}(2))
+
+            @test @inferred(a <= b1) == true
+            @test @inferred(a >= b1) == false
+            @test @inferred(b1 >= a) == true
+            @test @inferred(a <= b2) == false
+            @test @inferred(a <= c) == false
+        end
 
         @testset "ValueShapes.ShapedAsNT" begin
             UA = copy(data[1])

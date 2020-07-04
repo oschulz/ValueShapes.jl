@@ -39,6 +39,10 @@ import TypedTables
     @test typeof(@inferred(ScalarShape{Real}()([42]))) <: SubArray{Int,0}
     @test @inferred(ScalarShape{Real}()([42])[]) == 42
 
+    @test @inferred (ScalarShape{Int}() <= ScalarShape{Real}()) == true
+    @test @inferred (ScalarShape{Real}() <= ScalarShape{Int}()) == false
+    @test @inferred (ScalarShape{Real}() >= ScalarShape{Int}()) == true
+
     @test begin
         shape = ScalarShape{Real}()
         valshape(shape.(push!(@inferred(VectorOfSimilarVectors{Float64}(shape)), @inferred(Vector{Float64}(undef, shape))))[1]) == valshape(shape(undef))

@@ -104,6 +104,15 @@ Base.merge(a::NamedTupleShape) = a
 Base.merge(a::NamedTupleShape, b::NamedTupleShape, cs::NamedTupleShape...) = merge(NamedTupleShape(;a..., b...), cs...)
 
 
+import Base.<=
+
+function <=(a::NamedTupleShape{names}, b::NamedTupleShape{names}) where {names}
+    all(map((a, b) -> a.offset == b.offset && a.shape <= b.shape, values(a), values(b)))
+end
+
+@inline <=(a::NamedTupleShape, b::NamedTupleShape) = false
+
+
 valshape(x::NamedTuple) = NamedTupleShape(map(valshape, x))
 
 

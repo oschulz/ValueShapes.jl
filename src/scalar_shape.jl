@@ -58,6 +58,10 @@ struct ScalarShape{T} <: AbstractScalarShape{T} end
 export ScalarShape
 
 
+import Base.<=
+@inline <=(a::ScalarShape{T}, b::ScalarShape{U}) where {T,U} = T<:U
+
+
 @inline _valshapeoftype(T::Type{<:Number}) = ScalarShape{T}()
 
 
