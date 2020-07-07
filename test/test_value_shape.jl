@@ -6,6 +6,7 @@ using Test
 using Random
 using ElasticArrays
 using ArraysOfArrays
+using FillArrays
 import TypedTables
 
 
@@ -48,8 +49,12 @@ import TypedTables
         @test_throws ArgumentError ValueShapes._checkcompat_inner(ntshape, data2)
         @test ValueShapes._checkcompat_inner(shape, data2) == nothing
 
-        @inferred(unshaped(view([0,0], 1))) isa SubArray{Int,1,Vector{Int}}
-        @inferred(unshaped(Array(view([0,0], 1)))) isa SubArray{Int,1,Vector{Int}}
+        @test @inferred(unshaped(4.2)) isa Fill{Float64,1}
+        @test unshaped(4.2) == [4.2]
+        @test @inferred(unshaped(view([4.2], 1))) isa SubArray{Float64,1,Vector{Float64}}
+        @test unshaped(view([4.2], 1)) == [4.2]
+        @test @inferred(unshaped(Array(view([4.2], 1)))) isa SubArray{Float64,1,Vector{Float64}}
+        @test unshaped(Array(view([4.2], 1))) == [4.2]
         let x = rand(15)
             @test @inferred(unshaped(x)) === x
             @test @inferred(unshaped(Base.ReshapedArray(x, (3, 5), ()))) === x

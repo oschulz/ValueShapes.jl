@@ -206,6 +206,7 @@ x = shape(data)
 function unshaped end
 export unshaped
 
+unshaped(x::Real) = Fill(x, 1)
 unshaped(x::AbstractArray{<:Real,0}) = view(x, firstindex(x):firstindex(x))
 unshaped(x::SubArray{<:Real,0}) = view(parent(x), x.indices[1]:x.indices[1])
 unshaped(x::AbstractArray{<:Real,1}) = x
