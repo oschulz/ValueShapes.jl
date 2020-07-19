@@ -18,6 +18,7 @@ export ConstValueDist
 ConstValueDist(x::T) where {T<:Real} = ConstValueDist{Univariate,T}(x)
 ConstValueDist(x::T) where {T<:AbstractVector{<:Real}} = ConstValueDist{Multivariate,T}(x)
 ConstValueDist(x::T) where {T<:AbstractMatrix{<:Real}} = ConstValueDist{Matrixvariate,T}(x)
+ConstValueDist(x::T) where {T<:NamedTuple} = ConstValueDist{NamedTupleVariate,T}(x)
 
 Distributions.pdf(d::ConstValueDist{Univariate}, x::Real) = d.value == x ? float(eltype(d))(Inf) : float(eltype(d))(0)
 Distributions._logpdf(d::ConstValueDist, x::AbstractArray{<:Real}) = d.value == x ? float(eltype(d))(Inf) : float(eltype(d))(0)
@@ -30,15 +31,13 @@ Distributions.insupport(d::ConstValueDist{Univariate}, x::Real) = x == d.value
 
 StatsBase.mode(d::ConstValueDist) = d.value
 
-Base.size(d::ConstValueDist) = size(d.value)
-Base.length(d::ConstValueDist) = prod(size(d))
-Base.eltype(d::ConstValueDist) = eltype(d.value)
+Base.size(d::ConstValueDist{<:PlainVariate}) = size(d.value)
+Base.length(d::ConstValueDist{<:PlainVariate}) = prod(size(d))
+Base.eltype(d::ConstValueDist{<:PlainVariate}) = eltype(d.value)
 
 Random.rand(rng::AbstractRNG, d::ConstValueDist) = d.value
-
-function Random._rand!(rng::AbstractRNG, d::ConstValueDist, x::AbstractArray{<:Real})
-    copyto!(x, d.value)
-end
-
+Random._rand!(rng::AbstractRNG, d::ConstValueDist{<:PlainVariate}, x::AbstractArray{<:Real}) = copyto!(x, d.value)
+rand(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, dims::Dims) = Fill(d.value, dims)
+rand!(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, A::AbstractArray) = fill!(A, d.value)
 
 ValueShapes.varshape(d::ConstValueDist) = ConstValueShape(d.value)

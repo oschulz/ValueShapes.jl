@@ -14,10 +14,6 @@ _ntd_dist_and_shape(h::Histogram{<:Real,1}) = _ntd_dist_and_shape(EmpiricalDistr
 _ntd_dist_and_shape(h::Histogram) = _ntd_dist_and_shape(EmpiricalDistributions.MvBinnedDist(h))
 
 
-struct NamedTupleVariate <: Distributions.VariateForm end
-export NamedTupleVariate
-
-
 """
     NamedTupleDist <: MultivariateDistribution
     NamedTupleDist <: MultivariateDistribution
@@ -34,9 +30,9 @@ struct NamedTupleDist{
     names,
     DT <: (NTuple{N,Distribution} where N),
     AT <: (NTuple{N,ValueShapes.ValueAccessor} where N),
-} <: Distribution{NamedTupleVariate,Continuous}
+} <: Distribution{NamedTupleVariate{names},Continuous}
     _internal_distributions::NamedTuple{names,DT}
-    _internal_shapes::NamedTupleShape{names,AT}
+    _internal_shape::NamedTupleShape{names,AT}
 end 
 
 export NamedTupleDist
@@ -55,7 +51,7 @@ end
 
 
 @inline _distributions(d::NamedTupleDist) = getfield(d, :_internal_distributions)
-@inline _shapes(d::NamedTupleDist) = getfield(d, :_internal_shapes)
+@inline _shape(d::NamedTupleDist) = getfield(d, :_internal_shape)
 
 
 @inline Base.keys(d::NamedTupleDist) = keys(_distributions(d))
@@ -66,8 +62,8 @@ end
     # Need to include internal fields of NamedTupleShape to make Zygote happy:
     if s == :_internal_distributions
         getfield(d, :_internal_distributions)
-    elseif s == :_internal_shapes
-        getfield(d, :_internal_shapes)
+    elseif s == :_internal_shape
+        getfield(d, :_internal_shape)
     else
         getproperty(_distributions(d), s)
     end
@@ -76,7 +72,7 @@ end
 @inline function Base.propertynames(d::NamedTupleDist, private::Bool = false)
     names = propertynames(_distributions(d))
     if private
-        (names..., :_internal_distributions, :_internal_shapes)
+        (names..., :_internal_distributions, :_internal_shape)
     else
         names
     end
@@ -90,23 +86,26 @@ Base.merge(a::NamedTuple, dist::NamedTupleDist{names}) where {names} = merge(a, 
 Base.merge(a::NamedTupleDist) = a
 Base.merge(a::NamedTupleDist, b::NamedTupleDist, cs::NamedTupleDist...) = merge(NamedTupleDist(;a..., b...), cs...)
 
-
-ValueShapes.varshape(d::NamedTupleDist) = _shapes(d)
-
-
+varshape(d::NamedTupleDist) = _shape(d)
 
 
 struct UnshapedNTD{NTD<:NamedTupleDist} <: Distribution{Multivariate,Continuous}
-    parent::NTD
+    shaped::NTD
 end 
-
-export NamedTupleDist
 
 
 _ntd_length(d::Distribution) = length(d)
 _ntd_length(d::ConstValueDist) = 0
 
-Base.length(d::NamedTupleDist) = sum(_ntd_length, values(d))
+function Base.length(ud::UnshapedNTD)
+    d = ud.shaped
+    len = sum(_ntd_length, values(d))
+    @assert len == totalndof(d)
+end
+
+
+
+unshaped(d::NamedTupleDist) = UnshapedNTD(d)
 
 
 function _ntd_logpdf(
@@ -125,7 +124,8 @@ function _ntd_logpdf(
     logpdf(dist, float(x[acc]))
 end
 
-function Distributions.logpdf(d::NamedTupleDist, x::AbstractVector{<:Real})
+function _ntd_logpdf(ud::NamedTupleDist, x::AbstractVector{<:Real})
+    d = ud.shaped
     distributions = values(d)
     accessors = values(varshape(d))
     sum(map((dist, acc) -> _ntd_logpdf(dist, acc, x), distributions, accessors))
@@ -137,11 +137,23 @@ _ntd_logpdf(dist::ConstValueDist, x::Any) = zero(Float32)
 
 _ntd_logpdf(dist::Distribution, x::Any) = logpdf(dist, x)
 
-function Distributions.logpdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names
+_ntd_logpdf(dist::Distribution, x::Any) = logpdf(dist, x)
+
+function _ntd_logpdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names
     distributions = values(d)
     parvalues = values(x)
     sum(map((dist, d) -> _ntd_logpdf(dist, d), distributions, parvalues))
 end
+
+
+@inline Distributions.logpdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names = _ntd_logpdf(d, x)
+
+function Distributions.logpdf(d::NamedTupleDist{names}, x::ShapedAsNT{<:NamedTuple{names}}) where names
+    valshape(x) <= varshape(d) || throw(ArgumentError("Shapes of variates and value are not compatible"))
+    _ntd_logpdf(d, unshaped(x))
+end
+
+@inline Distributions.logpdf(ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_logpdf(ud.shaped, x)
 
 
 function _ntd_rand!(
@@ -161,12 +173,16 @@ function _ntd_rand!(
     nothing
 end
 
-function Distributions._rand!(rng::AbstractRNG, d::NamedTupleDist, x::AbstractVector{<:Real})
+function _ntd_rand!(rng::AbstractRNG, d::NamedTupleDist, x::AbstractVector{<:Real})
+    d = ud.shaped
     distributions = values(d)
     accessors = values(varshape(d))
     map((dist, acc) -> _ntd_rand!(rng, dist, acc, x), distributions, accessors)
     x
 end
+
+
+@inline Distributions._rand!(rng::AbstractRNG, ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_rand!(rng, ud.shaped. x)
 
 
 function _ntd_mode!(
@@ -196,14 +212,22 @@ function _ntd_mode!(
     nothing
 end
 
-function StatsBase.mode(d::NamedTupleDist)
+function _ntd_mode!(x::AbstractVector{<:Real}, d::NamedTupleDist)
     distributions = values(d)
     shape = varshape(d)
     accessors = values(shape)
     params = Vector{default_unshaped_eltype(shape)}(undef,shape)
-    map((dist, acc) -> _ntd_mode!(dist, acc, params), distributions, accessors)
-    params
+    map((dist, acc) -> _ntd_mode!(dist, acc, x), distributions, accessors)
+    x
 end
+
+function ntd_mode(d::NamedTupleDist)
+    x = Vector{default_unshaped_eltype(shape)}(undef,varshape(d))
+    ntd_mode!(x, d)
+end
+
+
+function StatsBase.mode(ud::UnshapedNTD) = _ntd_mode(ud.shaped)
 
 
 function _ntd_var_or_cov!(A_cov::AbstractArray{<:Real,0}, dist::Distribution{Univariate})
@@ -233,11 +257,18 @@ function _ntd_cov!(
     nothing
 end
 
-function Statistics.cov(d::NamedTupleDist)
-    let n = length(d), A_cov = zeros(n, n)
-        distributions = values(d)
-        accessors = values(varshape(d))
-        map((dist, acc) -> _ntd_cov!(dist, acc, A_cov), distributions, accessors)
-        A_cov
-    end
+function _ntd_cov!(A_cov::AbstractMatrix{<:Real}, d::NamedTupleDist)
+    distributions = values(d)
+    accessors = values(varshape(d))
+    map((dist, acc) -> _ntd_cov!(dist, acc, A_cov), distributions, accessors)
+    A_cov
 end
+
+function _ntd_cov(d::NamedTupleDist)
+    n = totalndof(d)
+    A_cov = zeros(n, n)
+    _ntd_cov!(A_cov, d)
+end
+
+
+Statistics.cov(ud::UnshapedNTD) = _ntd_cov(ud.unshaped)
