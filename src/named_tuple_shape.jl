@@ -301,7 +301,7 @@ Base.copy(A::ShapedAsNT) = ShapedAsNT(copy(_data(A)), _valshape(A))
 
 
 """
-    ShapedAsNTArray{T<:NamedTuple,...} <: AbstractArray{T,0}
+    ShapedAsNTArray{T<:NamedTuple,...} <: AbstractArray{T,N}
 
 View of an `AbstractArray{<:AbstractVector{<:Real},N}` as an array of
 `NamedTuple`s, according to a specified [`NamedTupleShape`](@ref).
@@ -346,7 +346,7 @@ Use `unshaped.(Y)` to access `data` directly.
 a copy the data, using a memory layout as contiguous as possible for each
 column.
 """
-struct ShapedAsNTArray{T<:NamedTuple,N,D<:AbstractArray{<:AbstractVector{<:Real},N},S<:NamedTupleShape} <: AbstractVector{T}
+struct ShapedAsNTArray{T<:NamedTuple,N,D<:AbstractArray{<:AbstractVector{<:Real},N},S<:NamedTupleShape} <: AbstractArray{T,N}
     __internal_data::D
     __internal_elshape::S
 end
