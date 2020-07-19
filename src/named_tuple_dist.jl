@@ -137,8 +137,6 @@ _ntd_logpdf(dist::ConstValueDist, x::Any) = zero(Float32)
 
 _ntd_logpdf(dist::Distribution, x::Any) = logpdf(dist, x)
 
-_ntd_logpdf(dist::Distribution, x::Any) = logpdf(dist, x)
-
 function _ntd_logpdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names
     distributions = values(d)
     parvalues = values(x)
@@ -182,6 +180,35 @@ function _ntd_rand!(rng::AbstractRNG, d::NamedTupleDist, x::AbstractVector{<:Rea
 end
 
 
+# ToDo/Decision: Return NamedTuple or ShapedAsNT?
+rand(rng::AbstractRNG, d::NamedTupleDist) = rand(rng, d, ())[]
+
+function rand(rng::AbstractRNG, d::NamedTupleDist, dims::Tuple{})
+    shape = varshape(d)
+    x = Vector{default_unshaped_eltype(shape)}(undef, totalndof(varshape(d)))
+    _ntd_rand!(rng, d, x)
+    shape(x)
+end
+
+function rand(rng::AbstractRNG, d::NamedTupleDist, dims::Dims)
+    shape = varshape(d)
+    X_flat = Array{default_unshaped_eltype(shape)}(undef, totalndof(varshape(d)), dims...)
+    X = ArrayOfSimilarVectors(X_flat)
+    _ntd_rand!.(rng, d, X)
+    shape.(X)
+end
+
+function rand!(rng::AbstractRNG, d::NamedTupleDist{names}, x::ShapedAsNT{<:NamedTuple{names}}) where names
+    valshape(x) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
+    _ntd_rand!(rng, d, unshaped(x))
+end
+
+function rand!(rng::AbstractRNG, d::NamedTupleDist{names}, x::ShapedAsNTArray{<:NamedTuple{names}}) where names
+    valshape(x) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
+    _ntd_rand!.(rng, d, unshaped(x))
+end
+
+
 @inline Distributions._rand!(rng::AbstractRNG, ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_rand!(rng, ud.shaped. x)
 
 
@@ -216,7 +243,6 @@ function _ntd_mode!(x::AbstractVector{<:Real}, d::NamedTupleDist)
     distributions = values(d)
     shape = varshape(d)
     accessors = values(shape)
-    params = Vector{default_unshaped_eltype(shape)}(undef,shape)
     map((dist, acc) -> _ntd_mode!(dist, acc, x), distributions, accessors)
     x
 end
@@ -227,7 +253,10 @@ function ntd_mode(d::NamedTupleDist)
 end
 
 
-function StatsBase.mode(ud::UnshapedNTD) = _ntd_mode(ud.shaped)
+# ToDo/Decision: Return NamedTuple or ShapedAsNT?
+StatsBase.mode(d::NamedTupleDist) = varshape(d)(_ntd_mode(ud.shaped))[]
+
+StatsBase.mode(ud::UnshapedNTD) = _ntd_mode(ud.shaped)
 
 
 function _ntd_var_or_cov!(A_cov::AbstractArray{<:Real,0}, dist::Distribution{Univariate})
