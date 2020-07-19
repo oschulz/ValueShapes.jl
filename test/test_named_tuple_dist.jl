@@ -23,12 +23,17 @@ using Statistics, StatsBase, Distributions, IntervalSets
         @test getproperty(shapes, k) == varshape(getproperty(dist, k))
     end
 
+    X_unshaped = [0.2, -0.4, 0.3, -0.5, 0.9]
+    X_shaped = shape(X_unshaped)
+    @test (@inferred logpdf(unshaped(dist), X_unshaped)) == logpdf(Normal(), 0.2) + logpdf(Uniform(-4, 5), -0.4) + logpdf(MvNormal([1.2 0.5; 0.5 2.1]), [0.3, -0.5]) + logpdf(Normal(1.1, 0.2), 0.9)
+    @test (@inferred logpdf(dist, X_shaped)) == logpdf(unshaped(dist), X_unshaped)
+    @test (@inferred logpdf(dist, X_shaped[])) == logpdf(unshaped(dist), X_unshaped)
 
-    @test (@inferred logpdf(dist, [0.2, -0.4, 0.3, -0.5, 0.9])) == logpdf(Normal(), 0.2) + logpdf(Uniform(-4, 5), -0.4) + logpdf(MvNormal([1.2 0.5; 0.5 2.1]), [0.3, -0.5]) + logpdf(Normal(1.1, 0.2), 0.9)
+    @test (@inferred mode(unshaped(dist))) == [0.0, 0.5, 0.0, 0.0, 1.1]
+    @test (@inferred mode(dist)) == shape(mode(unshaped(dist)))[]
 
-    @test (@inferred logpdf(dist, shape([0.2, -0.4, 0.3, -0.5, 0.9])[])) == logpdf(Normal(), 0.2) + logpdf(Uniform(-4, 5), -0.4) + logpdf(MvNormal([1.2 0.5; 0.5 2.1]), [0.3, -0.5]) + logpdf(Normal(1.1, 0.2), 0.9)
-
-    @test (@inferred mode(dist)) == [0.0, 0.5, 0.0, 0.0, 1.1]
+    @test @inferred(var(unshaped(dist))) ≈ [1.0, 6.75, 1.2, 2.1, 0.04]
+    @test @inferred(var(dist)) == (a = 0, b = var(dist.b), c = var(dist.c), d = var(dist.d), x = var(dist.x), e = var(dist.e))
 
     @test begin
         ref_cov =
@@ -39,29 +44,44 @@ using Statistics, StatsBase, Distributions, IntervalSets
              0.0  0.0   0.0  0.0 0.04 ]
 
         @static if VERSION >= v"1.2"
-            (@inferred cov(dist)) ≈ ref_cov
+            (@inferred cov(unshaped(dist))) ≈ ref_cov
         else
-            (cov(dist)) ≈ ref_cov
+            (cov(unshaped(dist))) ≈ ref_cov
         end
     end
+
+    @test @inferred(rand(dist)) isa NamedTuple
+    @test pdf(dist, rand(dist)) > 0
+    @test @inferred(rand(dist, ())) isa ShapedAsNT
+    @test pdf(dist, rand(dist, ())) > 0
+    @test @inferred(rand(dist, 100)) isa ShapedAsNTArray
+    @test all(x -> x > 0, pdf.(Ref(dist), rand(dist, 10^3)))
+
+    testrng() = MersenneTwister(0xaef035069e01e678)
+
+    @static if VERSION >= v"1.2"
+        @test @inferred(rand(unshaped(dist))) isa Vector{Float64}
+        @test shape(@inferred(rand(testrng(), unshaped(dist))))[] == @inferred(rand(testrng(), dist, ()))[] == @inferred(rand(testrng(), dist))
+    else
+        @test rand(unshaped(dist)) isa Vector{Float64}
+        @test shape(rand(testrng(), unshaped(dist)))[] == rand(testrng(), dist, ())[] == @inferred(rand(testrng(), dist))
+    end
+    @test @inferred(rand(unshaped(dist), 10^3)) isa Matrix{Float64}
+    @test shape.(nestedview(@inferred(rand(testrng(), unshaped(dist), 10^3)))) == @inferred(rand(testrng(), dist, 10^3))
 
     dist_h = @inferred NamedTupleDist(
         h1 = fit(Histogram, randn(10^5)),
         h2 = fit(Histogram, (2 * randn(10^5), 3 * randn(10^5)))
-)
-    @test isapprox(std(@inferred(rand(dist_h, 10^5)), dims = 2, corrected = true), [1, 2, 3], rtol = 0.1)
+    )
+    @test isapprox(std(@inferred(rand(unshaped(dist_h), 10^5)), dims = 2, corrected = true), [1, 2, 3], rtol = 0.1)
 
     propnames = propertynames(dist, true)
-    @test propnames == (:a, :b, :c, :d, :x, :e, :_internal_distributions, :_internal_shapes)
+    @test propnames == (:a, :b, :c, :d, :x, :e, :_internal_distributions, :_internal_shape)
     @test @inferred(keys(dist)) == propertynames(dist, false)
     internaldists = getproperty(dist, :_internal_distributions)
-    internalshapes = getproperty(dist, :_internal_shapes)
-    for i in 1:length(internaldists)
-        @test typeof(getindex(internaldists, i)) == typeof(getproperty(dist, keys(dist)[i]))
-    end
-    for key in keys(internalshapes)
-        @test getproperty(getproperty(internalshapes, key), :shape) == valshape(getproperty(internalshapes, key))
-    end
+    internalshape = getproperty(dist, :_internal_shape)
+    @test all(i -> typeof(getindex(internaldists, i)) == typeof(getproperty(dist, keys(dist)[i])), 1:length(internaldists))
+    @test all(key -> getproperty(getproperty(internalshape, key), :shape) == valshape(getproperty(internalshape, key)), keys(internalshape))
 
     @test @inferred(merge((a = 42,), NamedTupleDist(x = 5, z = Normal()))) == (a = 42, x = ConstValueDist(5), z = Normal())
     @test @inferred(NamedTupleDist((;dist...))) == dist

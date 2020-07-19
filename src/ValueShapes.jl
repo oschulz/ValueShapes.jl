@@ -32,6 +32,7 @@ include("const_value_shape.jl")
 include("named_tuple_shape.jl")
 include("functions.jl")
 include("distributions.jl")
+include("scalar_dist.jl")
 include("const_value_dist.jl")
 include("named_tuple_dist.jl")
 
