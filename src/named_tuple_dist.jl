@@ -14,6 +14,10 @@ _ntd_dist_and_shape(h::Histogram{<:Real,1}) = _ntd_dist_and_shape(EmpiricalDistr
 _ntd_dist_and_shape(h::Histogram) = _ntd_dist_and_shape(EmpiricalDistributions.MvBinnedDist(h))
 
 
+struct NamedTupleVariate <: Distributions.VariateForm end
+export NamedTupleVariate
+
+
 """
     NamedTupleDist <: MultivariateDistribution
     NamedTupleDist <: MultivariateDistribution
@@ -30,7 +34,7 @@ struct NamedTupleDist{
     names,
     DT <: (NTuple{N,Distribution} where N),
     AT <: (NTuple{N,ValueShapes.ValueAccessor} where N),
-} <: Distribution{Multivariate,Continuous}
+} <: Distribution{NamedTupleVariate,Continuous}
     _internal_distributions::NamedTuple{names,DT}
     _internal_shapes::NamedTupleShape{names,AT}
 end 
@@ -89,6 +93,14 @@ Base.merge(a::NamedTupleDist, b::NamedTupleDist, cs::NamedTupleDist...) = merge(
 
 ValueShapes.varshape(d::NamedTupleDist) = _shapes(d)
 
+
+
+
+struct UnshapedNTD{NTD<:NamedTupleDist} <: Distribution{Multivariate,Continuous}
+    parent::NTD
+end 
+
+export NamedTupleDist
 
 
 _ntd_length(d::Distribution) = length(d)
