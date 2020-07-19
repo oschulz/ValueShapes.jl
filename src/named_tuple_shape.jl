@@ -346,7 +346,7 @@ Use `unshaped.(Y)` to access `data` directly.
 a copy the data, using a memory layout as contiguous as possible for each
 column.
 """
-struct ShapedAsNTArray{T<:NamedTuple,N,D<:AbstractArray{<:AbstractVector{<:Real},N},S<:NamedTupleShape} <: AbstractArray{N}
+struct ShapedAsNTArray{T<:NamedTuple,N,D<:AbstractArray{<:AbstractVector{<:Real},N},S<:NamedTupleShape} <: AbstractArray{T,N}
     __internal_data::D
     __internal_elshape::S
 end
