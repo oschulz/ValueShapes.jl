@@ -59,8 +59,13 @@ using Statistics, StatsBase, Distributions, IntervalSets
 
     testrng() = MersenneTwister(0xaef035069e01e678)
 
-    @test @inferred(rand(unshaped(dist))) isa Vector{Float64}
-    @test shape(@inferred(rand(testrng(), unshaped(dist))))[] == @inferred(rand(testrng(), dist, ()))[] == @inferred(rand(testrng(), dist))
+    @static if VERSION >= v"1.2"
+        @test @inferred(rand(unshaped(dist))) isa Vector{Float64}
+        @test shape(@inferred(rand(testrng(), unshaped(dist))))[] == @inferred(rand(testrng(), dist, ()))[] == @inferred(rand(testrng(), dist))
+    else
+        @test rand(unshaped(dist)) isa Vector{Float64}
+        @test shape(rand(testrng(), unshaped(dist)))[] == rand(testrng(), dist, ())[] == @inferred(rand(testrng(), dist))
+    end
     @test @inferred(rand(unshaped(dist), 10^3)) isa Matrix{Float64}
     @test shape.(nestedview(@inferred(rand(testrng(), unshaped(dist), 10^3)))) == @inferred(rand(testrng(), dist, 10^3))
 
