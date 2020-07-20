@@ -31,18 +31,22 @@ struct StructVariate{T} <: VariateForm end
 const NamedTupleVariate{names} = StructVariate{NamedTuple{names}}
 
 
-rand(s::Sampleable{<:StructVariate}, n::Int) = rand(Random.GLOBAL_RNG, s, n)
+Base.rand(s::Sampleable{<:StructVariate}, n::Int) = rand(Random.GLOBAL_RNG, s, n)
 
-rand(s::Sampleable{<:StructVariate}, dims::Dims) = rand(Random.GLOBAL_RNG, s, dims)
+Base.rand(s::Sampleable{<:StructVariate}, dims::Dims) = rand(Random.GLOBAL_RNG, s, dims)
 
-rand(s::Sampleable{<:StructVariate}, dims::Dims, A::AbstractArray) = rand(Random.GLOBAL_RNG, s, dims)
+Base.rand(s::Sampleable{<:StructVariate}, dims::Dims, A::AbstractArray) = rand(Random.GLOBAL_RNG, s, dims)
 
-rand(rng::AbstractRNG, s::Sampleable{<:StructVariate}, n::Int) = rand(rng, s, Dims((n,)))
+Base.rand(rng::AbstractRNG, s::Sampleable{<:StructVariate}, n::Int) = rand(rng, s, Dims((n,)))
 
-function rand(rng::AbstractRNG, s::Sampleable{<:StructVariate}, dims::Dims)
-    broadcast(x -> rng(rng, s), Fill(nothing, dims...))
+function Base.rand(rng::AbstractRNG, s::Sampleable{<:StructVariate}, dims::Dims)
+    broadcast(x -> rand(rng, s), Fill(nothing, dims...))
 end
 
-function rand!(rng::AbstractRNG, s::Sampleable{<:StructVariate}, A::AbstractArray)
-    broadcast!(x -> rng(rng, s), A, A)
+function Random.rand!(rng::AbstractRNG, s::Sampleable{<:StructVariate}, A::AbstractArray)
+    broadcast!(x -> rand(rng, s), A, A)
 end
+
+
+
+unshaped(d::MultivariateDistribution) = d

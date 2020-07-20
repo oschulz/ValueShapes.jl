@@ -2,4 +2,4 @@
 
 
 # ToDo: Replace with custom UnshapedUvDist:
-unshaped(d::UnivariateDistribution) = Distributions.Product(Fill(d))
+unshaped(d::UnivariateDistribution) = Distributions.Product(Fill(d, 1))

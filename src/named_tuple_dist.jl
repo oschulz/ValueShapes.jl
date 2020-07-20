@@ -100,9 +100,11 @@ _ntd_length(d::ConstValueDist) = 0
 function Base.length(ud::UnshapedNTD)
     d = ud.shaped
     len = sum(_ntd_length, values(d))
-    @assert len == totalndof(d)
+    @assert len == totalndof(varshape(d))
+    len
 end
 
+Base.eltype(ud::UnshapedNTD) = default_unshaped_eltype(varshape(ud.shaped))
 
 
 unshaped(d::NamedTupleDist) = UnshapedNTD(d)
@@ -124,8 +126,7 @@ function _ntd_logpdf(
     logpdf(dist, float(x[acc]))
 end
 
-function _ntd_logpdf(ud::NamedTupleDist, x::AbstractVector{<:Real})
-    d = ud.shaped
+function _ntd_logpdf(d::NamedTupleDist, x::AbstractVector{<:Real})
     distributions = values(d)
     accessors = values(varshape(d))
     sum(map((dist, acc) -> _ntd_logpdf(dist, acc, x), distributions, accessors))
@@ -144,14 +145,20 @@ function _ntd_logpdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names
 end
 
 
-@inline Distributions.logpdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names = _ntd_logpdf(d, x)
+Distributions.logpdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names = _ntd_logpdf(d, x)
 
 function Distributions.logpdf(d::NamedTupleDist{names}, x::ShapedAsNT{<:NamedTuple{names}}) where names
     valshape(x) <= varshape(d) || throw(ArgumentError("Shapes of variates and value are not compatible"))
     _ntd_logpdf(d, unshaped(x))
 end
 
-@inline Distributions.logpdf(ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_logpdf(ud.shaped, x)
+Distributions.logpdf(ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_logpdf(ud.shaped, x)
+
+
+Distributions.pdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names = exp(logpdf(d, x))
+Distributions.pdf(d::NamedTupleDist{names}, x::ShapedAsNT{<:NamedTuple{names}}) where names = exp(logpdf(d, x))
+
+Distributions.pdf(ud::UnshapedNTD, x::AbstractVector{<:Real}) = exp(logpdf(ud, x))
 
 
 function _ntd_rand!(
@@ -163,7 +170,19 @@ function _ntd_rand!(
 end
 
 function _ntd_rand!(
-    rng::AbstractRNG, dist::Distribution,
+    rng::AbstractRNG, dist::UnivariateDistribution,
+    acc::ValueShapes.ValueAccessor,
+    x::AbstractVector{<:Real}
+)
+    x_view = view(x, acc)
+    idxs = eachindex(x_view)
+    @assert length(idxs) == 1
+    x_view[first(idxs)] = rand(rng, dist)
+    nothing
+end
+
+function _ntd_rand!(
+    rng::AbstractRNG, dist::MultivariateDistribution,
     acc::ValueShapes.ValueAccessor,
     x::AbstractVector{<:Real}
 )
@@ -172,7 +191,6 @@ function _ntd_rand!(
 end
 
 function _ntd_rand!(rng::AbstractRNG, d::NamedTupleDist, x::AbstractVector{<:Real})
-    d = ud.shaped
     distributions = values(d)
     accessors = values(varshape(d))
     map((dist, acc) -> _ntd_rand!(rng, dist, acc, x), distributions, accessors)
@@ -181,35 +199,35 @@ end
 
 
 # ToDo/Decision: Return NamedTuple or ShapedAsNT?
-rand(rng::AbstractRNG, d::NamedTupleDist) = rand(rng, d, ())[]
+Random.rand(rng::AbstractRNG, d::NamedTupleDist) = rand(rng, d, ())[]
 
-function rand(rng::AbstractRNG, d::NamedTupleDist, dims::Tuple{})
+function Random.rand(rng::AbstractRNG, d::NamedTupleDist, dims::Tuple{})
     shape = varshape(d)
     x = Vector{default_unshaped_eltype(shape)}(undef, totalndof(varshape(d)))
     _ntd_rand!(rng, d, x)
     shape(x)
 end
 
-function rand(rng::AbstractRNG, d::NamedTupleDist, dims::Dims)
+function Random.rand(rng::AbstractRNG, d::NamedTupleDist, dims::Dims)
     shape = varshape(d)
     X_flat = Array{default_unshaped_eltype(shape)}(undef, totalndof(varshape(d)), dims...)
     X = ArrayOfSimilarVectors(X_flat)
-    _ntd_rand!.(rng, d, X)
+    _ntd_rand!.(Ref(rng), Ref(d), X)
     shape.(X)
 end
 
-function rand!(rng::AbstractRNG, d::NamedTupleDist{names}, x::ShapedAsNT{<:NamedTuple{names}}) where names
+function Random.rand!(rng::AbstractRNG, d::NamedTupleDist{names}, x::ShapedAsNT{<:NamedTuple{names}}) where names
     valshape(x) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
     _ntd_rand!(rng, d, unshaped(x))
 end
 
-function rand!(rng::AbstractRNG, d::NamedTupleDist{names}, x::ShapedAsNTArray{<:NamedTuple{names}}) where names
+function Random.rand!(rng::AbstractRNG, d::NamedTupleDist{names}, x::ShapedAsNTArray{<:NamedTuple{names}}) where names
     valshape(x) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
-    _ntd_rand!.(rng, d, unshaped(x))
+    _ntd_rand!.(Ref(rng), Ref(d), unshaped(x))
 end
 
 
-@inline Distributions._rand!(rng::AbstractRNG, ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_rand!(rng, ud.shaped. x)
+@inline Distributions._rand!(rng::AbstractRNG, ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_rand!(rng, ud.shaped, x)
 
 
 function _ntd_mode!(
@@ -244,19 +262,34 @@ function _ntd_mode!(x::AbstractVector{<:Real}, d::NamedTupleDist)
     shape = varshape(d)
     accessors = values(shape)
     map((dist, acc) -> _ntd_mode!(dist, acc, x), distributions, accessors)
-    x
+    nothing
 end
 
-function ntd_mode(d::NamedTupleDist)
-    x = Vector{default_unshaped_eltype(shape)}(undef,varshape(d))
-    ntd_mode!(x, d)
+function _ntd_mode(d::NamedTupleDist)
+    x = Vector{default_unshaped_eltype(varshape(d))}(undef,varshape(d))
+    _ntd_mode!(x, d)
+    x
 end
 
 
 # ToDo/Decision: Return NamedTuple or ShapedAsNT?
-StatsBase.mode(d::NamedTupleDist) = varshape(d)(_ntd_mode(ud.shaped))[]
+StatsBase.mode(d::NamedTupleDist) = varshape(d)(_ntd_mode(d))[]
 
 StatsBase.mode(ud::UnshapedNTD) = _ntd_mode(ud.shaped)
+
+
+_ntd_var(dist::ConstValueDist) = Float32[]
+
+_ntd_var(dist::Distribution) = var(unshaped(dist))
+
+
+# ToDo/Decision: Return NamedTuple or ShapedAsNT?
+Statistics.var(d::NamedTupleDist) = map(var, _distributions(d))
+
+function Statistics.var(ud::UnshapedNTD)
+    d = ud.shaped
+    vcat(map(d -> _ntd_var(d), values(ValueShapes._distributions(d)))...)
+end
 
 
 function _ntd_var_or_cov!(A_cov::AbstractArray{<:Real,0}, dist::Distribution{Univariate})
@@ -294,10 +327,10 @@ function _ntd_cov!(A_cov::AbstractMatrix{<:Real}, d::NamedTupleDist)
 end
 
 function _ntd_cov(d::NamedTupleDist)
-    n = totalndof(d)
+    n = totalndof(varshape(d))
     A_cov = zeros(n, n)
     _ntd_cov!(A_cov, d)
 end
 
 
-Statistics.cov(ud::UnshapedNTD) = _ntd_cov(ud.unshaped)
+Statistics.cov(ud::UnshapedNTD) = _ntd_cov(ud.shaped)

@@ -36,8 +36,10 @@ Base.length(d::ConstValueDist{<:PlainVariate}) = prod(size(d))
 Base.eltype(d::ConstValueDist{<:PlainVariate}) = eltype(d.value)
 
 Random.rand(rng::AbstractRNG, d::ConstValueDist) = d.value
-Random._rand!(rng::AbstractRNG, d::ConstValueDist{<:PlainVariate}, x::AbstractArray{<:Real}) = copyto!(x, d.value)
-rand(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, dims::Dims) = Fill(d.value, dims)
-rand!(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, A::AbstractArray) = fill!(A, d.value)
+Distributions._rand!(rng::AbstractRNG, d::ConstValueDist{<:PlainVariate}, x::AbstractArray{<:Real}) = copyto!(x, d.value)
+Random.rand(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, dims::Dims) = Fill(d.value, dims)
+Random.rand!(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, A::AbstractArray) = fill!(A, d.value)
 
 ValueShapes.varshape(d::ConstValueDist) = ConstValueShape(d.value)
+
+Statistics.var(d::ConstValueDist) = zero(d.value)
