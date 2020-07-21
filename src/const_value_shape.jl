@@ -47,6 +47,17 @@ import Base.<=
 (shape::ConstValueShape)(::UndefInitializer) = shape.value
 
 
+"""
+    const_zero_shape(shape::ConstValueShape)
+
+Get the equivalent of a constant zero shape for shape `shape`.
+"""
+const_zero_shape(shape::ConstValueShape) = ConstValueShape(const_zero(shape.value))
+
+
+replace_const_shapes(f::Function, shape::ConstValueShape) = f(shape)
+
+
 @static if VERSION < v"1.3"
     # Workaround for Julia issue #14919
     @inline (shape::ConstValueShape)(data::AbstractVector{<:Real}) =

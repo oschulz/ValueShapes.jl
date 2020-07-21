@@ -83,6 +83,8 @@ end
 
 (shape::ScalarShape{T})(::UndefInitializer) where {T<:Number} = zero(default_datatype(T))
 
+replace_const_shapes(f::Function, shape::ScalarShape) = shape
+
 
 @static if VERSION < v"1.3"
     # Workaround for Julia issue #14919

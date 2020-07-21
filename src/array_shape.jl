@@ -66,6 +66,9 @@ totalndof(shape::ArrayShape{T}) where{T} =
 (shape::ArrayShape{T,N})(::UndefInitializer) where {T,N} = Array{default_datatype(T),N}(undef, size(shape)...)
 
 
+replace_const_shapes(f::Function, shape::ArrayShape) = shape
+
+
 @static if VERSION < v"1.3"
     # Workaround for Julia issue #14919
     @inline (shape::ArrayShape)(data::AbstractVector{<:Real}) =

@@ -134,6 +134,9 @@ Base.@propagate_inbounds (shape::NamedTupleShape)(data::AbstractVector{<:Real}) 
     NamedTuple{names,Tuple{map(acc -> shaped_type(acc.shape, T), values(_accessors(shape)))...}}
 
 
+replace_const_shapes(f::Function, shape::NamedTupleShape) = NamedTupleShape(map(s -> replace_const_shapes(f, s), (;shape...)))
+
+
 
 """
     ShapedAsNT{T<:NamedTuple,...} <: AbstractArray{T,0}

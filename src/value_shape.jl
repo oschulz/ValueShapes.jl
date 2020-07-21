@@ -333,3 +333,24 @@ function _zerodim_array(x::T) where T
     A = Array{T,0}(undef)
     A[] = x
 end
+
+
+"""
+    const_zero(x::Any)
+
+Get the equivalent of a constant zero for values the same type as .
+"""
+function const_zero end
+
+const_zero(x::Number) = zero(x)
+const_zero(A::AbstractArray{T}) where T <: Number = Fill(zero(T), size(A)...)
+
+
+"""
+    replace_const_shapes(f::Function, shape::AbstractValueShape)
+
+If `shape` is a, or contains, [`ConstValueShape`](@ref) shape(s), recursively
+replace it/them with the result of `f(s::Shape)`.
+"""
+function replace_const_shapes end
+export replace_const_shapes
