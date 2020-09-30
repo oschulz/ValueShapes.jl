@@ -10,6 +10,7 @@ and structures.
 """
 module ValueShapes
 
+using ArgCheck
 using ArraysOfArrays
 using Distributions
 using ElasticArrays
