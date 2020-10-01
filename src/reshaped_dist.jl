@@ -72,16 +72,21 @@ function (shape::ArrayShape{T,1})(dist::MultivariateDistribution) where T
 end
 
 
+@inline varshape(rd::ReshapedDist) = rd.shape
+
+@inline unshaped(rd::ReshapedDist) = rd.dist
+
+
 Random.rand(rng::AbstractRNG, rd::ReshapedDist) = stripscalar(rand(rng, rd, ()))
-Random.rand(rng::AbstractRNG, rd::ReshapedDist, ::Tuple{}) = rd.shape(rand(rng, rd.dist))
-Random.rand(rng::AbstractRNG, rd::ReshapedDist, n::Int) = rd.shape.(nestedview(rand(rng, rd.dist, n)))
+Random.rand(rng::AbstractRNG, rd::ReshapedDist, ::Tuple{}) = varshape(rd)(rand(rng, unshaped(rd)))
+Random.rand(rng::AbstractRNG, rd::ReshapedDist, n::Int) = varshape(rd).(nestedview(rand(rng, unshaped(rd), n)))
 Random.rand(rng::AbstractRNG, rd::ReshapedDist, dims::Dims{1}) = rand(rng, rd, dims[1])
 
 
-Statistics.mean(rd::ReshapedDist) = stripscalar(rd.shape(mean(rd.dist)))
+Statistics.mean(rd::ReshapedDist) = stripscalar(varshape(rd)(mean(unshaped(rd))))
 
-StatsBase.mode(rd::ReshapedDist) = stripscalar(rd.shape(mode(rd.dist)))
+StatsBase.mode(rd::ReshapedDist) = stripscalar(varshape(rd)(mode(unshaped(rd))))
 
-Statistics.var(rd::ReshapedDist) = stripscalar(_with_zeroconst(rd.shape)(var(rd.dist)))
+Statistics.var(rd::ReshapedDist) = stripscalar(_with_zeroconst(varshape(rd))(var(unshaped(rd))))
 
-Statistics.cov(rd::ReshapedDist{Multivariate}) = cov(rd.dist)
+Statistics.cov(rd::ReshapedDist{Multivariate}) = cov(unshaped(rd))

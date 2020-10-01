@@ -38,8 +38,11 @@ using Statistics, StatsBase, Distributions
         @test @inferred(_mvnormalrd2(a1shape)) isa MvNormal
         @test @inferred(_mvnormalrd2(a2shape)) isa ReshapedDist{Matrixvariate, Continuous}
         @test @inferred(_mvnormalrd2(ntshape)) isa ReshapedDist{ValueShapes.NamedTupleVariate{names}, Continuous}
+
+        @inferred(varshape(_mvnormalrd2(ntshape))) == ntshape
+        @inferred(unshaped(_mvnormalrd2(ntshape))) == MvNormal(fill(2.0, totalndof(ntshape)), Diagonal(fill(3.0, totalndof(ntshape))))
     end
-    
+
     @testset "rand" begin
         @test @inferred(rand(_mvnormalrd(scshape))) isa Real
         @test @inferred(rand(_mvnormalrd(scshape), ())) isa AbstractArray{<:Real,0}
