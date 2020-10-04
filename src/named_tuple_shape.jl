@@ -357,8 +357,8 @@ Y[:] = X
 @assert Y[1] == X[1] == shape(data[1])[]
 @assert Y.a == [42, 11]
 Tables.columns(Y)
-@assert Y[:] isa TypedTables.Table
 @assert unshaped.(Y) === data
+@assert Table(Y) isa TypedTables.Table
 ```
 
 Use `unshaped.(Y)` to access `data` directly.
