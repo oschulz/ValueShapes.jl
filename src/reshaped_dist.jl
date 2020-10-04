@@ -90,3 +90,17 @@ StatsBase.mode(rd::ReshapedDist) = stripscalar(varshape(rd)(mode(unshaped(rd))))
 Statistics.var(rd::ReshapedDist) = stripscalar(_with_zeroconst(varshape(rd))(var(unshaped(rd))))
 
 Statistics.cov(rd::ReshapedDist{Multivariate}) = cov(unshaped(rd))
+
+# Need lots of versions to prevent ambiguity with Distributions:
+Distributions.pdf(rd::ReshapedDist, x::Any) = pdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.pdf(rd::ReshapedDist, x::Real) = pdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.pdf(rd::ReshapedDist, x::AbstractVector{<:Real}) = pdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.pdf(rd::ReshapedDist, x::AbstractMatrix{<:Real}) = pdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.pdf(rd::ReshapedDist, x::AbstractArray{<:Real}) = pdf(unshaped(rd), unshaped(x, varshape(rd)))
+
+# Need lots of versions to prevent ambiguity with Distributions:
+Distributions.logpdf(rd::ReshapedDist, x::Any) = logpdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.logpdf(rd::ReshapedDist, x::Real) = logpdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.logpdf(rd::ReshapedDist, x::AbstractVector{<:Real}) = logpdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.logpdf(rd::ReshapedDist, x::AbstractMatrix{<:Real}) = logpdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.logpdf(rd::ReshapedDist, x::AbstractArray{<:Real}) = logpdf(unshaped(rd), unshaped(x, varshape(rd)))

@@ -71,18 +71,36 @@ using Statistics, StatsBase, Distributions
         @test @inferred(mean(_mvnormalrd(scshape))) ≈ 2
         @test @inferred(mode(_mvnormalrd(scshape))) ≈ 2
         @test @inferred(var(_mvnormalrd(scshape))) ≈ 3
+        let rd = _mvnormalrd(scshape), ux = rand(unshaped(rd)), vs = varshape(rd)
+            @test @inferred(pdf(rd, vs(ux)[])) == pdf(unshaped(rd), ux)
+            @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)
+            @test @inferred(logpdf(rd, vs(ux)[])) == logpdf(unshaped(rd), ux)
+            @test @inferred(logpdf(rd, vs(ux))) == logpdf(unshaped(rd), ux)
+        end
 
         @test @inferred(mean(_mvnormalrd(a1shape))) ≈ fill(2, 3)
         @test @inferred(mode(_mvnormalrd(a1shape))) ≈ fill(2, 3)
         @test @inferred(var(_mvnormalrd(a1shape))) ≈ fill(3, 3)
         @test @inferred(cov(_mvnormalrd(a1shape))) ≈ Diagonal(fill(3.0, 3))
+        let rd = _mvnormalrd(a1shape), ux = rand(unshaped(rd)), vs = varshape(rd)
+            @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)
+            @test @inferred(logpdf(rd, vs(ux))) == logpdf(unshaped(rd), ux)
+        end
 
         @test @inferred(mean(_mvnormalrd(a2shape))) ≈ fill(2, 2, 3)
         @test @inferred(mode(_mvnormalrd(a2shape))) ≈ fill(2, 2, 3)
         @test @inferred(var(_mvnormalrd(a2shape))) ≈ fill(3, 2, 3)
+        let rd = _mvnormalrd(a2shape), ux = rand(unshaped(rd)), vs = varshape(rd)
+            @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)
+            @test @inferred(logpdf(rd, vs(ux))) == logpdf(unshaped(rd), ux)
+        end
 
         @test @inferred(mean(_mvnormalrd(ntshape))) == (a = [2.0 2.0 2.0; 2.0 2.0 2.0], b = 2.0, c = 4.2, x = [11 21; 12 22], y = [2.0, 2.0, 2.0, 2.0])
         @test @inferred(mode(_mvnormalrd(ntshape))) == (a = [2.0 2.0 2.0; 2.0 2.0 2.0], b = 2.0, c = 4.2, x = [11 21; 12 22], y = [2.0, 2.0, 2.0, 2.0])
         @test @inferred(var(_mvnormalrd(ntshape))) == (a = [3.0 3.0 3.0; 3.0 3.0 3.0], b = 3.0, c = 0.0, x = [0 0; 0 0], y = [3.0, 3.0, 3.0, 3.0])
+        let rd = _mvnormalrd(ntshape), ux = rand(unshaped(rd)), vs = varshape(rd)
+            @test @inferred(pdf(rd, vs(ux)[])) == pdf(unshaped(rd), ux)
+            @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)
+        end
     end
 end
