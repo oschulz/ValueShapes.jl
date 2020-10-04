@@ -33,6 +33,9 @@ using ArraysOfArrays
     @test @inferred (ConstValueShape{AbstractFloat}(4.0) >= ConstValueShape(4.0)) == true
     @test @inferred (ConstValueShape(4) <= ConstValueShape(5)) == false
 
+    @test @inferred(unshaped(4.2, ConstValueShape(4.2))) == Float32[]
+    @test_throws ArgumentError unshaped(4.3, ConstValueShape(4.2))
+
     vecs_of_vecs = VectorOfSimilarVectors(reshape(collect(1:22), 11, 2))
     va = ValueAccessor(ArrayShape{Real}(11,1), 0)
     bcv = ValueShapes._bcasted_view(vecs_of_vecs, va)

@@ -92,6 +92,9 @@ import Tables
             @test @inferred(a <= c) == false
         end
 
+        @test @inferred(unshaped(shape(data[1]), shape)) === data[1]
+        @test @inferred(unshaped(shape(data[1])[], shape)) == data[1]
+
         @testset "ValueShapes.ShapedAsNT" begin
             UA = copy(data[1])
             @test @inferred(size(@inferred(ValueShapes.ShapedAsNT(UA, shape)))) == ()

@@ -134,6 +134,18 @@ Base.@propagate_inbounds (shape::NamedTupleShape)(data::AbstractVector{<:Real}) 
     NamedTuple{names,Tuple{map(acc -> shaped_type(acc.shape, T), values(_accessors(shape)))...}}
 
 
+function unshaped(x::NamedTuple{names}, shape::NamedTupleShape{names}) where names
+    # ToDo: Improve performance of return type inference
+    T = default_unshaped_eltype(shape)
+    U = default_unshaped_eltype(valshape(x))
+    R = promote_type(T, U)
+
+    x_unshaped = Vector{R}(undef, totalndof(shape)...)
+    shape(x_unshaped)[] = x
+    x_unshaped
+end
+ 
+
 replace_const_shapes(f::Function, shape::NamedTupleShape) = NamedTupleShape(map(s -> replace_const_shapes(f, s), (;shape...)))
 
 
@@ -193,6 +205,12 @@ end
 @inline valshape(A::ShapedAsNT) = _valshape(A)
 @inline unshaped(A::ShapedAsNT) = _data(A)
 
+
+function unshaped(x::ShapedAsNT{<:NamedTuple{names}}, shape::NamedTupleShape{names}) where names
+    valshape(x) <= shape || throw(ArgumentError("Shape of value not compatible with given shape"))
+    unshaped(x)
+end
+   
 
 Base.@propagate_inbounds function Base.getproperty(A::ShapedAsNT, p::Symbol)
     # Need to include internal fields of ShapedAsNT to make Zygote happy:

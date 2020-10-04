@@ -47,6 +47,12 @@ import Base.<=
 (shape::ConstValueShape)(::UndefInitializer) = shape.value
 
 
+function unshaped(x::Any, shape::ConstValueShape)
+    x == shape.value || throw(ArgumentError("Given value does not match value of ConstValueShape"))
+    Float32[]
+end
+
+
 """
     const_zero_shape(shape::ConstValueShape)
 
@@ -78,7 +84,7 @@ function vs_setindex!(data::AbstractVector{<:Real}, v, va::ConstAccessor)
     v == va.shape.value || throw(ArgumentError("Cannot set constant value to a different value"))
     data
 end
-x =
+
 
 @inline _bcasted_view(data::AbstractArrayOfSimilarVectors{<:Real,N}, va::ConstAccessor) where N =
     Fill(va.shape.value, size(data)...)

@@ -47,6 +47,16 @@ using ElasticArrays, ArraysOfArrays
 
     @test valshape(shape.(push!(@inferred(VectorOfSimilarVectors{Float64}(shape)), @inferred(Vector{Float64}(undef, shape))))[1]) == valshape(shape(undef))
 
+    let A = [2.2, 4.4, 3.3]
+        @test @inferred(unshaped(A, ArrayShape{Real}(3))) === A
+        @test_throws ArgumentError unshaped(A, ArrayShape{Real}(2))
+        @test_throws ArgumentError unshaped(A, ArrayShape{Integer}(3))
+    end
+    @test @inferred(unshaped([1 2; 3 4; 5 6], ArrayShape{Real}(3,2))) == [1, 3, 5, 2, 4, 6]
+    let shape = ArrayShape{Real}(3,2), UA = [1, 3, 5, 2, 4, 6]
+        @test @inferred(unshaped(shape(UA), shape)) == UA
+    end
+
     let
         A = collect(1:8)
         ac = ValueAccessor(ArrayShape{Real}(3), 2)

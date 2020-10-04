@@ -66,6 +66,28 @@ totalndof(shape::ArrayShape{T}) where{T} =
 (shape::ArrayShape{T,N})(::UndefInitializer) where {T,N} = Array{default_datatype(T),N}(undef, size(shape)...)
 
 
+function _check_unshaped_compat(A::AbstractArray{T,N}, shape::ArrayShape{U,N}) where {T<:Real,U<:Real,N}
+    Telem = eltype(A)
+    Telem <: U || throw(ArgumentError("Element type $Telem of array not compatible with element type $U of given shape"))
+    size(A) == size(shape) || throw(ArgumentError("Size of array differs from size of given shape"))
+end
+
+function unshaped(A::AbstractArray{T,1}, shape::ArrayShape{U,1}) where {T<:Real,U<:Real}
+    _check_unshaped_compat(A, shape)
+    A
+end
+
+function unshaped(A::AbstractArray{T,N}, shape::ArrayShape{U,N}) where {T<:Real,U<:Real,N}
+    _check_unshaped_compat(A, shape)
+    reshape(view(A, ntuple(_ -> :, Val(N))...), prod(size(A)))
+end
+
+function unshaped(A::Base.ReshapedArray{T,N,<:AbstractArray{T,1}}, shape::ArrayShape{U,N}) where {T<:Real,U<:Real,N}
+    _check_unshaped_compat(A, shape)
+    parent(A)
+end
+
+
 replace_const_shapes(f::Function, shape::ArrayShape) = shape
 
 

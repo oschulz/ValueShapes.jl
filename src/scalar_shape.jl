@@ -83,6 +83,13 @@ end
 
 (shape::ScalarShape{T})(::UndefInitializer) where {T<:Number} = zero(default_datatype(T))
 
+
+function unshaped(x::Union{T,AbstractArray{T,0}}, shape::ScalarShape{U}) where {T<:Real,U<:Real}
+    T <: U || throw(ArgumentError("Element type $T of scalar value not compatible with type $U of given scalar shape"))
+    unshaped(x)
+end
+
+
 replace_const_shapes(f::Function, shape::ScalarShape) = shape
 
 

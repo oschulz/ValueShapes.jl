@@ -43,7 +43,14 @@ import TypedTables
     @test @inferred (ScalarShape{Real}() <= ScalarShape{Int}()) == false
     @test @inferred (ScalarShape{Real}() >= ScalarShape{Int}()) == true
 
-    @test begin
+    let shape = ScalarShape{Real}(), data = [4.2]
+        @test @inferred(unshaped(shape(data), shape)) == data
+        @test @inferred(unshaped(shape(data)[], shape)) == data
+        @test_throws ArgumentError unshaped(shape([3, 4]), shape)
+        @test_throws ArgumentError unshaped(shape(data), ScalarShape{Integer}())
+    end
+
+    @test let
         shape = ScalarShape{Real}()
         valshape(shape.(push!(@inferred(VectorOfSimilarVectors{Float64}(shape)), @inferred(Vector{Float64}(undef, shape))))[1]) == valshape(shape(undef))
     end
