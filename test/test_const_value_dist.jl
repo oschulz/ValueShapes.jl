@@ -8,16 +8,57 @@ using Random
 
 
 @testset "const_value_dist" begin
-    univariate_cvd = ConstValueDist(Int64(42))
-    v = broadcast(Int64, [1,2, 3])
-    multivariate_cvd = ConstValueDist(v)
-    @test @inferred(length(multivariate_cvd)) == length(v)
+    @test @inferred(ConstValueDist(4.2)) isa Distribution{Univariate}
+    @test @inferred(ConstValueDist([1, 2, 3])) isa Distribution{Multivariate}
+    @test @inferred(ConstValueDist([1 2; 3 4])) isa Distribution{Matrixvariate}
+
+    @test @inferred(length(ConstValueDist([4.2]))) == 1
+    @test @inferred(length(ConstValueDist([1, 2, 3]))) == 3
+    @test @inferred(length(ConstValueDist([1 2; 3 4]))) == 4
+
+    @test @inferred(pdf(ConstValueDist(4.2), 4.2)) == Inf
+    @test @inferred(logpdf(ConstValueDist(4.2), 4.2)) == Inf
+    @test @inferred(pdf(ConstValueDist(4.2), 3.7)) == 0
+    @test @inferred(logpdf(ConstValueDist(4.2), 3.7)) == -Inf
+    @test @inferred(pdf(ConstValueDist(4.2), [4.2, 3.7])) == [Inf, 0.0]
+    @test @inferred(logpdf(ConstValueDist(4.2), [4.2, 3.7])) == [Inf, -Inf]
+
+    @test @inferred(pdf(ConstValueDist([1, 2, 3]), [1, 2, 3])) == Inf
+    @test @inferred(logpdf(ConstValueDist([1, 2, 3]), [1, 2, 3])) == Inf
+    @test @inferred(pdf(ConstValueDist([1, 2, 3]), [2, 3, 4])) == 0
+    @test @inferred(logpdf(ConstValueDist([1, 2, 3]), [2, 3, 4])) == -Inf
+    @test (pdf(ConstValueDist([1, 2, 3]), hcat([1, 2, 3], [2, 3, 4]))) == [Inf, 0.0]
+    @test (logpdf(ConstValueDist([1, 2, 3]), hcat([1, 2, 3], [2, 3, 4]))) == [Inf, -Inf]
+
+    @test @inferred(pdf(ConstValueDist([1 2; 3 4]), [1 2; 3 4])) == Inf
+    @test @inferred(logpdf(ConstValueDist([1 2; 3 4]), [1 2; 3 4])) == Inf
+    @test @inferred(pdf(ConstValueDist([1 2; 3 4]), [4 5; 6 7])) == 0
+    @test @inferred(logpdf(ConstValueDist([1 2; 3 4]), [4 5; 6 7])) == -Inf
+
+    @test @inferred(insupport(ConstValueDist(4.2), 4.2)) == true
+    @test @inferred(insupport(ConstValueDist(4.2), 4.19)) == false
+
+    @test @inferred(insupport(ConstValueDist([1, 2, 3]), [1, 2, 3])) == true
+    @test @inferred(insupport(ConstValueDist([1, 2, 3]), [2, 3, 4])) == false
+
+    @test @inferred(insupport(ConstValueDist([1 2; 3 4]), [1 2; 3 4])) == true
+    @test @inferred(insupport(ConstValueDist([1 2; 3 4]), [4 5; 6 7])) == false
+
+
+    @test @inferred(rand(ConstValueDist(4.2))) == 4.2
+    @test @inferred(rand(ConstValueDist(4.2), 3)) == [4.2, 4.2, 4.2]
+
+    @test @inferred(rand(ConstValueDist([1, 2, 3]))) == [1, 2, 3]
+    @test @inferred(rand(ConstValueDist([1, 2, 3]), 2)) == hcat([1, 2, 3], [1, 2, 3])
+
+    @test @inferred(rand(ConstValueDist([1 2; 3 4]))) == [1 2; 3 4]
+    @test @inferred(rand(ConstValueDist([1 2; 3 4]), 2)) == [[1 2; 3 4], [1 2; 3 4]]
+
+
+    univariate_cvd = @inferred(ConstValueDist(Int64(42)))
 
     shape = varshape(univariate_cvd)
 
-    @test @inferred(insupport(univariate_cvd, 42)) == true
-    @test @inferred(insupport(univariate_cvd, 41.999)) == false
-    @test @inferred(insupport(univariate_cvd, 42.999)) == false
     @test @inferred(totalndof(shape)) == 0
     @test @inferred(size(univariate_cvd)) == ()
     @test @inferred(length(univariate_cvd)) == 1
@@ -32,13 +73,6 @@ using Random
     @test @inferred(cdf(univariate_cvd, Inf)) == 1
 
     @test @inferred(mode(univariate_cvd)) == 42
-
-    @test @inferred(rand(univariate_cvd, 10)) == fill(42, 10)
-
-    @test @inferred(logpdf(univariate_cvd, -1)) == -Inf
-    @test @inferred(logpdf(univariate_cvd, 41.999)) == -Inf
-    @test @inferred(logpdf(univariate_cvd, 42)) == Inf
-    @test @inferred(logpdf(univariate_cvd, 43.999)) == -Inf
 
     @test @inferred(eltype(univariate_cvd)) == Int64
 end
