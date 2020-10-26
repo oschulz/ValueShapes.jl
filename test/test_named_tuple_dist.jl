@@ -92,12 +92,6 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
     @test @inferred(rand(unshaped(dist), 10^3)) isa Matrix{Float64}
     @test shape.(nestedview(@inferred(rand(testrng(), unshaped(dist), 10^3)))) == @inferred(rand(testrng(), dist, 10^3))
 
-    dist_h = @inferred NamedTupleDist(
-        h1 = fit(Histogram, randn(10^5)),
-        h2 = fit(Histogram, (2 * randn(10^5), 3 * randn(10^5)))
-    )
-    @test isapprox(std(@inferred(rand(unshaped(dist_h), 10^5)), dims = 2, corrected = true), [1, 2, 3], rtol = 0.1)
-
     propnames = propertynames(dist, true)
     @test propnames == (:a, :b, :c, :d, :x, :e, :_internal_distributions, :_internal_shape)
     @test @inferred(keys(dist)) == propertynames(dist, false)

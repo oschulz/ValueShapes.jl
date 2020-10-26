@@ -19,7 +19,6 @@ using Random
 using Statistics
 using StatsBase
 
-import EmpiricalDistributions
 import IntervalSets
 import Tables
 import TypedTables

@@ -10,9 +10,6 @@ _ntd_dist_and_shape(xs::AbstractVector{<:Distribution}) = _ntd_dist_and_shape(Pr
 _ntd_dist_and_shape(x::Number) = _ntd_dist_and_shape(ConstValueShape(x))
 _ntd_dist_and_shape(x::AbstractArray{<:Number}) = _ntd_dist_and_shape(ConstValueShape(x))
 
-_ntd_dist_and_shape(h::Histogram{<:Real,1}) = _ntd_dist_and_shape(EmpiricalDistributions.UvBinnedDist(h))
-_ntd_dist_and_shape(h::Histogram) = _ntd_dist_and_shape(EmpiricalDistributions.MvBinnedDist(h))
-
 
 """
     NamedTupleDist <: MultivariateDistribution
