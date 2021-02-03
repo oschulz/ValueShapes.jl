@@ -144,7 +144,11 @@ function unshaped(x::NamedTuple{names}, shape::NamedTupleShape{names}) where nam
     shape(x_unshaped)[] = x
     x_unshaped
 end
- 
+
+function unshaped(x::AbstractArray{<:NamedTuple{names},0}, shape::NamedTupleShape{names}) where names
+    unshaped(x[], shape)
+end
+
 
 replace_const_shapes(f::Function, shape::NamedTupleShape) = NamedTupleShape(map(s -> replace_const_shapes(f, s), (;shape...)))
 
@@ -434,6 +438,9 @@ Base.getindex(A::ShapedAsNTArray, idxs...) = _apply_ntshape_copy(getindex(_data(
 
 Base.@propagate_inbounds _apply_ntshape_view(data::AbstractArray{<:AbstractVector{<:Real}}, shape::NamedTupleShape) =
     ShapedAsNTArray(data, shape)
+
+Base.@propagate_inbounds _apply_ntshape_view(data::AbstractArray{<:AbstractVector{<:Real}, 0}, shape::NamedTupleShape) =
+    ShapedAsNT(data[], shape)
 
 Base.view(A::ShapedAsNTArray, idxs...) = _apply_ntshape_view(view(_data(A), idxs...), _elshape(A))
 
