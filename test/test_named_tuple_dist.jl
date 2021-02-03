@@ -3,8 +3,7 @@
 using ValueShapes
 using Test
 
-using Statistics, Random
-using StatsBase, Distributions, ArraysOfArrays, IntervalSets
+using Statistics, StatsBase, Distributions, IntervalSets
 
 @testset "NamedTupleDist" begin
     dist = @inferred NamedTupleDist(
@@ -58,29 +57,7 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
     @test @inferred(rand(dist, 100)) isa ShapedAsNTArray
     @test all(x -> x > 0, pdf.(Ref(dist), rand(dist, 10^3)))
 
-    let X = X = varshape(dist).(nestedview(Array{eltype(unshaped(dist))}(undef, length(unshaped(dist)), 14)))
-        @test @inferred(rand!(dist, view(X, 1))) == view(X, 1)
-        @test @inferred(rand!(dist, X)) === X
-    end
-
-    let X = varshape(dist).([Array{Float64}(undef, totalndof(varshape(dist))) for i in 1:11])
-        @test @inferred(rand!(dist, view(X, 1))) == view(X, 1)
-        @test @inferred(rand!(dist, X)) === X
-    end
-
     testrng() = MersenneTwister(0xaef035069e01e678)
-
-    let X = rand(unshaped(dist), 10), Xn = nestedview(X)
-        @test @inferred(Distributions._pdf(unshaped(dist), Xn[1])) == @inferred(pdf(unshaped(dist), Xn[1]))
-        @test @inferred(pdf(unshaped(dist), X)) == @inferred(broadcast(pdf, Ref(unshaped(dist)), Xn))
-
-        @test @inferred(Distributions._logpdf(unshaped(dist), Xn[1])) == @inferred(logpdf(unshaped(dist), Xn[1]))
-        @test @inferred(logpdf(unshaped(dist), X)) == @inferred(broadcast(logpdf, Ref(unshaped(dist)), Xn))
-
-        @test @inferred(insupport(unshaped(dist), Xn[1])) == true
-        @test @inferred(insupport(unshaped(dist), fill(-Inf, length(Xn)))) == false
-        @test @inferred(insupport(unshaped(dist), X)) == fill(true, length(Xn))
-    end
 
     @static if VERSION >= v"1.2"
         @test @inferred(rand(unshaped(dist))) isa Vector{Float64}

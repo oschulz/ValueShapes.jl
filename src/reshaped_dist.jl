@@ -71,30 +71,16 @@ function (shape::ArrayShape{T,1})(dist::MultivariateDistribution) where T
     dist
 end
 
-function (shape::ArrayShape{T,2})(dist::MultivariateDistribution) where T
-    MatrixReshaped(dist, size(shape)...)
-end
-
 
 @inline varshape(rd::ReshapedDist) = rd.shape
 
 @inline unshaped(rd::ReshapedDist) = rd.dist
 
 
-Random.rand(rng::AbstractRNG, rd::ReshapedDist{Univariate}) = stripscalar(varshape(rd)(rand(rng, unshaped(rd))))
-
-function Distributions._rand!(rng::AbstractRNG, rd::ReshapedDist{Multivariate}, x::AbstractVector{<:Real})
-    Distributions._rand!(rng, unshaped(rd), x)
-end
-
-function Distributions._rand!(rng::AbstractRNG, rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real})
-    Distributions._rand!(rng, MatrixReshaped(unshaped(rd), size(rd)...), x)
-end
-
-
-Base.length(rd::ReshapedDist{<:Multivariate}) = size(varshape(rd))[1]
-
-Base.size(rd::ReshapedDist{<:Matrixvariate}) = size(varshape(rd))
+Random.rand(rng::AbstractRNG, rd::ReshapedDist) = stripscalar(rand(rng, rd, ()))
+Random.rand(rng::AbstractRNG, rd::ReshapedDist, ::Tuple{}) = varshape(rd)(rand(rng, unshaped(rd)))
+Random.rand(rng::AbstractRNG, rd::ReshapedDist, n::Int) = varshape(rd).(nestedview(rand(rng, unshaped(rd), n)))
+Random.rand(rng::AbstractRNG, rd::ReshapedDist, dims::Dims{1}) = rand(rng, rd, dims[1])
 
 
 Statistics.mean(rd::ReshapedDist) = stripscalar(varshape(rd)(mean(unshaped(rd))))
@@ -105,15 +91,16 @@ Statistics.var(rd::ReshapedDist) = stripscalar(_with_zeroconst(varshape(rd))(var
 
 Statistics.cov(rd::ReshapedDist{Multivariate}) = cov(unshaped(rd))
 
+# Need lots of versions to prevent ambiguity with Distributions:
+Distributions.pdf(rd::ReshapedDist, x::Any) = pdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.pdf(rd::ReshapedDist, x::Real) = pdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.pdf(rd::ReshapedDist, x::AbstractVector{<:Real}) = pdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.pdf(rd::ReshapedDist, x::AbstractMatrix{<:Real}) = pdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.pdf(rd::ReshapedDist, x::AbstractArray{<:Real}) = pdf(unshaped(rd), unshaped(x, varshape(rd)))
 
-Distributions.pdf(rd::ReshapedDist{Univariate}, x::Real) = pdf(unshaped(rd), unshaped(x))
-Distributions._pdf(rd::ReshapedDist{Multivariate}, x::AbstractVector{<:Real}) = pdf(unshaped(rd), x)
-Distributions._pdf(rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = pdf(MatrixReshaped(unshaped(rd), size(rd)...), x)
-
-Distributions.logpdf(rd::ReshapedDist{Univariate}, x::Real) = logpdf(unshaped(rd), unshaped(x))
-Distributions._logpdf(rd::ReshapedDist{Multivariate}, x::AbstractVector{<:Real}) = logpdf(unshaped(rd), x)
-Distributions._logpdf(rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = logpdf(MatrixReshaped(unshaped(rd), size(rd)...), x)
-
-Distributions.insupport(rd::ReshapedDist{Univariate}, x::Real) = insupport(unshaped(rd), unshaped(x))
-Distributions.insupport(rd::ReshapedDist{Multivariate}, x::AbstractVector{<:Real}) = insupport(unshaped(rd), x)
-Distributions.insupport(rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = insupport(MatrixReshaped(unshaped(rd), size(rd)...), x)
+# Need lots of versions to prevent ambiguity with Distributions:
+Distributions.logpdf(rd::ReshapedDist, x::Any) = logpdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.logpdf(rd::ReshapedDist, x::Real) = logpdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.logpdf(rd::ReshapedDist, x::AbstractVector{<:Real}) = logpdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.logpdf(rd::ReshapedDist, x::AbstractMatrix{<:Real}) = logpdf(unshaped(rd), unshaped(x, varshape(rd)))
+Distributions.logpdf(rd::ReshapedDist, x::AbstractArray{<:Real}) = logpdf(unshaped(rd), unshaped(x, varshape(rd)))

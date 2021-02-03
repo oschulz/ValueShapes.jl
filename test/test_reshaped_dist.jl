@@ -3,8 +3,8 @@
 using ValueShapes
 using Test
 
-using LinearAlgebra, Random, Statistics
-using StatsBase, Distributions, ArraysOfArrays
+using LinearAlgebra
+using Statistics, StatsBase, Distributions
 
 
 @testset "reshaped_dist" begin
@@ -23,9 +23,8 @@ using StatsBase, Distributions, ArraysOfArrays
 
     names = (:a, :b, :c, :x, :y)
     
-    _mvndist(n::Integer) = MvNormal(fill(2.0, n), Diagonal(fill(3.0, n)))
-    _mvnormalrd(shape::AbstractValueShape) = ReshapedDist(_mvndist(totalndof(shape)), shape)
-    _mvnormalrd2(shape::AbstractValueShape) = shape(_mvndist(totalndof(shape)))
+    _mvnormalrd(shape::AbstractValueShape) = ReshapedDist(MvNormal(fill(2.0, totalndof(shape)), Diagonal(fill(3.0, totalndof(shape)))), shape)
+    _mvnormalrd2(shape::AbstractValueShape) = shape(MvNormal(fill(2.0, totalndof(shape)), Diagonal(fill(3.0, totalndof(shape)))))
 
     @testset "ctors" begin
         @test @inferred(_mvnormalrd(scshape)) isa Distribution{Univariate, Continuous}
@@ -37,7 +36,7 @@ using StatsBase, Distributions, ArraysOfArrays
 
         @test @inferred(_mvnormalrd2(scshape)) isa ReshapedDist{Univariate, Continuous}
         @test @inferred(_mvnormalrd2(a1shape)) isa MvNormal
-        @test @inferred(_mvnormalrd2(a2shape)) isa MatrixReshaped
+        @test @inferred(_mvnormalrd2(a2shape)) isa ReshapedDist{Matrixvariate, Continuous}
         @test @inferred(_mvnormalrd2(ntshape)) isa ReshapedDist{ValueShapes.NamedTupleVariate{names}, Continuous}
 
         @inferred(varshape(_mvnormalrd2(ntshape))) == ntshape
@@ -51,21 +50,14 @@ using StatsBase, Distributions, ArraysOfArrays
         @test @inferred(rand(_mvnormalrd(scshape), (7,))) isa AbstractArray{<:Real,1}
         @test size(rand(_mvnormalrd(scshape), 7)) == (7,)
 
-        let d = _mvndist(totalndof(a1shape))
-            @test @inferred(a1shape(d)) === d
-        end
         @test @inferred(rand(_mvnormalrd(a1shape))) isa AbstractVector{<:Real}
-        @test @inferred(rand(_mvnormalrd(a1shape), ())) isa AbstractArray{<:AbstractVector{<:Real},0}
-        @test @inferred(rand(_mvnormalrd(a1shape), 7)) isa AbstractArray{<:Real,2}
+        @test @inferred(rand(_mvnormalrd(a1shape), ())) isa AbstractVector{<:Real}
+        @test @inferred(rand(_mvnormalrd(a1shape), 7)) isa AbstractArray{<:AbstractVector{<:Real},1}
         @test @inferred(rand(_mvnormalrd(a1shape), (7,))) isa AbstractArray{<:AbstractVector{<:Real},1}
-        @test size(rand(_mvnormalrd(a1shape), 7)) == (3, 7)
-        @test size(rand(_mvnormalrd(a1shape), (7,))) == (7,)
+        @test size(rand(_mvnormalrd(a1shape), 7)) == (7,)
 
-        let d = _mvndist(totalndof(a2shape))
-            @test @inferred(a2shape(d)) isa MatrixReshaped
-            @test unshaped(a2shape(d)) === d
-        end
         @test @inferred(rand(_mvnormalrd(a2shape))) isa AbstractMatrix{<:Real}
+        @test @inferred(rand(_mvnormalrd(a2shape), ())) isa AbstractMatrix{<:Real}
         @test @inferred(rand(_mvnormalrd(a2shape), 7)) isa AbstractArray{<:AbstractMatrix{<:Real},1}
         @test size(rand(_mvnormalrd(a2shape), 7)) == (7,)
 
@@ -73,10 +65,6 @@ using StatsBase, Distributions, ArraysOfArrays
         @test @inferred(rand(_mvnormalrd(ntshape), ())) isa ShapedAsNT{<:NamedTuple{names}}
         @test @inferred(rand(_mvnormalrd(ntshape), 7)) isa ShapedAsNTArray{<:NamedTuple{names},1}
         @test size(rand(_mvnormalrd(ntshape), 7)) == (7,)
-        let X = rand(_mvnormalrd(ntshape), 7)
-            @test @inferred(rand!(_mvnormalrd(ntshape), view(X, 1))) == view(X, 1)
-            @test @inferred(rand!(_mvnormalrd(ntshape), X)) === X
-        end
     end
 
     @testset "stats functions" begin
@@ -88,7 +76,6 @@ using StatsBase, Distributions, ArraysOfArrays
             @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)
             @test @inferred(logpdf(rd, vs(ux)[])) == logpdf(unshaped(rd), ux)
             @test @inferred(logpdf(rd, vs(ux))) == logpdf(unshaped(rd), ux)
-            @test @inferred(insupport(rd, vs(ux)[])) == true
         end
 
         @test @inferred(mean(_mvnormalrd(a1shape))) ≈ fill(2, 3)
@@ -98,7 +85,6 @@ using StatsBase, Distributions, ArraysOfArrays
         let rd = _mvnormalrd(a1shape), ux = rand(unshaped(rd)), vs = varshape(rd)
             @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)
             @test @inferred(logpdf(rd, vs(ux))) == logpdf(unshaped(rd), ux)
-            @test @inferred(insupport(rd, vs(ux))) == true
         end
 
         @test @inferred(mean(_mvnormalrd(a2shape))) ≈ fill(2, 2, 3)
@@ -107,7 +93,6 @@ using StatsBase, Distributions, ArraysOfArrays
         let rd = _mvnormalrd(a2shape), ux = rand(unshaped(rd)), vs = varshape(rd)
             @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)
             @test @inferred(logpdf(rd, vs(ux))) == logpdf(unshaped(rd), ux)
-            @test @inferred(insupport(rd, vs(ux))) == true
         end
 
         @test @inferred(mean(_mvnormalrd(ntshape))) == (a = [2.0 2.0 2.0; 2.0 2.0 2.0], b = 2.0, c = 4.2, x = [11 21; 12 22], y = [2.0, 2.0, 2.0, 2.0])
@@ -116,18 +101,6 @@ using StatsBase, Distributions, ArraysOfArrays
         let rd = _mvnormalrd(ntshape), ux = rand(unshaped(rd)), vs = varshape(rd)
             @test @inferred(pdf(rd, vs(ux)[])) == pdf(unshaped(rd), ux)
             @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)
-            @test @inferred(logpdf(rd, vs(ux)[])) == logpdf(unshaped(rd), ux)
-            @test @inferred(logpdf(rd, vs(ux))) == logpdf(unshaped(rd), ux)
-            @test @inferred(insupport(rd, vs(ux)[])) == true
-            @test @inferred(insupport(rd, vs(ux))) == true
         end
-
-        let rd = ReshapedDist(_mvndist(5), ArrayShape{Real}(5)), X = rand(rd, 10), Xn = nestedview(X)
-            @test @inferred(Distributions._pdf(rd, Xn[1])) == pdf(rd, Xn[1])
-            @test @inferred(pdf(rd, X)) == pdf.(Ref(rd), Xn)
-        
-            @test @inferred(Distributions._logpdf(rd, Xn[1])) == logpdf(rd, Xn[1])
-            @test @inferred(logpdf(rd, X)) == logpdf.(Ref(rd), Xn)
-        end    
     end
 end
