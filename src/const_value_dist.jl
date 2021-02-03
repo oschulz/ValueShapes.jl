@@ -24,10 +24,10 @@ Distributions.pdf(d::ConstValueDist{Univariate}, x::Real) = d.value == x ? float
 Distributions.logpdf(d::ConstValueDist{Univariate}, x::Real) = log(pdf(d, x))
 
 Distributions.pdf(d::ConstValueDist{Multivariate}, x::AbstractVector{<:Real}) = d.value == x ? float(eltype(d))(Inf) : float(eltype(d))(0)
-Distributions.logpdf(d::ConstValueDist{Multivariate}, x::AbstractVector{<:Real}) = log(pdf(d, x))
+Distributions._logpdf(d::ConstValueDist{Multivariate}, x::AbstractVector{<:Real}) = log(pdf(d, x))
 
 Distributions.pdf(d::ConstValueDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = d.value == x ? float(eltype(d))(Inf) : float(eltype(d))(0)
-Distributions.logpdf(d::ConstValueDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = log(pdf(d, x))
+Distributions._logpdf(d::ConstValueDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = log(pdf(d, x))
 
 Distributions.insupport(d::ConstValueDist{Univariate}, x::Real) = x == d.value
 Distributions.insupport(d::ConstValueDist{Multivariate}, x::AbstractVector{<:Real}) = x == d.value
