@@ -144,21 +144,41 @@ function _ntd_logpdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names
     sum(map((dist, d) -> _ntd_logpdf(dist, d), distributions, parvalues))
 end
 
-
 Distributions.logpdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names = _ntd_logpdf(d, x)
+Distributions.pdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names = exp(logpdf(d, x))
 
-function Distributions.logpdf(d::NamedTupleDist{names}, x::ShapedAsNT{<:NamedTuple{names}}) where names
-    valshape(x) <= varshape(d) || throw(ArgumentError("Shapes of variates and value are not compatible"))
-    _ntd_logpdf(d, unshaped(x))
+Distributions._logpdf(ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_logpdf(ud.shaped, x)
+
+
+function _ntd_insupport(
+    dist::Distribution,
+    acc::ValueShapes.ValueAccessor,
+    x::AbstractVector{<:Real}
+)
+    insupport(dist, float(x[acc]))
 end
 
-Distributions.logpdf(ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_logpdf(ud.shaped, x)
+function _ntd_insupport(d::NamedTupleDist, x::AbstractVector{<:Real})
+    distributions = values(d)
+    accessors = values(varshape(d))
+    prod(map((dist, acc) -> _ntd_insupport(dist, acc, x), distributions, accessors))
+end
 
 
-Distributions.pdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names = exp(logpdf(d, x))
-Distributions.pdf(d::NamedTupleDist{names}, x::ShapedAsNT{<:NamedTuple{names}}) where names = exp(logpdf(d, x))
+# ConstValueDist has no dof, set NamedTupleDist insupport contribution to true:
+_ntd_insupport(dist::ConstValueDist, x::Any) = true
 
-Distributions.pdf(ud::UnshapedNTD, x::AbstractVector{<:Real}) = exp(logpdf(ud, x))
+_ntd_insupport(dist::Distribution, x::Any) = insupport(dist, x)
+
+function _ntd_insupport(d::NamedTupleDist{names}, x::NamedTuple{names}) where names
+    distributions = values(d)
+    parvalues = values(x)
+    prod(map((dist, d) -> _ntd_insupport(dist, d), distributions, parvalues))
+end
+
+Distributions.insupport(d::NamedTupleDist{names}, x::NamedTuple{names}) where names = _ntd_insupport(d, x)
+
+Distributions.insupport(ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_insupport(ud.shaped, x)
 
 
 function _ntd_rand!(
@@ -196,36 +216,6 @@ function _ntd_rand!(rng::AbstractRNG, d::NamedTupleDist, x::AbstractVector{<:Rea
     map((dist, acc) -> _ntd_rand!(rng, dist, acc, x), distributions, accessors)
     x
 end
-
-
-# ToDo/Decision: Return NamedTuple or ShapedAsNT?
-Random.rand(rng::AbstractRNG, d::NamedTupleDist) = rand(rng, d, ())[]
-
-function Random.rand(rng::AbstractRNG, d::NamedTupleDist, dims::Tuple{})
-    shape = varshape(d)
-    x = Vector{default_unshaped_eltype(shape)}(undef, totalndof(varshape(d)))
-    _ntd_rand!(rng, d, x)
-    shape(x)
-end
-
-function Random.rand(rng::AbstractRNG, d::NamedTupleDist, dims::Dims)
-    shape = varshape(d)
-    X_flat = Array{default_unshaped_eltype(shape)}(undef, totalndof(varshape(d)), dims...)
-    X = ArrayOfSimilarVectors(X_flat)
-    _ntd_rand!.(Ref(rng), Ref(d), X)
-    shape.(X)
-end
-
-function Random.rand!(rng::AbstractRNG, d::NamedTupleDist{names}, x::ShapedAsNT{<:NamedTuple{names}}) where names
-    valshape(x) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
-    _ntd_rand!(rng, d, unshaped(x))
-end
-
-function Random.rand!(rng::AbstractRNG, d::NamedTupleDist{names}, x::ShapedAsNTArray{<:NamedTuple{names}}) where names
-    valshape(x) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
-    _ntd_rand!.(Ref(rng), Ref(d), unshaped(x))
-end
-
 
 @inline Distributions._rand!(rng::AbstractRNG, ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_rand!(rng, ud.shaped, x)
 

@@ -6,9 +6,9 @@
 
 Get the value shape of the variates of distribution `d`.
 """
-varshape(d::UnivariateDistribution) = ScalarShape{Real}()
-varshape(d::MultivariateDistribution) = ArrayShape{Real}(size(d)...)
-varshape(d::MatrixDistribution) = ArrayShape{Real}(size(d)...)
+varshape(d::Distribution{Univariate}) = ScalarShape{Real}()
+varshape(d::Distribution{Multivariate}) = ArrayShape{Real}(size(d)...)
+varshape(d::Distribution{Matrixvariate}) = ArrayShape{Real}(size(d)...)
 
 @deprecate valshape(d::Distribution) varshape(d)
 
@@ -22,31 +22,91 @@ Equivalent to `totalndof(varshape(d))`.
 vardof(d::Distribution) = totalndof(varshape(d))
 
 
+unshaped(d::Distribution{Multivariate}) = d
+unshaped(d::MatrixReshaped) = d.d
+
+
 
 const PlainVariate = Union{Univariate,Multivariate,Matrixvariate}
 
 
 struct StructVariate{T} <: VariateForm end
 
-const NamedTupleVariate{names} = StructVariate{NamedTuple{names}}
+
+const NamedTupleVariate{names} = StructVariate{NamedTuple{names}}  # ToDo: Use StructVariate{<:NamedTuple{names}} instead?
 
 
-Base.rand(s::Sampleable{<:StructVariate}, n::Int) = rand(Random.GLOBAL_RNG, s, n)
+Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}) where names = stripscalar(rand(rng, d, ()))
 
-Base.rand(s::Sampleable{<:StructVariate}, dims::Dims) = rand(Random.GLOBAL_RNG, s, dims)
-
-Base.rand(s::Sampleable{<:StructVariate}, dims::Dims, A::AbstractArray) = rand(Random.GLOBAL_RNG, s, dims)
-
-Base.rand(rng::AbstractRNG, s::Sampleable{<:StructVariate}, n::Int) = rand(rng, s, Dims((n,)))
-
-function Base.rand(rng::AbstractRNG, s::Sampleable{<:StructVariate}, dims::Dims)
-    broadcast(x -> rand(rng, s), Fill(nothing, dims...))
+function Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, dims::Tuple{}) where names
+    shape = varshape(d)
+    x = Vector{default_unshaped_eltype(shape)}(undef, totalndof(varshape(d)))
+    rand!(rng, unshaped(d), x)
+    shape(x)
 end
 
-function Random.rand!(rng::AbstractRNG, s::Sampleable{<:StructVariate}, A::AbstractArray)
-    broadcast!(x -> rand(rng, s), A, A)
+function Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, dims::Dims) where names
+    shape = varshape(d)
+    X_flat = Array{default_unshaped_eltype(shape)}(undef, totalndof(varshape(d)), dims...)
+    X = ArrayOfSimilarVectors(X_flat)
+    rand!(rng, unshaped(d), X)
+    shape.(X)
 end
 
 
+function Random.rand!(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{<:NamedTuple{names}}) where names
+    valshape(x) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
+    rand!(rng, unshaped(d), unshaped(x))
+    x
+end
 
-unshaped(d::MultivariateDistribution) = d
+
+function _aov_rand_impl!(rng::AbstractRNG, d::Distribution{Multivariate}, X::ArrayOfSimilarVectors{<:Real})
+    rand!(rng, unshaped(d), flatview(X))
+end
+
+# Workaround for current limitations of ArraysOfArrays.unshaped for standard arrays of vectors
+function _aov_rand_impl!(rng::AbstractRNG, d::Distribution{Multivariate}, X::AbstractArray{<:AbstractVector{<:Real}})
+    rand!.(Ref(rng), Ref(unshaped(d)), X)
+end
+
+function Random.rand!(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, X::ShapedAsNTArray{<:NamedTuple{names}}) where names
+    elshape(X) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
+    _aov_rand_impl!(rng, unshaped(d), unshaped.(X))
+    X
+end
+
+
+function Distributions.logpdf(d::Distribution{NamedTupleVariate{names}}, x::NamedTuple{names}) where names
+    logpdf(unshaped(d), unshaped(x, varshape(d)))
+end
+
+function Distributions.logpdf(d::Distribution{NamedTupleVariate{names}}, x::AbstractArray{<:NamedTuple{names},0}) where names
+    logpdf(unshaped(d), unshaped(x, varshape(d)))
+end
+
+
+function Distributions.pdf(d::Distribution{NamedTupleVariate{names}}, x::NamedTuple{names}) where names
+    pdf(unshaped(d), unshaped(x, varshape(d)))
+end
+
+function Distributions.pdf(d::Distribution{NamedTupleVariate{names}}, x::AbstractArray{<:NamedTuple{names},0}) where names
+    pdf(unshaped(d), unshaped(x, varshape(d)))
+end
+
+
+function Distributions.insupport(d::Distribution{NamedTupleVariate{names}}, x::NamedTuple{names}) where names
+    insupport(unshaped(d), unshaped(x, varshape(d)))
+end
+
+function Distributions.insupport(d::Distribution{NamedTupleVariate{names}}, x::AbstractArray{<:NamedTuple{names},0}) where names
+    insupport(unshaped(d), unshaped(x, varshape(d)))
+end
+
+function Distributions.insupport(d::Distribution{NamedTupleVariate{names}}, X::AbstractArray{<:NamedTuple{names},N}) where {N,names}
+    Distributions.insupport!(BitArray(undef, size(X)), d, X)
+end
+
+function Distributions.insupport!(r::AbstractArray{Bool,N}, d::Distribution{NamedTupleVariate{names}}, X::AbstractArray{<:NamedTuple{names},N}) where {N,names}
+    r .= insupport.(Ref(d), X)
+end
