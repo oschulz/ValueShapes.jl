@@ -75,4 +75,20 @@ using Random
     @test @inferred(mode(univariate_cvd)) == 42
 
     @test @inferred(eltype(univariate_cvd)) == Int64
+
+ 
+    univariate_value = 1.0
+    univariate_cvd = @inferred(ConstValueDist((a=univariate_value,)))
+
+    @test @inferred(pdf(univariate_cvd, (a=univariate_value,))) == Inf
+    @test @inferred(pdf(univariate_cvd, (a=univariate_value - eps(eltype(univariate_cvd)),))) == 0
+    @test @inferred(pdf(univariate_cvd, (a=univariate_value + eps(eltype(univariate_cvd)),))) == 0
+
+    @test @inferred(logpdf(univariate_cvd, (a=univariate_value,))) == Inf
+    @test @inferred(logpdf(univariate_cvd, (a=univariate_value - eps(eltype(univariate_cvd)),))) == -Inf
+    @test @inferred(logpdf(univariate_cvd, (a=univariate_value + eps(eltype(univariate_cvd)),))) == -Inf
+
+    @test @inferred(insupport(univariate_cvd, (a=univariate_value,))) == true
+    @test @inferred(insupport(univariate_cvd, (a=univariate_value - eps(eltype(univariate_cvd)),))) == false
+    @test @inferred(insupport(univariate_cvd, (a=univariate_value + eps(eltype(univariate_cvd)),))) == false
 end
