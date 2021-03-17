@@ -79,6 +79,7 @@ using Random
  
     univariate_value = 1.0
     univariate_cvd = @inferred(ConstValueDist((a=univariate_value,)))
+    univariate_samples = @inferred(rand(univariate_cvd, 10^3))
 
     @test @inferred(pdf(univariate_cvd, (a=univariate_value,))) == Inf
     @test @inferred(pdf(univariate_cvd, (a=univariate_value - eps(eltype(univariate_cvd)),))) == 0
@@ -91,4 +92,6 @@ using Random
     @test @inferred(insupport(univariate_cvd, (a=univariate_value,))) == true
     @test @inferred(insupport(univariate_cvd, (a=univariate_value - eps(eltype(univariate_cvd)),))) == false
     @test @inferred(insupport(univariate_cvd, (a=univariate_value + eps(eltype(univariate_cvd)),))) == false
+  
+    @test univariate_samples == fill((a=univariate_value,), 10^3)
 end
