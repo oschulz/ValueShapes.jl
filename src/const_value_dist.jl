@@ -47,6 +47,8 @@ Distributions.quantile(d::ConstValueDist{Univariate}, q::Real) = d.value # Sensi
 Distributions.minimum(d::ConstValueDist{Univariate}) = d.value
 Distributions.maximum(d::ConstValueDist{Univariate}) = d.value
 
+StatsBase.mean(d::ConstValueDist) = d.value
+
 StatsBase.mode(d::ConstValueDist) = d.value
 
 Base.size(d::ConstValueDist{<:PlainVariate}) = size(d.value)

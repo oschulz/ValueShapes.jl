@@ -72,6 +72,8 @@ using Random
     @test @inferred(cdf(univariate_cvd, 42)) == 1
     @test @inferred(cdf(univariate_cvd, Inf)) == 1
 
+    @test @inferred(mean(univariate_cvd)) == 42
+
     @test @inferred(mode(univariate_cvd)) == 42
 
     @test @inferred(eltype(univariate_cvd)) == Int64
