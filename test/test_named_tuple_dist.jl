@@ -8,7 +8,7 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
 
 @testset "NamedTupleDist" begin
     dist = @inferred NamedTupleDist(
-        a = 5, b = Normal(),
+        a = 5, b = Weibull(2, 1),
         c = -4..5,
         d = MvNormal([1.2 0.5; 0.5 2.1]),
         x = [3 4; 2 5],
@@ -26,19 +26,22 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
 
     X_unshaped = [0.2, -0.4, 0.3, -0.5, 0.9]
     X_shaped = shape(X_unshaped)
-    @test (@inferred logpdf(unshaped(dist), X_unshaped)) == logpdf(Normal(), 0.2) + logpdf(Uniform(-4, 5), -0.4) + logpdf(MvNormal([1.2 0.5; 0.5 2.1]), [0.3, -0.5]) + logpdf(Normal(1.1, 0.2), 0.9)
+    @test (@inferred logpdf(unshaped(dist), X_unshaped)) == logpdf(Weibull(2, 1), 0.2) + logpdf(Uniform(-4, 5), -0.4) + logpdf(MvNormal([1.2 0.5; 0.5 2.1]), [0.3, -0.5]) + logpdf(Normal(1.1, 0.2), 0.9)
     @test (@inferred logpdf(dist, X_shaped)) == logpdf(unshaped(dist), X_unshaped)
     @test (@inferred logpdf(dist, X_shaped[])) == logpdf(unshaped(dist), X_unshaped)
 
-    @test (@inferred mode(unshaped(dist))) == [0.0, 0.5, 0.0, 0.0, 1.1]
+    @test (@inferred mode(unshaped(dist))) == [mode(dist.b), 0.5, 0.0, 0.0, 1.1]
     @test (@inferred mode(dist)) == shape(mode(unshaped(dist)))[]
 
-    @test @inferred(var(unshaped(dist))) ≈ [1.0, 6.75, 1.2, 2.1, 0.04]
+    @test (@inferred mean(unshaped(dist))) == [mean(dist.b), 0.5, 0.0, 0.0, 1.1]
+    @test (@inferred mean(dist)) == shape(mean(unshaped(dist)))[]
+
+    @test @inferred(var(unshaped(dist))) ≈ [var(dist.b), 6.75, 1.2, 2.1, 0.04]
     @test @inferred(var(dist)) == (a = 0, b = var(dist.b), c = var(dist.c), d = var(dist.d), x = var(dist.x), e = var(dist.e))
 
     @test begin
         ref_cov =
-            [1.0  0.0   0.0  0.0 0.0;
+            [var(dist.b)  0.0   0.0  0.0 0.0;
              0.0  6.75  0.0  0.0 0.0;
              0.0  0.0   1.2  0.5 0.0;
              0.0  0.0   0.5  2.1 0.0;

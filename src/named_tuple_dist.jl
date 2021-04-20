@@ -265,10 +265,20 @@ StatsBase.mode(d::NamedTupleDist) = varshape(d)(_ntd_mode(d))[]
 StatsBase.mode(ud::UnshapedNTD) = _ntd_mode(ud.shaped)
 
 
+_ntd_mean(dist::ConstValueDist) = Float32[]
+_ntd_mean(dist::Distribution) = mean(unshaped(dist))
+
+# ToDo/Decision: Return NamedTuple or ShapedAsNT?
+Statistics.mean(d::NamedTupleDist) = map(mean, _distributions(d))
+
+function Statistics.mean(ud::UnshapedNTD)
+    d = ud.shaped
+    vcat(map(d -> _ntd_mean(d), values(ValueShapes._distributions(d)))...)
+end
+
+
 _ntd_var(dist::ConstValueDist) = Float32[]
-
 _ntd_var(dist::Distribution) = var(unshaped(dist))
-
 
 # ToDo/Decision: Return NamedTuple or ShapedAsNT?
 Statistics.var(d::NamedTupleDist) = map(var, _distributions(d))
