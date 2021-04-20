@@ -45,6 +45,7 @@ end
 
 @inline NamedTupleDist(;named_dists...) = NamedTupleDist(values(named_dists))
 
+@inline Base.convert(::Type{NamedTupleDist}, named_dists::NamedTuple) = NamedTupleDist(;named_dists...)
 
 
 @inline _distributions(d::NamedTupleDist) = getfield(d, :_internal_distributions)
@@ -82,6 +83,10 @@ end
 Base.merge(a::NamedTuple, dist::NamedTupleDist{names}) where {names} = merge(a, _distributions(dist))
 Base.merge(a::NamedTupleDist) = a
 Base.merge(a::NamedTupleDist, b::NamedTupleDist, cs::NamedTupleDist...) = merge(NamedTupleDist(;a..., b...), cs...)
+
+function Base.merge(a::NamedTupleDist, b::Union{NamedTupleDist,NamedTuple}, cs::Union{NamedTupleDist,NamedTuple}...)
+    merge(a, convert(NamedTupleDist, b), map(x -> convert(NamedTupleDist, x), cs)...)
+end
 
 varshape(d::NamedTupleDist) = _shape(d)
 

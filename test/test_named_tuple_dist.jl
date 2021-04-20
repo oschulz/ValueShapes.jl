@@ -103,12 +103,19 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
     @test all(i -> typeof(getindex(internaldists, i)) == typeof(getproperty(dist, keys(dist)[i])), 1:length(internaldists))
     @test all(key -> getproperty(getproperty(internalshape, key), :shape) == valshape(getproperty(internalshape, key)), keys(internalshape))
 
+    @test @inferred(convert(NamedTupleDist, (x = 5, z = Normal()))) == NamedTupleDist(x = 5, z = Normal())
     @test @inferred(merge((a = 42,), NamedTupleDist(x = 5, z = Normal()))) == (a = 42, x = ConstValueDist(5), z = Normal())
     @test @inferred(NamedTupleDist((;dist...))) == dist
     @test @inferred(merge(dist)) === dist
     @test @inferred(merge(
         NamedTupleDist(x = Normal(), y = 42),
         NamedTupleDist(y = Normal(4, 5)),
+        NamedTupleDist(z = Exponential(3), a = 4.2),
+    )) == NamedTupleDist(x = Normal(), y = Normal(4, 5), z = Exponential(3), a = 4.2)
+    @test @inferred(merge(NamedTupleDist(a = 42,), (x = 5, z = Normal()))) == NamedTupleDist(a = 42, x = ConstValueDist(5), z = Normal())
+    @test @inferred(merge(
+        NamedTupleDist(x = Normal(), y = 42),
+        (y = Normal(4, 5),),
         NamedTupleDist(z = Exponential(3), a = 4.2),
     )) == NamedTupleDist(x = Normal(), y = Normal(4, 5), z = Exponential(3), a = 4.2)
 end
