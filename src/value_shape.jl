@@ -368,4 +368,4 @@ shape `argshape` as an input.
 function gradient_shape end
 
 gradient_shape(vs::AbstractValueShape) = replace_const_shapes(const_zero_shape, vs)
-export replace_const_shapes
+export gradient_shape

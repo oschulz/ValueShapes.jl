@@ -70,7 +70,7 @@ export NamedTupleShape
 @inline Base.values(shape::NamedTupleShape) = values(_accessors(shape))
 
 @inline function Base.getproperty(shape::NamedTupleShape, p::Symbol)
-    # Need to include internal fields of NamedTupleShape to make Zygote happy:
+    # Need to include internal fields of NamedTupleShape to make Zygote happy (ToDo: still true?):
     if p == :_accessors
         getfield(shape, :_accessors)
     elseif p == :_flatdof
@@ -217,7 +217,7 @@ end
    
 
 Base.@propagate_inbounds function Base.getproperty(A::ShapedAsNT, p::Symbol)
-    # Need to include internal fields of ShapedAsNT to make Zygote happy:
+    # Need to include internal fields of ShapedAsNT to make Zygote happy (ToDo: still true?):
     if p == :__internal_data
         getfield(A, :__internal_data)
     elseif p == :__internal_valshape
@@ -322,39 +322,59 @@ end
 Base.copy(A::ShapedAsNT) = ShapedAsNT(copy(_data(A)), _valshape(A))
 
 
-#!!!!!!!!!! ToDo: Need a way to ignore const values (zero/nothing gradient) in unshaped(gradient::NamedTuple, ::NamedTupleShape)
+function _shaped_nt_ΔΩ(ΔΩ::NamedTuple{names}, result::NamedTuple{names}, x::ShapedAsNT{<:NamedTuple{names}}) where names
+    vs = gradient_shape(valshape(x))
+    ΔΩ_fixed_values = map(values(result), values(ΔΩ), values(vs)) do result, df, acc
+        isnothing(df) || valshape(acc) isa ConstValueShape ? ValueShapes.const_zero(result) : df
+    end
+    ΔΩ_fixed = NamedTuple{names}(ΔΩ_fixed_values)
+    ΔΩ_shaped = vs(similar(unshaped(x)))
+    ΔΩ_shaped[] = ΔΩ_fixed
+    return ΔΩ_shaped
+end
 
 # Zygote will currently ignore this, see Zygote.jl issue #811:
 function ChainRulesCore.rrule(::typeof(Base.getindex), x::ShapedAsNT)
-    function shapedasnt_getindex_pullback(ΔΩ::NamedTuple)
-        filled_ΔΩ = map(x -> isnothing(x) ? 0 : x, ΔΩ)
-        vs = valshape(x)
-        x_unshaped = unshaped(filled_ΔΩ, vs)
-        (ChainRulesCore.NO_FIELDS, vs(x_unshaped)) 
-    end
-    return x[], shapedasnt_getindex_pullback
+    result = x[]
+    shapedasnt_getindex_pullback(ΔΩ::NamedTuple) = (ChainRulesCore.NO_FIELDS, _shaped_nt_ΔΩ(ΔΩ, result, x))
+    return result, shapedasnt_getindex_pullback
 end
 #
 # So need to use
-ZygoteRules.@adjoint Base.getindex(x::ShapedAsNT) = x[], (ΔΩ::NamedTuple) -> begin
-    filled_ΔΩ = map(x -> isnothing(x) ? 0 : x, ΔΩ)
-    vs = valshape(x)
-    x_unshaped = unshaped(filled_ΔΩ, vs)
-    (vs(x_unshaped),) 
+ZygoteRules.@adjoint Base.getindex(x::ShapedAsNT) = begin
+    result = x[]
+    shapedasnt_getindex_pullback(ΔΩ::NamedTuple) = begin
+        (_shaped_nt_ΔΩ(ΔΩ, result, x),)  
+    end
+    (result, shapedasnt_getindex_pullback)
 end
 
 
 function ChainRulesCore.rrule(::Type{ShapedAsNT}, A::AbstractVector{<:Real}, vs::NamedTupleShape)
-    shapedasnt_pullback(ΔΩ::ShapedAsNT) = (ChainRulesCore.NO_FIELDS, unshaped(ΔΩ, vs), nothing)
-    return ShapedAsNT(A, vs), shapedasnt_pullback
+    result = ShapedAsNT(A, vs)
+    shapedasnt_pullback(ΔΩ::ShapedAsNT) = (ChainRulesCore.NO_FIELDS, unshaped(ΔΩ, gradient_shape(vs)), nothing)
+    return result, shapedasnt_pullback
 end
-#
-# Alternative:
-#=
-ZygoteRules.@adjoint ShapedAsNT(A::AbstractArray{<:Real}, vs::NamedTupleShape) = vs(A), (ΔΩ::ShapedAsNT) -> begin
-   (unshaped(ΔΩ, vs), nothing) 
+
+
+function ChainRulesCore.rrule(::typeof(unshaped), A::ShapedAsNT)
+    result = unshaped(A)
+    vs = valshape(A)
+    unshaped_nt_pullback(ΔΩ::AbstractArray{<:Real}) = (ChainRulesCore.NO_FIELDS, gradient_shape(vs)(ΔΩ))
+    return result, unshaped_nt_pullback
 end
-=#
+
+function ChainRulesCore.rrule(::typeof(unshaped), A::ShapedAsNT, vs::NamedTupleShape)
+    result = unshaped(A, vs)
+    unshaped_nt_pullback(ΔΩ::AbstractArray{<:Real}) = (ChainRulesCore.NO_FIELDS, gradient_shape(vs)(ΔΩ), nothing)
+    return result, unshaped_nt_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(unshaped), A::NamedTuple, vs::NamedTupleShape)
+    result = unshaped(A, vs)
+    unshaped_nt_pullback(ΔΩ::AbstractArray{<:Real}) = (ChainRulesCore.NO_FIELDS, gradient_shape(vs)(ΔΩ)[], nothing)
+    return result, unshaped_nt_pullback
+end
 
 
 
@@ -435,7 +455,7 @@ Base.copy(instance::VSBroadcasted1{N,typeof(unshaped),ShapedAsNTArray{T,N}}) whe
 
 
 @inline function Base.getproperty(A::ShapedAsNTArray, p::Symbol)
-    # Need to include internal fields of ShapedAsNTArray to make Zygote happy:
+    # Need to include internal fields of ShapedAsNTArray to make Zygote happy (ToDo: still true?):
     if p == :__internal_data
         getfield(A, :__internal_data)
     elseif p == :__internal_elshape

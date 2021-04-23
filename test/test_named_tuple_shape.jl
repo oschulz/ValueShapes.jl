@@ -8,6 +8,9 @@ using ArraysOfArrays
 import TypedTables
 import Tables
 
+using LinearAlgebra
+import Zygote, ForwardDiff
+
 
 @testset "named_tuple_shape" begin
     @testset "functionality" begin
@@ -152,6 +155,19 @@ import Tables
             @test (B = copy(A); B[] = x; B[1]) == x
             @test (B = copy(A); B[1] = x; B[]) == x
             @test_throws ArgumentError copy(A)[] = (a = [5 3 5; 9 4 5], b = 9, c = 4.2, x = [11 21; 12 23], y = [4, 7, 5, 6])
+
+            @testset "Zygote support" begin
+                using Zygote
+
+                foo(x::NamedTuple) = sum(map(x -> x^2, values(x)))
+                x = [3, 4]
+                vs = NamedTupleShape(a = ScalarShape{Real}(), b = ScalarShape{Real}())
+
+                @test @inferred(Zygote.gradient(x -> x[].a^2 + x[].b^2, vs([3, 4]))) == ((a = 6.0, b = 8.0),)
+
+                # ToDo: Make this work with @inferred:
+                @test Zygote.gradient(x -> foo(vs(x)[]), [3, 4]) == ([6.0, 8.0],)
+            end
         end
 
 
@@ -277,5 +293,56 @@ import Tables
             fill!(table.b, 42)
             all(x -> x == 42, view(flatview(data), 7, :))
         end
+    end
+
+
+    @testset "gradients" begin
+        vs = NamedTupleShape(
+            a = ScalarShape{Real}(),
+            b = ConstValueShape([4.2, 3.3]),
+            c = ScalarShape{Real}(),
+            d = ArrayShape{Real}(2),
+            e = ScalarShape{Real}(),
+            f = ArrayShape{Real}(2)
+        )
+
+        f = let vs = vs
+            v_unshaped_0 -> begin
+                v_shaped_1 = vs(v_unshaped_0)
+                v_unshaped_1 = unshaped(v_shaped_1)
+
+                v_shaped_2 = vs(v_unshaped_1)
+                v_unshaped_2 = unshaped(v_shaped_2, vs)
+
+                v_shaped_3 = vs(v_unshaped_2)
+                v_nt_1 = v_shaped_3[]
+                v_unshaped_3 = unshaped(v_nt_1, vs)
+
+                v_shaped_4 = vs(v_unshaped_3)
+                v_nt_2 = v_shaped_4[]
+
+                x = v_nt_2
+                sqrt(norm(x.a)^2 + norm(x.b)^2 + norm(x.d)^2 + norm(x.f)^2)
+            end
+        end
+
+        g = let vs = vs
+            v_shaped -> f(unshaped(v_shaped, vs))
+        end
+
+        v = randn(totalndof(vs))
+
+        @test @inferred(f(v)) isa Real
+        @test ForwardDiff.gradient(f, v) isa AbstractVector{<:Real}
+        grad_f_fw = ForwardDiff.gradient(f, v)
+        @test @inferred(Zygote.gradient(f, v)[1]) isa AbstractVector{<:Real}
+        grad_f_zg = Zygote.gradient(f, v)[1]
+        @test grad_f_fw ≈ grad_f_zg
+
+        @test @inferred(Zygote.gradient(g, vs(v))[1]) isa ShapedAsNT
+        @test unshaped(Zygote.gradient(g, vs(v))[1], gradient_shape(vs)) == grad_f_zg
+
+        @test @inferred(Zygote.gradient(g, vs(v)[])[1]) isa NamedTuple
+        @test unshaped(Zygote.gradient(g, vs(v)[])[1], gradient_shape(vs)) == grad_f_zg
     end
 end

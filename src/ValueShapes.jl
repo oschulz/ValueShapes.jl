@@ -19,9 +19,13 @@ using Random
 using Statistics
 using StatsBase
 
+import ChainRulesCore
 import IntervalSets
 import Tables
 import TypedTables
+
+# Long-term, ChainRulesCore should be sufficient:
+import ZygoteRules
 
 include("value_shape.jl")
 include("value_accessor.jl")
