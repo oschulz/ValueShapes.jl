@@ -1,6 +1,6 @@
 name = "ValueShapes"
 uuid = "136a8f8c-c49b-4edb-8b98-f3d64d48be8f"
-version = "0.8.1"
+version = "0.8.2"
 
 [deps]
 ArgCheck = "dce04be8-c92d-5529-be00-80e4d2c0e197"
