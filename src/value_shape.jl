@@ -357,3 +357,15 @@ replace it/them with the result of `f(s::Shape)`.
 """
 function replace_const_shapes end
 export replace_const_shapes
+
+
+"""
+    gradient_shape(argshape::AbstractValueShape)
+
+Return the value shape of the gradient of functions that take values of
+shape `argshape` as an input.
+"""
+function gradient_shape end
+
+gradient_shape(vs::AbstractValueShape) = replace_const_shapes(const_zero_shape, vs)
+export replace_const_shapes
