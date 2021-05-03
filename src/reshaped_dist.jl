@@ -57,14 +57,8 @@ function ReshapedDist(dist::MultivariateDistribution{VS}, shape::AbstractValueSh
 end
 
 
-@static if VERSION >= v"1.3"
-    (shape::AbstractValueShape)(dist::MultivariateDistribution) = ReshapedDist(dist, shape)
-else
-    (shape::ScalarShape)(dist::MultivariateDistribution) = ReshapedDist(dist, shape)
-    (shape::ArrayShape)(dist::MultivariateDistribution) = ReshapedDist(dist, shape)
-    (shape::ConstValueShape)(dist::MultivariateDistribution) = ReshapedDist(dist, shape)
-    (shape::NamedTupleShape)(dist::MultivariateDistribution) = ReshapedDist(dist, shape)
-end
+(shape::AbstractValueShape)(dist::MultivariateDistribution) = ReshapedDist(dist, shape)
+
 
 function (shape::ArrayShape{T,1})(dist::MultivariateDistribution) where T
     @argcheck totalndof(varshape(dist)) == totalndof(shape)

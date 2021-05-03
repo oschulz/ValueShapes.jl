@@ -47,11 +47,7 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
              0.0  0.0   0.5  2.1 0.0;
              0.0  0.0   0.0  0.0 0.04 ]
 
-        @static if VERSION >= v"1.2"
-            (@inferred cov(unshaped(dist))) ≈ ref_cov
-        else
-            (cov(unshaped(dist))) ≈ ref_cov
-        end
+        (@inferred cov(unshaped(dist))) ≈ ref_cov
     end
 
     @test @inferred(rand(dist)) isa NamedTuple
@@ -85,13 +81,8 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
         @test @inferred(insupport(unshaped(dist), X)) == fill(true, length(Xn))
     end
 
-    @static if VERSION >= v"1.2"
-        @test @inferred(rand(unshaped(dist))) isa Vector{Float64}
-        @test shape(@inferred(rand(testrng(), unshaped(dist))))[] == @inferred(rand(testrng(), dist, ()))[] == @inferred(rand(testrng(), dist))
-    else
-        @test rand(unshaped(dist)) isa Vector{Float64}
-        @test shape(rand(testrng(), unshaped(dist)))[] == rand(testrng(), dist, ())[] == @inferred(rand(testrng(), dist))
-    end
+    @test @inferred(rand(unshaped(dist))) isa Vector{Float64}
+    @test shape(@inferred(rand(testrng(), unshaped(dist))))[] == @inferred(rand(testrng(), dist, ()))[] == @inferred(rand(testrng(), dist))
     @test @inferred(rand(unshaped(dist), 10^3)) isa Matrix{Float64}
     @test shape.(nestedview(@inferred(rand(testrng(), unshaped(dist), 10^3)))) == @inferred(rand(testrng(), dist, 10^3))
 

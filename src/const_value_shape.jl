@@ -64,13 +64,6 @@ const_zero_shape(shape::ConstValueShape) = ConstValueShape(const_zero(shape.valu
 replace_const_shapes(f::Function, shape::ConstValueShape) = f(shape)
 
 
-@static if VERSION < v"1.3"
-    # Workaround for Julia issue #14919
-    @inline (shape::ConstValueShape)(data::AbstractVector{<:Real}) =
-        _apply_shape_to_data(shape, data)
-end
-
-
 
 const ConstAccessor = ValueAccessor{ConstValueShape{T}} where {T}
 

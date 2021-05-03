@@ -93,13 +93,6 @@ end
 replace_const_shapes(f::Function, shape::ScalarShape) = shape
 
 
-@static if VERSION < v"1.3"
-    # Workaround for Julia issue #14919
-    @inline (shape::ScalarShape)(data::AbstractVector{<:Real}) =
-        _apply_shape_to_data(shape, data)
-end
-
-
 
 const ScalarAccessor{T} = ValueAccessor{ScalarShape{T}} where {T}
 

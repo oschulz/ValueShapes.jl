@@ -279,13 +279,9 @@ end
     view(data, ValueAccessor(shape, 0))
 end
 
-@static if VERSION >= v"1.3"
-    @inline function (shape::AbstractValueShape)(data::AbstractVector{<:Real})
-        _apply_shape_to_data(shape, data)
-    end
-else
-    # With Julia < v1.3, need to define (shape::SomeShape)(...) explicitly for
-    # each shape type, see source code for the respective shapes.
+
+@inline function (shape::AbstractValueShape)(data::AbstractVector{<:Real})
+    _apply_shape_to_data(shape, data)
 end
 
 

@@ -91,13 +91,6 @@ end
 replace_const_shapes(f::Function, shape::ArrayShape) = shape
 
 
-@static if VERSION < v"1.3"
-    # Workaround for Julia issue #14919
-    @inline (shape::ArrayShape)(data::AbstractVector{<:Real}) =
-        _apply_shape_to_data(shape, data)
-end
-
-
 @inline function _apply_shape_to_data(shape::ArrayShape{<:Real,1}, data::AbstractVector{<:Real})
     @boundscheck _checkcompat(shape, data)
     data
