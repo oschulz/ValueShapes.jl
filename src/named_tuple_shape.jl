@@ -216,6 +216,7 @@ function unshaped(x::ShapedAsNT{<:NamedTuple{names}}, shape::NamedTupleShape{nam
 end
    
 
+# ToDo: Move index calculation to separate function with no-op custom pullback to increase performance?
 Base.@propagate_inbounds function Base.getproperty(A::ShapedAsNT, p::Symbol)
     # Need to include internal fields of ShapedAsNT to make Zygote happy (ToDo: still true?):
     if p == :__internal_data
@@ -350,9 +351,19 @@ ZygoteRules.@adjoint Base.getindex(x::ShapedAsNT) = begin
 end
 
 
-function ChainRulesCore.rrule(::Type{ShapedAsNT}, A::AbstractVector{<:Real}, vs::NamedTupleShape)
+function ChainRulesCore.rrule(::Type{ShapedAsNT}, A::AbstractVector{<:Real}, vs::NamedTupleShape{names}) where names
     result = ShapedAsNT(A, vs)
-    shapedasnt_pullback(ΔΩ::ShapedAsNT) = (ChainRulesCore.NO_FIELDS, unshaped(ΔΩ, gradient_shape(vs)), nothing)
+    function shapedasnt_pullback(ΔΩ::Union{ShapedAsNT{<:NamedTuple{names}},NamedTuple{names}})
+        (ChainRulesCore.NO_FIELDS, unshaped(ΔΩ, gradient_shape(vs)), nothing)
+    end
+    function shapedasnt_pullback(ΔΩ_c::ChainRulesCore.Composite{Any,<:NamedTuple{names}})
+        ΔΩ = NamedTuple{names}((ΔΩ_c...,))
+        shapedasnt_pullback(ΔΩ)
+    end
+    function shapedasnt_pullback(ΔΩ_c::ChainRulesCore.Composite{Any,<:NamedTuple{(:__internal_data, :__internal_valshape)}})
+        @assert ΔΩ_c.__internal_valshape == ChainRulesCore.Zero()
+        (ChainRulesCore.NO_FIELDS, ΔΩ_c.__internal_data, nothing)
+    end
     return result, shapedasnt_pullback
 end
 

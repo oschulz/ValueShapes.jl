@@ -159,14 +159,17 @@ import Zygote, ForwardDiff
             @testset "Zygote support" begin
                 using Zygote
 
-                foo(x::NamedTuple) = sum(map(x -> x^2, values(x)))
-                x = [3, 4]
-                vs = NamedTupleShape(a = ScalarShape{Real}(), b = ScalarShape{Real}())
-
-                @test @inferred(Zygote.gradient(x -> x[].a^2 + x[].b^2, vs([3, 4]))) == ((a = 6.0, b = 8.0),)
+                vs = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2))
 
                 # ToDo: Make this work with @inferred:
-                @test Zygote.gradient(x -> foo(vs(x)[]), [3, 4]) == ([6.0, 8.0],)
+                @test Zygote.gradient(x -> x[].a^2 + norm(x[].b)^2, vs([3, 4, 5])) == ((a = 6, b = [8, 10]),)
+                @test Zygote.gradient(x_flat -> (x = vs(x_flat); norm(x.a)^2 + norm(x.b)^2), [3, 4, 5]) == ([6, 8, 10],)
+                @test Zygote.gradient(x_flat -> (x = vs(x_flat); norm(x[].a)^2 + norm(x[].b)^2), [3, 4, 5])  == ([6, 8, 10],)
+
+                foo(x::NamedTuple) = sum(map(x -> norm(x)^2, values(x)))
+
+                # ToDo: Make this work with @inferred:
+                @test Zygote.gradient(x -> foo(vs(x)[]), [3, 4, 5]) == ([6, 8, 10],)
             end
         end
 
@@ -319,7 +322,10 @@ import Zygote, ForwardDiff
                 v_unshaped_3 = unshaped(v_nt_1, vs)
 
                 v_shaped_4 = vs(v_unshaped_3)
-                v_nt_2 = v_shaped_4[]
+                v_unshaped_4 = unshaped(v_shaped_4, vs)
+                
+                v_shaped_5 = vs(v_unshaped_4)
+                v_nt_2 = v_shaped_5[]
 
                 x = v_nt_2
                 sqrt(norm(x.a)^2 + norm(x.b)^2 + norm(x.d)^2 + norm(x.f)^2)
