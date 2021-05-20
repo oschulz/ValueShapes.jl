@@ -364,12 +364,12 @@ function ChainRulesCore.rrule(::Type{ShapedAsNT}, A::AbstractVector{<:Real}, vs:
     function shapedasnt_pullback(ΔΩ::Union{ShapedAsNT{<:NamedTuple{names}},NamedTuple{names}})
         (ChainRulesCore.NO_FIELDS, unshaped(ΔΩ, gradient_shape(vs)), nothing)
     end
-    function shapedasnt_pullback(ΔΩ_c::ChainRulesCore.Composite{Any,<:NamedTuple{names}})
+    function shapedasnt_pullback(ΔΩ_c::Tangent{Any,<:NamedTuple{names}})
         ΔΩ = NamedTuple{names}((ΔΩ_c...,))
         shapedasnt_pullback(ΔΩ)
     end
-    function shapedasnt_pullback(ΔΩ_c::ChainRulesCore.Composite{Any,<:NamedTuple{(:__internal_data, :__internal_valshape)}})
-        @assert ΔΩ_c.__internal_valshape == ChainRulesCore.Zero()
+    function shapedasnt_pullback(ΔΩ_c::Tangent{Any,<:NamedTuple{(:__internal_data, :__internal_valshape)}})
+        @assert ΔΩ_c.__internal_valshape == ZeroTangent()
         (ChainRulesCore.NO_FIELDS, ΔΩ_c.__internal_data, nothing)
     end
     return result, shapedasnt_pullback

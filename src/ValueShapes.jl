@@ -27,6 +27,7 @@ import TypedTables
 # Long-term, ChainRulesCore should be sufficient:
 import ZygoteRules
 
+include("chain_rules_aliases.jl")
 include("value_shape.jl")
 include("value_accessor.jl")
 include("scalar_shape.jl")
