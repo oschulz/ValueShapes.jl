@@ -24,6 +24,8 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
         @test getproperty(shapes, k) == varshape(getproperty(dist, k))
     end
 
+    @test dist[:d] == dist.d
+
     X_unshaped = [0.2, -0.4, 0.3, -0.5, 0.9]
     X_shaped = shape(X_unshaped)
     @test (@inferred logpdf(unshaped(dist), X_unshaped)) == logpdf(Weibull(2, 1), 0.2) + logpdf(Uniform(-4, 5), -0.4) + logpdf(MvNormal([1.2 0.5; 0.5 2.1]), [0.3, -0.5]) + logpdf(Normal(1.1, 0.2), 0.9)

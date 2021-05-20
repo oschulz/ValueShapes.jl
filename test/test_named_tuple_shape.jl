@@ -40,6 +40,8 @@ import Zygote, ForwardDiff
         @test @inferred(propertynames(shape)) == keys(shape)
         @test propertynames(shape, true) == (propertynames(shape)..., :_flatdof, :_accessors)
 
+        @test shape[:y] == shape.y
+
         let flatdof = 0, accs = getproperty(shape, :_accessors)
             for i in 1:length(keys(shape))
                 ishape = getindex(shape, i).shape

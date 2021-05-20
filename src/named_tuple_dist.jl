@@ -56,6 +56,8 @@ end
 
 @inline Base.values(d::NamedTupleDist) = values(_distributions(d))
 
+@inline Base.getindex(d::NamedTupleDist, k::Symbol) = _distributions(d)[k]
+
 @inline function Base.getproperty(d::NamedTupleDist, s::Symbol)
     # Need to include internal fields of NamedTupleShape to make Zygote happy (ToDo: still true?):
     if s == :_internal_distributions
