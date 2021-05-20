@@ -63,6 +63,12 @@ export NamedTupleShape
 @inline _accessors(x::NamedTupleShape) = getfield(x, :_accessors)
 @inline _flatdof(x::NamedTupleShape) = getfield(x, :_flatdof)
 
+function Base.show(io::IO, shape::NamedTupleShape)
+    print(io, Base.typename(typeof(shape)).name, "(")
+    show(io, (;shape...))
+    print(io, ")")
+end
+
 @inline totalndof(shape::NamedTupleShape) = _flatdof(shape)
 
 @inline Base.keys(shape::NamedTupleShape) = keys(_accessors(shape))
@@ -316,7 +322,7 @@ Base.similar(A::ShapedAsNT{T}, ::Type{T}, ::Tuple{}) where T =
 Base.show(io::IO, ::MIME"text/plain", A::ShapedAsNT) = show(io, A)
 
 function Base.show(io::IO, A::ShapedAsNT)
-    print(io, "ShapedAsNT(")
+    print(io, Base.typename(typeof(A)).name, "(")
     show(io, A[])
     print(io, ")")
 end
@@ -534,8 +540,7 @@ end
 Base.empty(A::ShapedAsNTArray{T,N,D,S}) where {T,N,D,S} =
     ShapedAsNTArray{T,N,D,S}(empty(_data(A)), _elshape(A))
 
-Base.show(io::IO, ::MIME"text/plain", A::ShapedAsNTArray) = show(io, A)
-Base.show(io::IO, A::ShapedAsNTArray) = TypedTables.showtable(io, A)
+Base.show(io::IO, ::MIME"text/plain", A::ShapedAsNTArray) = TypedTables.showtable(io, A)
 
 
 Base.copy(A::ShapedAsNTArray) = ShapedAsNTArray(copy(_data(A)), _elshape(A))

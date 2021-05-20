@@ -51,6 +51,11 @@ end
 @inline _distributions(d::NamedTupleDist) = getfield(d, :_internal_distributions)
 @inline _shape(d::NamedTupleDist) = getfield(d, :_internal_shape)
 
+function Base.show(io::IO, d::NamedTupleDist)
+    print(io, Base.typename(typeof(d)).name, "(")
+    show(io, _distributions(d))
+    print(io, ")")
+end
 
 @inline Base.keys(d::NamedTupleDist) = keys(_distributions(d))
 
