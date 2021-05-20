@@ -22,6 +22,12 @@ Equivalent to `totalndof(varshape(d))`.
 vardof(d::Distribution) = totalndof(varshape(d))
 
 
+"""
+    unshaped(d::Distributions.Distribution)
+
+Turns `d` into a `Distributions.Distribution{Multivariate}` based on
+`varshape(d)`.
+"""
 unshaped(d::Distribution{Multivariate}) = d
 unshaped(d::MatrixReshaped) = d.d
 
