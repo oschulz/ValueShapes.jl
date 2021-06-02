@@ -345,7 +345,7 @@ end
 # Zygote will currently ignore this, see Zygote.jl issue #811:
 function ChainRulesCore.rrule(::typeof(Base.getindex), x::ShapedAsNT)
     result = x[]
-    shapedasnt_getindex_pullback(ΔΩ::NamedTuple) = (ChainRulesCore.NO_FIELDS, _shaped_nt_ΔΩ(ΔΩ, result, x))
+    shapedasnt_getindex_pullback(ΔΩ::NamedTuple) = (NoTangent(), _shaped_nt_ΔΩ(ΔΩ, result, x))
     return result, shapedasnt_getindex_pullback
 end
 #
@@ -362,15 +362,15 @@ end
 function ChainRulesCore.rrule(::Type{ShapedAsNT}, A::AbstractVector{<:Real}, vs::NamedTupleShape{names}) where names
     result = ShapedAsNT(A, vs)
     function shapedasnt_pullback(ΔΩ::Union{ShapedAsNT{<:NamedTuple{names}},NamedTuple{names}})
-        (ChainRulesCore.NO_FIELDS, unshaped(ΔΩ, gradient_shape(vs)), nothing)
+        (NoTangent(), unshaped(ΔΩ, gradient_shape(vs)), nothing)
     end
     function shapedasnt_pullback(ΔΩ_c::Tangent{Any,<:NamedTuple{names}})
         ΔΩ = NamedTuple{names}((ΔΩ_c...,))
         shapedasnt_pullback(ΔΩ)
     end
     function shapedasnt_pullback(ΔΩ_c::Tangent{Any,<:NamedTuple{(:__internal_data, :__internal_valshape)}})
-        @assert ΔΩ_c.__internal_valshape == ZeroTangent()
-        (ChainRulesCore.NO_FIELDS, ΔΩ_c.__internal_data, nothing)
+        @assert ΔΩ_c.__internal_valshape == NoTangent() || ΔΩ_c.__internal_valshape == ZeroTangent()
+        (NoTangent(), ΔΩ_c.__internal_data, nothing)
     end
     return result, shapedasnt_pullback
 end
@@ -379,19 +379,19 @@ end
 function ChainRulesCore.rrule(::typeof(unshaped), A::ShapedAsNT)
     result = unshaped(A)
     vs = valshape(A)
-    unshaped_nt_pullback(ΔΩ::AbstractArray{<:Real}) = (ChainRulesCore.NO_FIELDS, gradient_shape(vs)(ΔΩ))
+    unshaped_nt_pullback(ΔΩ::AbstractArray{<:Real}) = (NoTangent(), gradient_shape(vs)(ΔΩ))
     return result, unshaped_nt_pullback
 end
 
 function ChainRulesCore.rrule(::typeof(unshaped), A::ShapedAsNT, vs::NamedTupleShape)
     result = unshaped(A, vs)
-    unshaped_nt_pullback(ΔΩ::AbstractArray{<:Real}) = (ChainRulesCore.NO_FIELDS, gradient_shape(vs)(ΔΩ), nothing)
+    unshaped_nt_pullback(ΔΩ::AbstractArray{<:Real}) = (NoTangent(), gradient_shape(vs)(ΔΩ), nothing)
     return result, unshaped_nt_pullback
 end
 
 function ChainRulesCore.rrule(::typeof(unshaped), A::NamedTuple, vs::NamedTupleShape)
     result = unshaped(A, vs)
-    unshaped_nt_pullback(ΔΩ::AbstractArray{<:Real}) = (ChainRulesCore.NO_FIELDS, gradient_shape(vs)(ΔΩ)[], nothing)
+    unshaped_nt_pullback(ΔΩ::AbstractArray{<:Real}) = (NoTangent(), gradient_shape(vs)(ΔΩ)[], nothing)
     return result, unshaped_nt_pullback
 end
 
