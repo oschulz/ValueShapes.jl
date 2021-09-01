@@ -258,7 +258,7 @@ end
 
 
 @inline Base.size(A::ShapedAsNT) = ()
-@inline Base.IndexStyle(A::ShapedAsNT) = IndexLinear()
+@inline Base.IndexStyle(::Type{<:ShapedAsNT}) = IndexLinear()
 
 
 Base.@propagate_inbounds function _apply_ntshape_copy(data::AbstractVector{<:Real}, shape::NamedTupleShape)
@@ -499,7 +499,7 @@ end
 
 @inline Base.size(A::ShapedAsNTArray) = size(_data(A))
 @inline Base.axes(A::ShapedAsNTArray) = axes(_data(A))
-@inline Base.IndexStyle(A::ShapedAsNTArray) = IndexStyle(_data(A))
+@inline Base.IndexStyle(::Type{<:ShapedAsNTArray{T,N,D}}) where {T,N,D} = IndexStyle(D)
 
 
 Base.@propagate_inbounds _apply_ntshape_copy(data::AbstractArray{<:AbstractVector{<:Real}}, shape::NamedTupleShape) =
