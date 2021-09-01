@@ -345,7 +345,7 @@ end
 # Zygote will currently ignore this, see Zygote.jl issue #811:
 function ChainRulesCore.rrule(::typeof(Base.getindex), x::ShapedAsNT)
     result = x[]
-    shapedasnt_getindex_pullback(ΔΩ::NamedTuple) = (NoTangent(), _shaped_nt_ΔΩ(ΔΩ, result, x))
+    shapedasnt_getindex_pullback(ΔΩ) = (NoTangent(), _shaped_nt_ΔΩ(unthunk(ΔΩ), result, x))
     return result, shapedasnt_getindex_pullback
 end
 #
@@ -361,17 +361,18 @@ end
 
 function ChainRulesCore.rrule(::Type{ShapedAsNT}, A::AbstractVector{<:Real}, vs::NamedTupleShape{names}) where names
     result = ShapedAsNT(A, vs)
-    function shapedasnt_pullback(ΔΩ::Union{ShapedAsNT{<:NamedTuple{names}},NamedTuple{names}})
+    function shapedasnt_pullback_impl(ΔΩ::Union{ShapedAsNT{<:NamedTuple{names}},NamedTuple{names}})
         (NoTangent(), unshaped(ΔΩ, gradient_shape(vs)), nothing)
     end
-    function shapedasnt_pullback(ΔΩ_c::Tangent{Any,<:NamedTuple{names}})
+    function shapedasnt_pullback_impl(ΔΩ_c::Tangent{Any,<:NamedTuple{names}})
         ΔΩ = NamedTuple{names}((ΔΩ_c...,))
-        shapedasnt_pullback(ΔΩ)
+        shapedasnt_pullback_impl(ΔΩ)
     end
-    function shapedasnt_pullback(ΔΩ_c::Tangent{Any,<:NamedTuple{(:__internal_data, :__internal_valshape)}})
+    function shapedasnt_pullback_impl(ΔΩ_c::Tangent{Any,<:NamedTuple{(:__internal_data, :__internal_valshape)}})
         @assert ΔΩ_c.__internal_valshape == NoTangent() || ΔΩ_c.__internal_valshape == ZeroTangent()
         (NoTangent(), ΔΩ_c.__internal_data, nothing)
     end
+    shapedasnt_pullback(ΔΩ) = shapedasnt_pullback_impl(unthunk(ΔΩ))
     return result, shapedasnt_pullback
 end
 
