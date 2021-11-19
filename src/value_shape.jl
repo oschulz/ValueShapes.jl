@@ -205,7 +205,7 @@ shape = NamedTupleShape(
 )
 data = [1, 2, 3, 4, 5, 6, 7]
 x = shape(data)
-@assert unshaped(x) == data
+@assert unshaped(x, shape) == data
 @assert unshaped(x.a) == view(data, 1:1)
 @assert unshaped(x.b) == view(data, 2:7)
 ```
@@ -237,13 +237,11 @@ Example:
 data = [1, 2, 3]
 shape1 = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2))
 x1 = shape1(data)
-@assert x1 isa AbstractArray{<:NamedTuple,0}
-@assert stripscalar(x) isa NamedTuple
+@assert x1 isa NamedTuple
 
 shape2 = ArrayShape{Real}(3)
 x2 = shape2(data)
 @assert x2 isa AbstractArray{Int,1}
-@assert ref(x2) isa AbstractArray{Int,1}
 ```
 """
 function stripscalar end
@@ -348,5 +346,5 @@ shape `argshape` as an input.
 """
 function gradient_shape end
 
-gradient_shape(vs::AbstractValueShape) = replace_const_shapes(const_zero_shape, vs)
+gradient_shape(vs::AbstractValueShape) = replace_const_shapes(nonstrict_const_zero_shape, vs)
 export gradient_shape

@@ -149,7 +149,8 @@ function unshaped(x::NamedTuple{names}, shape::NamedTupleShape{names}) where nam
     R = promote_type(T, U)
 
     x_unshaped = Vector{R}(undef, totalndof(shape)...)
-    shape(x_unshaped)[] = x
+    sntshape = NamedTupleShape(ShapedAsNT; shape...)
+    sntshape(x_unshaped)[] = x
     x_unshaped
 end
 
@@ -163,10 +164,10 @@ replace_const_shapes(f::Function, shape::NamedTupleShape) = NamedTupleShape(map(
 
 
 """
-    ShapedAsNT{T<:NamedTuple,...} <: AbstractArray{T,0}
+    ShapedAsNT{names,...}
 
-View of an `AbstractVector{<:Real}` as a zero-dimensional Array containing a
-`NamedTuple`, according to a specified [`NamedTupleShape`](@ref).
+View of an `AbstractVector{<:Real}` as a mutable named tuple (though not) a
+`NamedTuple`, exactly), according to a specified [`NamedTupleShape`](@ref).
 
 Constructors:
 
@@ -174,9 +175,7 @@ Constructors:
 
     shape(data)
 
-The resulting `ShapedAsNT` shares memory with `data`. It takes the form of a
-(virtual) zero-dimensional Array to make the contents as editable as `data`
-itself (compared to a standard immutable NamedTuple):
+The resulting `ShapedAsNT` shares memory with `data`:
 
 ```julia
 x = (a = 42, b = rand(1:9, 2, 3))
@@ -196,19 +195,17 @@ Use `unshaped(x)` to access `data` directly.
 
 See also [`ShapedAsNTArray`](@ref).
 """
-struct ShapedAsNT{T<:NamedTuple,D<:AbstractVector{<:Real},S<:NamedTupleShape} <: AbstractArray{T,0}
+struct ShapedAsNT{names,D<:AbstractVector{<:Real},S<:NamedTupleShape{names}}
     __internal_data::D
     __internal_valshape::S
+
+    Base.@propagate_inbounds function ShapedAsNT(data::D, shape::S) where {T<:Real,D<:AbstractVector{T},names,S<:NamedTupleShape{names}}
+        @boundscheck _checkcompat(shape, data)
+        new{names,D,S}(data, shape)
+    end
 end
 
 export ShapedAsNT
-
-
-Base.@propagate_inbounds function ShapedAsNT(data::D, shape::S) where {T<:Real,D<:AbstractVector{T},S<:NamedTupleShape}
-    @boundscheck _checkcompat(shape, data)
-    NT_T = shaped_type(shape, T)
-    ShapedAsNT{NT_T,D,S}(data, shape)
-end
 
 
 @inline _data(A::ShapedAsNT) = getfield(A, :__internal_data)
@@ -218,11 +215,14 @@ end
 @inline unshaped(A::ShapedAsNT) = _data(A)
 
 
-function unshaped(x::ShapedAsNT{<:NamedTuple{names}}, shape::NamedTupleShape{names}) where names
+function unshaped(x::ShapedAsNT{names}, shape::NamedTupleShape{names}) where names
     valshape(x) <= shape || throw(ArgumentError("Shape of value not compatible with given shape"))
     unshaped(x)
 end
-   
+
+
+@inline _shapedasnt_getprop(data::AbstractArray{<:Real}, va::ValueAccessor) = view(data, va)
+@inline _shapedasnt_getprop(data::AbstractArray{<:Real}, va::ScalarAccessor) = getindex(data, va)
 
 # ToDo: Move index calculation to separate function with no-op custom pullback to increase performance?
 Base.@propagate_inbounds function Base.getproperty(A::ShapedAsNT, p::Symbol)
@@ -235,7 +235,7 @@ Base.@propagate_inbounds function Base.getproperty(A::ShapedAsNT, p::Symbol)
         data = _data(A)
         shape = _valshape(A)
         va = getproperty(_accessors(shape), p)
-        view(data, va)
+        _shapedasnt_getprop(data, va)
     end
 end
 
@@ -244,6 +244,14 @@ Base.@propagate_inbounds function Base.setproperty!(A::ShapedAsNT, p::Symbol, x)
     shape = _valshape(A)
     va = getproperty(_accessors(shape), p)
     setindex!(data, x, va)
+    A
+end
+
+Base.@propagate_inbounds function Base.setproperty!(A::ShapedAsNT, p::Symbol, x::ZeroTangent)
+    data = _data(A)
+    shape = _valshape(A)
+    va = getproperty(_accessors(shape), p)
+    fill!(view(data, va), zero(eltype(data)))
     A
 end
 
@@ -257,45 +265,32 @@ end
 end
 
 
-@inline Base.size(A::ShapedAsNT) = ()
-@inline Base.IndexStyle(::Type{<:ShapedAsNT}) = IndexLinear()
+Base.size(x::ShapedAsNT) = ()
+Base.axes(x::ShapedAsNT) = ()
+Base.length(x::ShapedAsNT) = 1
+Base.isempty(x::ShapedAsNT) = false
+Base.ndims(x::ShapedAsNT) = 0
+Base.ndims(::Type{<:ShapedAsNT}) = 0
+Base.iterate(r::ShapedAsNT) = (r[], nothing)
+Base.iterate(r::ShapedAsNT, s) = nothing
+Base.IteratorSize(::Type{<:ShapedAsNT}) = HasShape{0}()
 
 
-Base.@propagate_inbounds function _apply_ntshape_copy(data::AbstractVector{<:Real}, shape::NamedTupleShape)
-    accessors = _accessors(shape)
-    map(va -> getindex(data, va), accessors)
+Base.@propagate_inbounds function Base.getindex(x::ShapedAsNT{names}) where names
+    if @generated
+        Expr(:tuple, map(p -> :($p = x.$p), names)...)
+    else
+        accessors = _accessors(_valshape(x))
+        data = _data(x)
+        map(va -> getindex(data, va), accessors)
+    end
 end
 
-Base.@propagate_inbounds Base.getindex(A::ShapedAsNT) = _apply_ntshape_copy(_data(A), _valshape(A))
-
-Base.@propagate_inbounds function Base.getindex(A::ShapedAsNT, i::Integer)
-    @boundscheck Base.checkbounds(A, i)
-    getindex(A)
-end
-
-Base.@propagate_inbounds function Base.getindex(A::ShapedAsNT, i::Union{AbstractArray,Colon})
-    @boundscheck Base.checkbounds(A, i)
-    [getindex(A)]
-end
-
-
-Base.@propagate_inbounds _apply_ntshape_view(A::AbstractVector{<:Real}, shape::NamedTupleShape) =
-    ShapedAsNT(A, shape)
 
 Base.@propagate_inbounds Base.view(A::ShapedAsNT) = A
 
-Base.@propagate_inbounds function Base.view(A::ShapedAsNT, i::Integer)
-    @boundscheck Base.checkbounds(A, i)
-    view(A)
-end
 
-Base.@propagate_inbounds function Base.view(A::ShapedAsNT, i::Union{AbstractArray,Colon})
-    @boundscheck Base.checkbounds(A, i)
-    ShapedAsNTArray(view([_data(A)], :), _valshape(A))
-end
-
-
-Base.@propagate_inbounds function Base.setindex!(A::ShapedAsNT{<:NamedTuple{names}}, x::NamedTuple{names}) where {names}
+Base.@propagate_inbounds function Base.setindex!(A::ShapedAsNT{names}, x::NamedTuple{names}) where {names}
     if @generated
         Expr(:block, map(p -> :(A.$p = x.$p), names)...)
     else
@@ -315,9 +310,13 @@ Base.@propagate_inbounds function Base.setindex!(A::ShapedAsNT, x, i::Integer)
 end
 
 
-Base.similar(A::ShapedAsNT{T}, ::Type{T}, ::Tuple{}) where T =
-    ShapedAsNT(similar(_data(A)), _valshape(A))
+Base.NamedTuple(A::ShapedAsNT) = A[]
+Base.NamedTuple{names}(A::ShapedAsNT{names}) where {names} = A[]
 
+Base.convert(::Type{NamedTuple}, A::ShapedAsNT) = A[]
+Base.convert(::Type{NamedTuple{names}}, A::ShapedAsNT{names}) where {names} = A[]
+
+stripscalar(A::ShapedAsNT) = A[]
 
 Base.show(io::IO, ::MIME"text/plain", A::ShapedAsNT) = show(io, A)
 
@@ -327,73 +326,135 @@ function Base.show(io::IO, A::ShapedAsNT)
     print(io, ")")
 end
 
+Base.:(==)(A::ShapedAsNT, B::ShapedAsNT) = _data(A) == _data(B) && _valshape(A) == _valshape(B)
+Base.isequal(A::ShapedAsNT, B::ShapedAsNT) = isequal(_data(A), _data(B)) && _valshape(A) == _valshape(B)
+Base.isapprox(A::ShapedAsNT, B::ShapedAsNT; kwargs...) = isapprox(_data(A), _data(B); kwargs...) && _valshape(A) == _valshape(B)
 
-Base.copy(A::ShapedAsNT) = ShapedAsNT(copy(_data(A)), _valshape(A))
+Base.copy(A::ShapedAsNT) = ShapedAsNT(copy(_data(A)),_valshape(A))
 
 
-function _shaped_nt_ΔΩ(ΔΩ::NamedTuple{names}, result::NamedTuple{names}, x::ShapedAsNT{<:NamedTuple{names}}) where names
-    vs = gradient_shape(valshape(x))
-    ΔΩ_fixed_values = map(values(result), values(ΔΩ), values(vs)) do result, df, acc
-        isnothing(df) || valshape(acc) isa ConstValueShape ? ValueShapes.const_zero(result) : df
-    end
-    ΔΩ_fixed = NamedTuple{names}(ΔΩ_fixed_values)
-    ΔΩ_shaped = vs(similar(unshaped(x)))
-    ΔΩ_shaped[] = ΔΩ_fixed
-    return ΔΩ_shaped
+# Required for accumulation during automatic differentiation:
+function Base.:(+)(A::ShapedAsNT{names}, B::ShapedAsNT{names}) where names
+    @argcheck _valshape(A) == _valshape(B)
+    ShapedAsNT(_data(A) + _data(B), _valshape(A))
 end
 
-# Zygote will currently ignore this, see Zygote.jl issue #811:
-function ChainRulesCore.rrule(::typeof(Base.getindex), x::ShapedAsNT)
-    result = x[]
-    shapedasnt_getindex_pullback(ΔΩ) = (NoTangent(), _shaped_nt_ΔΩ(unthunk(ΔΩ), result, x))
-    return result, shapedasnt_getindex_pullback
-end
-#
-# So need to use
-ZygoteRules.@adjoint Base.getindex(x::ShapedAsNT) = begin
-    result = x[]
-    shapedasnt_getindex_pullback(ΔΩ::NamedTuple) = begin
-        (_shaped_nt_ΔΩ(ΔΩ, result, x),)  
-    end
-    (result, shapedasnt_getindex_pullback)
+# Required for accumulation during automatic differentiation:
+function ChainRulesCore.add!!(A::ShapedAsNT{names}, B::ShapedAsNT{names}) where names
+    @argcheck _valshape(A) == _valshape(B)
+    ChainRulesCore.add!!(_data(A), _data(B))
+    return A
 end
 
+
+_backing(x::Any) = x
+_backing(x::Tangent) = backing(x)
+_unpack_tangent(x::Any) = _backing(unthunk(x))
+
+
+function ChainRulesCore.Tangent(x::T, unshaped_dx::AbstractVector{<:Real}) where {T<:ShapedAsNT}
+    vs = valshape(x)
+    gs = gradient_shape(vs)
+    contents = (__internal_data = unshaped_dx, __internal_valshape = gs)
+    Tangent{T,typeof(contents)}(contents)
+end
+
+
+struct GradShapedAsNTProjector{T<:ShapedAsNT} <: Function
+    primary::T
+end
+
+ChainRulesCore.ProjectTo(x::ShapedAsNT) = GradShapedAsNTProjector(x)
+
+#TODO: Tighten signature, use names
+function (project::GradShapedAsNTProjector{<:ShapedAsNT})(data::NamedTuple{(:__internal_data, :__internal_valshape)})
+    ShapedAsNT(data.__internal_data, data.__internal_valshape)
+end
+
+function (project::GradShapedAsNTProjector{<:ShapedAsNT{names}})(tangent::Tangent{<:ShapedAsNT{names}}) where names
+    project(_backing(tangent))
+end
+
+function (project::GradShapedAsNTProjector{<:ShapedAsNT{names}})(tangent::ShapedAsNT{names}) where names
+    tangent
+end
+
+function (project::GradShapedAsNTProjector{<:ShapedAsNT{names}})(::Union{ZeroTangent,NoTangent,Nothing}) where names
+    ZeroTangent()
+end
+
+
+_getindex_tangent(x::ShapedAsNT, ::Union{ZeroTangent,NoTangent,Nothing}) = ZeroTangent()
+
+_notangent_to_zerotangent(x::Any) = x
+_notangent_to_zerotangent(x::Union{NoTangent,Nothing}) = ZeroTangent()
+_notangent_to_zerotangent(x::Union{Tuple,NamedTuple}) = map(_notangent_to_zerotangent, x)
+
+function _getindex_tangent(x::ShapedAsNT, dy::NamedTuple)
+    x_unshaped = unshaped(x)
+    T = float(eltype(x_unshaped))
+    dx_unshaped = similar(x_unshaped, T)
+    fill!(dx_unshaped, NaN) # For safety
+    tangent = Tangent(x, dx_unshaped)
+    dx_unshaped, gs = _backing(tangent)
+    ShapedAsNT(dx_unshaped, gs)[] = _notangent_to_zerotangent(dy)
+    tangent
+end
+
+function ChainRulesCore.rrule(::typeof(getindex), x::ShapedAsNT)
+    shapedasnt_getindex_pullback(ΔΩ) = (NoTangent(), ProjectTo(x)(_getindex_tangent(x, _unpack_tangent(ΔΩ))))
+    return x[], shapedasnt_getindex_pullback
+end
+
+
+_unshaped_tangent(x::ShapedAsNT, dy::AbstractArray{<:Real}) = Tangent(x, dy)
+_unshaped_tangent(x::ShapedAsNT, ::Union{ZeroTangent,NoTangent,Nothing}) = ZeroTangent()
+
+function ChainRulesCore.rrule(::typeof(unshaped), x::ShapedAsNT)
+    unshaped_nt_pullback(ΔΩ) = (NoTangent(), ProjectTo(x)(_unshaped_tangent(x, _unpack_tangent(ΔΩ))))
+    return unshaped(x), unshaped_nt_pullback
+end
+
+function ChainRulesCore.rrule(::typeof(unshaped), x::ShapedAsNT, vs::NamedTupleShape)
+    unshaped_nt_pullback(ΔΩ) = (NoTangent(), ProjectTo(x)(_unshaped_tangent(x, _unpack_tangent(ΔΩ))), NoTangent())
+    return unshaped(x, vs), unshaped_nt_pullback
+end
+
+function _unshaped_tangent(x::NamedTuple, vs::NamedTupleShape, dy::AbstractArray{<:Real})
+    gs = gradient_shape(vs)
+    dx = gs(dy)[]
+    Tangent{typeof(x),typeof(dx)}(dx)
+end
+
+_unshaped_tangent(x::NamedTuple, vs::NamedTupleShape, ::Union{ZeroTangent,NoTangent,Nothing}) = ZeroTangent()
+
+function ChainRulesCore.rrule(::typeof(unshaped), x::NamedTuple, vs::NamedTupleShape)
+    unshaped_nt_pullback(ΔΩ) = (NoTangent(), _unshaped_tangent(x, vs, _unpack_tangent(ΔΩ)), NoTangent())
+    return unshaped(x, vs), unshaped_nt_pullback
+end
+
+
+_shapedasnt_tangent(::Union{ZeroTangent,NoTangent,Nothing}, vs::NamedTupleShape{names}) where names = ZeroTangent()
+
+_shapedasnt_tangent(dy::ShapedAsNT{names}, vs::NamedTupleShape{names}) where names = unshaped(dy)
+
+function _shapedasnt_tangent(
+    dy::Tangent{<:NamedTuple{names},<:NamedTuple{names}},
+    vs::NamedTupleShape{names}
+) where names
+    unshaped(_backing(dy), gradient_shape(vs))
+end
+
+function _shapedasnt_tangent(
+    dy::Tangent{<:Any,<:NamedTuple{(:__internal_data, :__internal_valshape)}},
+    vs::NamedTupleShape{names}
+) where names
+    _backing(dy).__internal_data
+end
 
 function ChainRulesCore.rrule(::Type{ShapedAsNT}, A::AbstractVector{<:Real}, vs::NamedTupleShape{names}) where names
-    result = ShapedAsNT(A, vs)
-    function shapedasnt_pullback_impl(ΔΩ::Union{ShapedAsNT{<:NamedTuple{names}},NamedTuple{names}})
-        (NoTangent(), unshaped(ΔΩ, gradient_shape(vs)), nothing)
-    end
-    function shapedasnt_pullback_impl(ΔΩ_c::Tangent{Any,<:NamedTuple{names}})
-        ΔΩ = NamedTuple{names}((ΔΩ_c...,))
-        shapedasnt_pullback_impl(ΔΩ)
-    end
-    function shapedasnt_pullback_impl(ΔΩ_c::Tangent{Any,<:NamedTuple{(:__internal_data, :__internal_valshape)}})
-        @assert ΔΩ_c.__internal_valshape == NoTangent() || ΔΩ_c.__internal_valshape == ZeroTangent()
-        (NoTangent(), ΔΩ_c.__internal_data, nothing)
-    end
-    shapedasnt_pullback(ΔΩ) = shapedasnt_pullback_impl(unthunk(ΔΩ))
-    return result, shapedasnt_pullback
-end
-
-
-function ChainRulesCore.rrule(::typeof(unshaped), A::ShapedAsNT)
-    result = unshaped(A)
-    vs = valshape(A)
-    unshaped_nt_pullback(ΔΩ::AbstractArray{<:Real}) = (NoTangent(), gradient_shape(vs)(ΔΩ))
-    return result, unshaped_nt_pullback
-end
-
-function ChainRulesCore.rrule(::typeof(unshaped), A::ShapedAsNT, vs::NamedTupleShape)
-    result = unshaped(A, vs)
-    unshaped_nt_pullback(ΔΩ::AbstractArray{<:Real}) = (NoTangent(), gradient_shape(vs)(ΔΩ), nothing)
-    return result, unshaped_nt_pullback
-end
-
-function ChainRulesCore.rrule(::typeof(unshaped), A::NamedTuple, vs::NamedTupleShape)
-    result = unshaped(A, vs)
-    unshaped_nt_pullback(ΔΩ::AbstractArray{<:Real}) = (NoTangent(), gradient_shape(vs)(ΔΩ)[], nothing)
-    return result, unshaped_nt_pullback
+    shapedasnt_pullback(ΔΩ) = (NoTangent(), _shapedasnt_tangent(unthunk(ΔΩ), vs), NoTangent())
+    return ShapedAsNT(A, vs), shapedasnt_pullback
 end
 
 
@@ -404,8 +465,7 @@ end
 View of an `AbstractArray{<:AbstractVector{<:Real},N}` as an array of
 `NamedTuple`s, according to a specified [`NamedTupleShape`](@ref).
 
-`ShapedAsNTArray` implements the `Tables` API. Semantically, it acts a
-broadcasted [`ShapedAsNT`](@ref).
+`ShapedAsNTArray` implements the `Tables` API.
 
 Constructors:
 
@@ -493,25 +553,32 @@ end
     end
 end
 
+Base.:(==)(A::ShapedAsNTArray, B::ShapedAsNTArray) = _data(A) == _data(B) && _elshape(A) == _elshape(B)
+Base.isequal(A::ShapedAsNTArray, B::ShapedAsNTArray) = isequal(_data(A), _data(B)) && _elshape(A) == _elshape(B)
+Base.isapprox(A::ShapedAsNTArray, B::ShapedAsNTArray; kwargs...) = isapprox(_data(A), _data(B); kwargs...) && _elshape(A) == _elshape(B)
+
 
 @inline Base.size(A::ShapedAsNTArray) = size(_data(A))
 @inline Base.axes(A::ShapedAsNTArray) = axes(_data(A))
 @inline Base.IndexStyle(::Type{<:ShapedAsNTArray{T,N,D}}) where {T,N,D} = IndexStyle(D)
 
 
+ShapedAsNT(A::ShapedAsNTArray{T,0}) where T = _elshape(A)(first(_data(A)))
+ShapedAsNT{names}(A::ShapedAsNTArray{<:NamedTuple{names},0}) where {names,T} = _elshape(A)(first(_data(A)))
+
+Base.convert(::Type{ShapedAsNT}, A::ShapedAsNTArray{T,0}) where T = ShapedAsNT(A)
+Base.convert(::Type{ShapedAsNT{names}}, A::ShapedAsNTArray{<:NamedTuple{names},0}) where {names,T} = ShapedAsNT{names}(A)
+
+
+Base.@propagate_inbounds _apply_ntshape_copy(data::AbstractVector{<:Real}, shape::NamedTupleShape) =
+    shape(data)[]
+
 Base.@propagate_inbounds _apply_ntshape_copy(data::AbstractArray{<:AbstractVector{<:Real}}, shape::NamedTupleShape) =
     ShapedAsNTArray(data, shape)
 
 Base.getindex(A::ShapedAsNTArray, idxs...) = _apply_ntshape_copy(getindex(_data(A), idxs...), _elshape(A))
 
-
-Base.@propagate_inbounds _apply_ntshape_view(data::AbstractArray{<:AbstractVector{<:Real}}, shape::NamedTupleShape) =
-    ShapedAsNTArray(data, shape)
-
-Base.@propagate_inbounds _apply_ntshape_view(data::AbstractArray{<:AbstractVector{<:Real}, 0}, shape::NamedTupleShape) =
-    ShapedAsNT(data[], shape)
-
-Base.view(A::ShapedAsNTArray, idxs...) = _apply_ntshape_view(view(_data(A), idxs...), _elshape(A))
+Base.view(A::ShapedAsNTArray, idxs...) = ShapedAsNTArray(view(_data(A), idxs...), _elshape(A))
 
 
 function Base.setindex!(A::ShapedAsNTArray, x, idxs::Integer...)
@@ -538,6 +605,11 @@ Base.empty(A::ShapedAsNTArray{T,N,D,S}) where {T,N,D,S} =
     ShapedAsNTArray{T,N,D,S}(empty(_data(A)), _elshape(A))
 
 Base.show(io::IO, ::MIME"text/plain", A::ShapedAsNTArray) = TypedTables.showtable(io, A)
+
+function Base.show(io::IO, ::MIME"text/plain", A::ShapedAsNTArray{T,0}) where T
+    println(io, "0-dimensional ShapedAsNTArray:")
+    show(io, A[])
+end
 
 
 Base.copy(A::ShapedAsNTArray) = ShapedAsNTArray(copy(_data(A)), _elshape(A))

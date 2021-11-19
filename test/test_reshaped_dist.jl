@@ -21,7 +21,7 @@ using StatsBase, Distributions, ArraysOfArrays
         y = ArrayShape{Real}(4)
     )
 
-    names = (:a, :b, :c, :x, :y)
+    nms = (:a, :b, :c, :x, :y)
     
     _mvndist(n::Integer) = MvNormal(fill(2.0, n), Diagonal(fill(3.0, n)))
     _mvnormalrd(shape::AbstractValueShape) = ReshapedDist(_mvndist(totalndof(shape)), shape)
@@ -31,14 +31,14 @@ using StatsBase, Distributions, ArraysOfArrays
         @test @inferred(_mvnormalrd(scshape)) isa Distribution{Univariate, Continuous}
         @test @inferred(_mvnormalrd(a1shape)) isa Distribution{Multivariate, Continuous}
         @test @inferred(_mvnormalrd(a2shape)) isa Distribution{Matrixvariate, Continuous}
-        @test @inferred(_mvnormalrd(ntshape)) isa Distribution{ValueShapes.NamedTupleVariate{names}, Continuous}
+        @test @inferred(_mvnormalrd(ntshape)) isa Distribution{ValueShapes.NamedTupleVariate{nms}, Continuous}
 
         @test_throws ArgumentError ReshapedDist(MvNormal(Diagonal(fill(3.0, 2))), a2shape)
 
         @test @inferred(_mvnormalrd2(scshape)) isa ReshapedDist{Univariate, Continuous}
         @test @inferred(_mvnormalrd2(a1shape)) isa MvNormal
         @test @inferred(_mvnormalrd2(a2shape)) isa MatrixReshaped
-        @test @inferred(_mvnormalrd2(ntshape)) isa ReshapedDist{ValueShapes.NamedTupleVariate{names}, Continuous}
+        @test @inferred(_mvnormalrd2(ntshape)) isa ReshapedDist{ValueShapes.NamedTupleVariate{nms}, Continuous}
 
         @inferred(varshape(_mvnormalrd2(ntshape))) == ntshape
         @inferred(unshaped(_mvnormalrd2(ntshape))) == MvNormal(fill(2.0, totalndof(ntshape)), Diagonal(fill(3.0, totalndof(ntshape))))
@@ -69,9 +69,9 @@ using StatsBase, Distributions, ArraysOfArrays
         @test @inferred(rand(_mvnormalrd(a2shape), 7)) isa AbstractArray{<:AbstractMatrix{<:Real},1}
         @test size(rand(_mvnormalrd(a2shape), 7)) == (7,)
 
-        @test @inferred(rand(_mvnormalrd(ntshape))) isa NamedTuple{names}
-        @test @inferred(rand(_mvnormalrd(ntshape), ())) isa ShapedAsNT{<:NamedTuple{names}}
-        @test @inferred(rand(_mvnormalrd(ntshape), 7)) isa ShapedAsNTArray{<:NamedTuple{names},1}
+        @test @inferred(rand(_mvnormalrd(ntshape))) isa NamedTuple{nms}
+        @test @inferred(rand(_mvnormalrd(ntshape), ())) isa ShapedAsNTArray{<:NamedTuple{nms},0}
+        @test @inferred(rand(_mvnormalrd(ntshape), 7)) isa ShapedAsNTArray{<:NamedTuple{nms},1}
         @test size(rand(_mvnormalrd(ntshape), 7)) == (7,)
         let X = rand(_mvnormalrd(ntshape), 7)
             @test @inferred(rand!(_mvnormalrd(ntshape), view(X, 1))) == view(X, 1)

@@ -69,7 +69,7 @@ which can again be viewed as a `NamedTuple` described by `shape` via
 ```julia
 data_as_ntuple = parshapes(data)
 
-data_as_ntuple isa ShapedAsNT{<:NamedTuple{(:a, :b, :c)}}
+data_as_ntuple isa ShapedAsNT{(:a, :b, :c)}
 ```
 
 (See [`ShapedAsNT`](@ref).)

@@ -20,11 +20,14 @@ Shapes of constant values have zero degrees of freedom (see
 
 See also the documentation of [`AbstractValueShape`](@ref).
 """
-struct ConstValueShape{T} <: AbstractValueShape
+struct ConstValueShape{T, strict} <: AbstractValueShape
     value::T
 end
 
 export ConstValueShape
+
+ConstValueShape{T}(x::T) where T = ConstValueShape{T,true}(x)
+ConstValueShape(x::T) where T = ConstValueShape{T,true}(x)
 
 
 @inline Base.size(shape::ConstValueShape) = size(shape.value)
@@ -52,20 +55,39 @@ function unshaped(x::Any, shape::ConstValueShape)
     Float32[]
 end
 
+@inline _valshapeoftype(::Type{Nothing}) = ConstValueShape(nothing)
+
+
 
 """
     const_zero_shape(shape::ConstValueShape)
 
-Get the equivalent of a constant zero shape for shape `shape`.
+Get the equivalent of a constant zero shape for shape `shape` that will
+only allow zero values to be set via an accessor.
 """
 const_zero_shape(shape::ConstValueShape) = ConstValueShape(const_zero(shape.value))
+
+
+"""
+    nonstrict_const_zero_shape(shape::ConstValueShape)
+
+Get the equivalent of a constant zero shape for shape `shape` that will
+ignore any attempt to set a value via an accessor.
+
+Useful as a gradient/tangent varshape of constants, as they can ignore
+attempts to set non-zero values.
+"""
+function nonstrict_const_zero_shape(shape::ConstValueShape)
+    x = const_zero(shape.value)
+    ConstValueShape{typeof(x),false}(x)
+end
 
 
 replace_const_shapes(f::Function, shape::ConstValueShape) = f(shape)
 
 
 
-const ConstAccessor = ValueAccessor{ConstValueShape{T}} where {T}
+const ConstAccessor{T,strict} = ValueAccessor{ConstValueShape{T,strict}}
 
 
 @inline vs_getindex(data::AbstractVector{<:Real}, va::ConstAccessor) = va.shape.value
@@ -73,8 +95,12 @@ const ConstAccessor = ValueAccessor{ConstValueShape{T}} where {T}
 @inline vs_unsafe_view(::AbstractVector, va::ConstAccessor) = va.shape.value
 
 
-function vs_setindex!(data::AbstractVector{<:Real}, v, va::ConstAccessor)
+function vs_setindex!(data::AbstractVector{<:Real}, v, va::ConstAccessor{T,true}) where T
     v == va.shape.value || throw(ArgumentError("Cannot set constant value to a different value"))
+    data
+end
+
+function vs_setindex!(data::AbstractVector{<:Real}, v, va::ConstAccessor{T,false}) where T
     data
 end
 

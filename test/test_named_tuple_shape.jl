@@ -8,7 +8,8 @@ using ArraysOfArrays
 import TypedTables
 import Tables
 
-using LinearAlgebra
+using LinearAlgebra, FillArrays
+using ChainRulesCore: Tangent, NoTangent, ZeroTangent, AbstractThunk, Thunk, ProjectTo, rrule, backing, unthunk
 import Zygote, ForwardDiff
 
 
@@ -39,6 +40,9 @@ import Zygote, ForwardDiff
         @test @inferred(length(shape)) == 5
         @test @inferred(propertynames(shape)) == keys(shape)
         @test propertynames(shape, true) == (propertynames(shape)..., :_flatdof, :_accessors)
+
+        @test @inferred(unshaped(shape(data[1]), shape)) == data[1]
+        @test @inferred(unshaped(sntshape(data[1]), sntshape)) == data[1]
 
         @test shape[:y] == shape.y
 
@@ -105,44 +109,21 @@ import Zygote, ForwardDiff
             @test @inferred(size(@inferred(ValueShapes.ShapedAsNT(UA, shape)))) == ()
             A = ValueShapes.ShapedAsNT(UA, shape)
 
-            let ntshape_view = ValueShapes._apply_ntshape_view(UA, shape)
-                @test ntshape_view == A
-            end
-
-            @test @inferred(IndexStyle(A)) == IndexLinear()
-            @test @inferred(getindex(A, :)[1] == A[1])
-
             @test @inferred(getproperty(A, :__internal_data) == data[1])
             @test @inferred(getproperty(A, :__internal_valshape) == valshape(A))
-
-            @test_throws BoundsError @inferred(getindex(A, Integer(length(A)+1)))
-
-            let viewA = view(A), viewA1 = view(A,1)
-                @test viewA == A
-                @test @inferred(propertynames(viewA1)) == keys(A[1])
-            end
 
             @test @inferred(propertynames(A)) == (:a, :b, :c, :x, :y)
             @test propertynames(A, true) == (:a, :b, :c, :x, :y, :__internal_data, :__internal_valshape)
             @test @inferred(get_y(A)) == [8, 9, 10, 11]
 
-            @test typeof(A.b) <: AbstractArray{Int,0}
+            @test typeof(A.b) <: Integer
 
             @test @inferred(valshape(A)) === shape
-
-            @test @inferred(stripscalar(A)) == A[]
-            @test @inferred(stripscalar(A.a)) == A.a
-            @test @inferred(stripscalar(A.b)) == A.b[]
-            @test @inferred(stripscalar(A.c)) == A.c
-            @test @inferred(stripscalar(A.x)) === A.x
-            @test @inferred(unshaped(A.y)) === A.y
 
             @test @inferred(unshaped(A)) === UA
             @test @inferred(unshaped(A.a)) == view(UA, 1:6)
             @test @inferred(unshaped(A.b)) == view(UA, 7:7)
             @test @inferred(unshaped(A.y)) == view(UA, 8:11)
-
-            @test size(@inferred similar(A)) == size(A)
 
             @test @inferred(copy(A)) == A
             @test typeof(copy(A)) == typeof(A)
@@ -154,9 +135,73 @@ import Zygote, ForwardDiff
             @test @inferred((X -> (Y = copy(X); Y.y = [4, 7, 5, 6]; unshaped(Y)))(A)) == [1, 2, 3, 4, 5, 6, 7, 4, 7, 5, 6]
 
             x = (a = [5 3 5; 9 4 5], b = 9, c = 4.2, x = [11 21; 12 22], y = [4, 7, 5, 6])
-            @test (B = copy(A); B[] = x; B[1]) == x
-            @test (B = copy(A); B[1] = x; B[]) == x
+            @test (B = copy(A); B[] = x; B[]) == x
             @test_throws ArgumentError copy(A)[] = (a = [5 3 5; 9 4 5], b = 9, c = 4.2, x = [11 21; 12 23], y = [4, 7, 5, 6])
+
+            @testset "rrules" begin
+                vs_x = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2), c = ScalarShape{Real}(), d = ArrayShape{Real}(2), e = ArrayShape{Real}(1), f = ArrayShape{Real}(1), g = ConstValueShape([0.4, 0.5, 0.6]))
+                vs_dx = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2), c = ScalarShape{Real}(), d = ArrayShape{Real}(2), e = ArrayShape{Real}(1), f = ArrayShape{Real}(1), g = ConstValueShape{typeof(Fill(1.0, 3)),false}(Fill(0.0, 3)))
+                @test @inferred(gradient_shape(vs_x)) == vs_dx
+
+                x_unshaped = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+                x = vs_x(x_unshaped)
+                dx_unshaped = [0.0, 1.2, 1.3, 1.4, 0.0, 0.0, 0.0, 0.0]
+                dx = vs_dx(dx_unshaped)
+                dx_contents = (__internal_data = unshaped(dx), __internal_valshape = valshape(dx))
+                dx_tangent = Tangent{typeof(x),typeof(dx_contents)}(dx_contents)
+                dx_nttangent = Tangent{typeof(x[])}(;ProjectTo(x)(dx_tangent)[]...)
+                @test @inferred(Tangent(x, dx_unshaped)) == dx_tangent
+
+                zdx_unshaped = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                zdx = vs_dx(zdx_unshaped)
+                zdx_contents = (__internal_data = unshaped(zdx), __internal_valshape = valshape(zdx))
+                zdx_tangent = Tangent{typeof(x),typeof(zdx_contents)}(zdx_contents)
+                @test @inferred(Tangent(x, zdx_unshaped)) == zdx_tangent
+
+                dy = (a = nothing, b = [1.2, 1.3], c = 1.4, d = NoTangent(), e = ZeroTangent(), f = nothing, g = [2.1, 2.2, 2.3])
+                dy_unshaped = dx_unshaped
+                dy_tangent = Tangent{typeof(dy),typeof(dy)}(dy)
+
+                ref_dx_tangent(ΔΩ::AbstractThunk) = ref_dx_tangent(unthunk(ΔΩ))
+                ref_dx_tangent(::Union{ZeroTangent,NoTangent,Nothing}) = ZeroTangent()
+                ref_dx_tangent(::Any) = dx_tangent
+
+                ref_ntdx_tangent(ΔΩ::AbstractThunk) = ref_ntdx_tangent(unthunk(ΔΩ))
+                ref_ntdx_tangent(::Union{ZeroTangent,NoTangent,Nothing}) = ZeroTangent()
+                ref_ntdx_tangent(ΔΩ::Any) = dx_nttangent
+
+                @test @inferred(ProjectTo(x)(dx_tangent)) == dx
+                @test @inferred(ProjectTo(x)(backing(dx_tangent))) == dx
+
+                @test @inferred(rrule(getindex, x))[1] == x[]
+                for unthunked_ΔΩ in [dy, dy_tangent, ZeroTangent(), NoTangent(), nothing]
+                    for ΔΩ in [unthunked_ΔΩ, Thunk(Returns(unthunked_ΔΩ))]
+                        @test @inferred(rrule(getindex, x)[2](ΔΩ)) == (NoTangent(), ProjectTo(x)(ref_dx_tangent(ΔΩ)))
+                    end
+                end
+
+                @test rrule(unshaped, x)[1] == x_unshaped
+                @test rrule(unshaped, x, vs_x)[1] == x_unshaped
+                @test rrule(unshaped, x[], vs_x)[1] == x_unshaped
+                for unthunked_ΔΩ in [dy_unshaped, ZeroTangent(), NoTangent(), nothing]
+                    for ΔΩ in [unthunked_ΔΩ, Thunk(Returns(unthunked_ΔΩ))]
+                        @test @inferred(rrule(unshaped, x)[2](ΔΩ)) == (NoTangent(), ProjectTo(x)(ref_dx_tangent(ΔΩ)))
+                        @test @inferred(rrule(unshaped, x, vs_x)[2](ΔΩ)) == (NoTangent(), ProjectTo(x)(ref_dx_tangent(ΔΩ)), NoTangent())
+                        @test @inferred(rrule(unshaped, x[], vs_x)[2](ΔΩ)) == (NoTangent(), ref_ntdx_tangent(ΔΩ), NoTangent())
+                    end
+                end
+
+                ref_flatdx_tangent(ΔΩ::AbstractThunk) = ref_flatdx_tangent(unthunk(ΔΩ))
+                ref_flatdx_tangent(::Union{ZeroTangent,NoTangent,Nothing}) = ZeroTangent()
+                ref_flatdx_tangent(::Any) = dx_unshaped
+
+                @test rrule(ShapedAsNT, x_unshaped, vs_x)[1] == x
+                for unthunked_ΔΩ in [dx, dx_tangent, dx_nttangent, ZeroTangent(), NoTangent(), nothing]
+                    for ΔΩ in [unthunked_ΔΩ, Thunk(Returns(unthunked_ΔΩ))]
+                        @test @inferred(rrule(ShapedAsNT, x_unshaped, vs_x)[2](ΔΩ)) == (NoTangent(), ref_flatdx_tangent(ΔΩ), NoTangent())
+                    end
+                end
+            end
 
             @testset "Zygote support" begin
                 using Zygote
@@ -164,8 +209,9 @@ import Zygote, ForwardDiff
                 vs = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2))
 
                 # ToDo: Make this work with @inferred:
-                @test Zygote.gradient(x -> x[].a^2 + norm(x[].b)^2, vs([3, 4, 5])) == ((a = 6, b = [8, 10]),)
-                @test Zygote.gradient(x_flat -> (x = vs(x_flat); norm(x.a)^2 + norm(x.b)^2), [3, 4, 5]) == ([6, 8, 10],)
+                @test Zygote.gradient(x -> x[].a^2 + norm(x[].b)^2, vs([3, 4, 5])) == (gradient_shape(vs)([6, 8, 10]),)
+                # ToDo: Pullbacks for getproperty:
+                #@test Zygote.gradient(x_flat -> (x = vs(x_flat); norm(x.a)^2 + norm(x.b)^2), [3, 4, 5]) == ([6, 8, 10],)
                 @test Zygote.gradient(x_flat -> (x = vs(x_flat); norm(x[].a)^2 + norm(x[].b)^2), [3, 4, 5])  == ([6, 8, 10],)
 
                 foo(x::NamedTuple) = sum(map(x -> norm(x)^2, values(x)))
@@ -194,7 +240,7 @@ import Zygote, ForwardDiff
             @test @inferred(broadcast(unshaped, A)) === UA
 
             @test @inferred(A[1]) == (a = [1 3 5; 2 4 6], b = 7, c = 4.2, x = [11 21; 12 22], y = [8, 9, 10, 11])
-            @test @inferred(view(A, 2)) isa ShapedAsNT
+            @test @inferred(view(A, 2)) isa ShapedAsNTArray{T,0} where T
             @test @inferred(view(A, 2)[] == A[2])
             @test @inferred(view(A, 2:2)) isa ShapedAsNTArray
             @test @inferred(view(A, 2:2) == A[2:2])

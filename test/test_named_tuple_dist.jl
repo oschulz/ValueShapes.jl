@@ -54,7 +54,7 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
 
     @test @inferred(rand(dist)) isa NamedTuple
     @test pdf(dist, rand(dist)) > 0
-    @test @inferred(rand(dist, ())) isa ShapedAsNT
+    @test @inferred(rand(dist, ())) isa ShapedAsNTArray{T,0} where T
     @test pdf(dist, rand(dist, ())) > 0
     @test @inferred(rand(dist, 100)) isa ShapedAsNTArray
     @test all(x -> x > 0, pdf.(Ref(dist), rand(dist, 10^3)))

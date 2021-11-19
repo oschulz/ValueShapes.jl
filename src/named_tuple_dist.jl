@@ -158,6 +158,9 @@ Distributions.pdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names = 
 
 Distributions._logpdf(ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_logpdf(ud.shaped, x)
 
+Distributions.logpdf(d::NamedTupleDist{names}, x::ShapedAsNT{names}) where names = _ntd_logpdf(d, convert(NamedTuple, x))
+Distributions.pdf(d::NamedTupleDist{names}, x::ShapedAsNT{names}) where names = exp(logpdf(d, convert(NamedTuple, x)))
+
 
 function _ntd_insupport(
     dist::Distribution,
@@ -186,6 +189,8 @@ function _ntd_insupport(d::NamedTupleDist{names}, x::NamedTuple{names}) where na
 end
 
 Distributions.insupport(d::NamedTupleDist{names}, x::NamedTuple{names}) where names = _ntd_insupport(d, x)
+
+Distributions.insupport(d::NamedTupleDist{names}, x::ShapedAsNT{names}) where names = _ntd_insupport(d, convert(NamedTuple, x))
 
 Distributions.insupport(ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_insupport(ud.shaped, x)
 

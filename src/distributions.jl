@@ -45,10 +45,7 @@ const NamedTupleVariate{names} = StructVariate{NamedTuple{names}}  # ToDo: Use S
 Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}) where names = stripscalar(rand(rng, d, ()))
 
 function Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, dims::Tuple{}) where names
-    shape = varshape(d)
-    x = Vector{default_unshaped_eltype(shape)}(undef, totalndof(varshape(d)))
-    rand!(rng, unshaped(d), x)
-    shape(x)
+    view(rand(rng, d, 1), 1)
 end
 
 function Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, dims::Dims) where names
@@ -60,7 +57,7 @@ function Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}
 end
 
 
-function Random.rand!(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{<:NamedTuple{names}}) where names
+function Random.rand!(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{names}) where names
     valshape(x) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
     rand!(rng, unshaped(d), unshaped(x))
     x
@@ -87,6 +84,11 @@ function Distributions.logpdf(d::Distribution{NamedTupleVariate{names}}, x::Name
     logpdf(unshaped(d), unshaped(x, varshape(d)))
 end
 
+function Distributions.logpdf(d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{names}) where names
+    @argcheck valshape(x) <= varshape(d)
+    logpdf(unshaped(d), unshaped(x))
+end
+
 function Distributions.logpdf(d::Distribution{NamedTupleVariate{names}}, x::AbstractArray{<:NamedTuple{names},0}) where names
     logpdf(unshaped(d), unshaped(x, varshape(d)))
 end
@@ -96,6 +98,11 @@ function Distributions.pdf(d::Distribution{NamedTupleVariate{names}}, x::NamedTu
     pdf(unshaped(d), unshaped(x, varshape(d)))
 end
 
+function Distributions.pdf(d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{names}) where names
+    @argcheck valshape(x) <= varshape(d)
+    pdf(unshaped(d), unshaped(x))
+end
+
 function Distributions.pdf(d::Distribution{NamedTupleVariate{names}}, x::AbstractArray{<:NamedTuple{names},0}) where names
     pdf(unshaped(d), unshaped(x, varshape(d)))
 end
@@ -103,6 +110,11 @@ end
 
 function Distributions.insupport(d::Distribution{NamedTupleVariate{names}}, x::NamedTuple{names}) where names
     insupport(unshaped(d), unshaped(x, varshape(d)))
+end
+
+function Distributions.insupport(d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{names}) where names
+    @argcheck valshape(x) <= varshape(d)
+    insupport(unshaped(d), unshaped(x))
 end
 
 function Distributions.insupport(d::Distribution{NamedTupleVariate{names}}, x::AbstractArray{<:NamedTuple{names},0}) where names
