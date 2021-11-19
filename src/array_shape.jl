@@ -154,6 +154,10 @@ Base.@propagate_inbounds function vs_setindex!(
 end
 
 
+Base.@propagate_inbounds function _bcasted_view(data::AbstractVector{<:AbstractVector{<:Real}}, va::ArrayAccessor)
+    _bcasted_view(convert(VectorOfSimilarVectors, data), va)
+end
+
 Base.@propagate_inbounds function _bcasted_view(data::AbstractVectorOfSimilarVectors{<:Real}, va::ArrayAccessor{T,1}) where {T}
     flat_data = flatview(data)
     idxs = view_idxs(axes(flat_data, 1), va)
@@ -168,11 +172,11 @@ Base.@propagate_inbounds function _bcasted_view(data::AbstractVectorOfSimilarVec
     VectorOfSimilarArrays(reshape(fpview, size(va.shape)..., :))
 end
 
-Base.copy(instance::VSBroadcasted2{1,typeof(getindex),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ArrayAccessor}}) =
-    copy(_bcasted_view(instance.args[1], instance.args[2][]))
+Base.Broadcast.broadcasted(::typeof(getindex), A::AbstractVectorOfSimilarVectors{<:Real}, acc::Ref{<:ArrayAccessor}) =
+    copy(_bcasted_view(A, acc[]))
 
-Base.copy(instance::VSBroadcasted2{1,typeof(view),AbstractVectorOfSimilarVectors{<:Real},Ref{<:ArrayAccessor}}) =
-    _bcasted_view(instance.args[1], instance.args[2][])
+Base.Broadcast.broadcasted(::typeof(view), A::AbstractVectorOfSimilarVectors{<:Real}, acc::Ref{<:ArrayAccessor}) =
+    copy(_bcasted_view(A, acc[]))
 
 
 function _bcasted_view_unchanged(data::AbstractArray{<:AbstractVector{T}}, shape::ArrayShape{U,1}) where {T<:Real,U>:T}
@@ -180,16 +184,16 @@ function _bcasted_view_unchanged(data::AbstractArray{<:AbstractVector{T}}, shape
     data
 end
 
-# Specialize (::ArrayShape{T,1}).(::AbstractArray{<:AbstractVector{<:Real}}):
-Base.copy(instance::VSBroadcasted1{N,ArrayShape{T,1},AbstractArray{<:AbstractVector{<:Real},N}}) where {T,N} =
-    _bcasted_view_unchanged(instance.args[1], instance.f)
+Base.Broadcast.broadcasted(vs::ArrayShape{T,1}, A::AbstractArray{<:AbstractVector{<:Real},N}) where {T,N} =
+    _bcasted_view_unchanged(A, vs)
 
 
-@inline _bcasted_unshaped(A::AbstractArrayOfSimilarArrays{<:Real,1}) = A
+@inline _bcasted_unshaped(A::AbstractArrayOfSimilarVectors{<:Real}) = A
+@inline _bcasted_unshaped(A::AbstractArray{<:AbstractVector{<:Real}}) = convert(AbstractArrayOfSimilarVectors, A)
 
 # Specialize unshaped.(::AbstractArray{<:AbstractVector{<:Real}}):
-Base.copy(instance::VSBroadcasted1{N,typeof(unshaped),AbstractArray{<:AbstractVector{<:Real},N}}) where N =
-    _bcasted_unshaped(instance.args[1])
+Base.Broadcast.broadcasted(::typeof(unshaped), A::AbstractArray{<:AbstractVector{<:Real}}) =
+    _bcasted_unshaped(A)
 
 
 # TODO: Add support for StaticArray.

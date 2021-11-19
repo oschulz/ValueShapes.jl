@@ -225,8 +225,8 @@ import Zygote, ForwardDiff
               @test A == vecA
             end
 
-            @test getproperty(A, :__internal_data) == ValueShapes._bcasted_unshaped(A)
-            @test getproperty(A, :__internal_elshape) == A.__internal_elshape
+            @test getproperty(A, :__internal_data) == UA
+            @test getproperty(A, :__internal_elshape) == shape
 
             @test @inferred(IndexStyle(A)) == IndexStyle(getproperty(A, :__internal_data))
 

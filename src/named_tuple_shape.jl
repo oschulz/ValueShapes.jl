@@ -458,9 +458,8 @@ function ShapedAsNTArray(data::D, shape::S) where {N,T<:Real,D<:AbstractArray{<:
 end
 
 
-# Specialize (::NamedTupleShape).(::AbstractVector{<:AbstractVector}):
-Base.copy(instance::VSBroadcasted1{1,<:NamedTupleShape,AbstractVector{<:AbstractVector{<:Real}}}) =
-    ShapedAsNTArray(instance.args[1], instance.f)
+Base.Broadcast.broadcasted(vs::NamedTupleShape, A::AbstractArray{<:AbstractVector{<:Real}}) =
+    ShapedAsNTArray(A, vs)
 
 
 @inline _data(A::ShapedAsNTArray) = getfield(A, :__internal_data)
@@ -468,10 +467,7 @@ Base.copy(instance::VSBroadcasted1{1,<:NamedTupleShape,AbstractVector{<:Abstract
 
 @inline elshape(A::ShapedAsNTArray) = _elshape(A)
 
-@inline _bcasted_unshaped(A::ShapedAsNTArray) = _data(A)
-
-Base.copy(instance::VSBroadcasted1{N,typeof(unshaped),ShapedAsNTArray{T,N}}) where {T,N} =
-    _bcasted_unshaped(instance.args[1])
+Base.Broadcast.broadcasted(::typeof(unshaped), A::ShapedAsNTArray) = _data(A)
 
 
 @inline function Base.getproperty(A::ShapedAsNTArray, p::Symbol)

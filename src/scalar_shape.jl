@@ -109,8 +109,8 @@ Base.@propagate_inbounds function _bcasted_view(data::AbstractArrayOfSimilarVect
     view(flat_data, idxs, colons...)
 end
 
-Base.copy(instance::VSBroadcasted2{N,typeof(getindex), AbstractArrayOfSimilarVectors{<:Real,N},Ref{<:ScalarAccessor}}) where N =
-    copy(_bcasted_view(instance.args[1], instance.args[2][]))
+Base.Broadcast.broadcasted(::typeof(getindex), A::AbstractArrayOfSimilarVectors{<:Real,N}, acc::Ref{<:ScalarAccessor}) where N =
+    copy(_bcasted_view(A, acc[]))
 
-Base.copy(instance::VSBroadcasted2{N,typeof(view), AbstractArrayOfSimilarVectors{<:Real,N},Ref{<:ScalarAccessor}}) where N =
-    _bcasted_view(instance.args[1], instance.args[2][])
+Base.Broadcast.broadcasted(::typeof(view), A::AbstractArrayOfSimilarVectors{<:Real,N}, acc::Ref{<:ScalarAccessor}) where N =
+    _bcasted_view(A, acc[])

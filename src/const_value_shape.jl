@@ -82,8 +82,8 @@ end
 @inline _bcasted_view(data::AbstractArrayOfSimilarVectors{<:Real,N}, va::ConstAccessor) where N =
     Fill(va.shape.value, size(data)...)
 
-Base.copy(instance::VSBroadcasted2{N,typeof(getindex),AbstractArrayOfSimilarVectors{<:Real,N},Ref{<:ConstAccessor}}) where N =
-    _bcasted_view(instance.args[1], instance.args[2][])
+Base.Broadcast.broadcasted(::typeof(getindex), A::AbstractArrayOfSimilarVectors{<:Real,N}, acc::Ref{<:ConstAccessor}) where N =
+    _bcasted_view(A, acc[])
 
-Base.copy(instance::VSBroadcasted2{N,typeof(view),AbstractArrayOfSimilarVectors{<:Real,N},Ref{<:ConstAccessor}}) where N =
-    _bcasted_view(instance.args[1], instance.args[2][])
+Base.Broadcast.broadcasted(::typeof(view), A::AbstractArrayOfSimilarVectors{<:Real,N}, acc::Ref{<:ConstAccessor}) where N =
+    _bcasted_view(A, acc[])

@@ -25,9 +25,9 @@ import TypedTables
         # @test Vector{Real}(undef, ArrayShape{Real}((2,1))) ==  # weird typing going on with default_unshaped_eltype
 
         arrshape = ArrayShape{Real, 2}((2,3))
-        vec = Vector{Real}(undef, arrshape)
-        @test @inferred(length(vec)) == 6
-        @test @inferred(size(vec)) == (6,)
+        v = Vector{Real}(undef, arrshape)
+        @test @inferred(length(v)) == 6
+        @test @inferred(size(v)) == (6,)
 
         data1 = [1;2;3;4;7;8;9]
         scalarshape = ScalarShape{Real}()

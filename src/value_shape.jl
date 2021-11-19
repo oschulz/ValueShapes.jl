@@ -296,38 +296,19 @@ ArraysOfArrays.VectorOfSimilarVectors{T}(shape::AbstractValueShape) where {T<:Re
     VectorOfSimilarVectors(ElasticArray{T}(undef, totalndof(shape), 0))
 
 
-const VSBroadcasted1{N,F,T} = Base.Broadcast.Broadcasted{
-    <:Base.Broadcast.AbstractArrayStyle{N},
-    <:Any,
-    F,
-    <:Tuple{T}
-}
-
-
-const VSBroadcasted2{N,F,T1,T2} = Base.Broadcast.Broadcasted{
-    <:Base.Broadcast.AbstractArrayStyle{N},
-    <:Any,
-    F,
-    <:Tuple{T1,T2}
-}
-
-
 # Specialize (::AbstractValueShape).(::AbstractVector{<:AbstractVector{<:Real}}):
-Base.copy(instance::VSBroadcasted1{N,<:AbstractValueShape,AbstractArray{<:AbstractVector{<:Real},N}}) where N =
-    broadcast(view, instance.args[1], Ref(ValueAccessor(instance.f, 0)))
-
+Base.Broadcast.broadcasted(vs::AbstractValueShape, A::AbstractArray{<:AbstractVector{<:Real},N}) where N =
+    broadcast(view, A, Ref(ValueAccessor(vs, 0)))
 
 # Specialize unshaped for real vectors (semantically vectors of scalar-shaped values)
-function Base.copy(instance::VSBroadcasted1{1,typeof(unshaped),AbstractVector{<:Real}})
-    x = instance.args[1]
+function Base.Broadcast.broadcasted(::typeof(unshaped), x::AbstractVector{<:Real})
     nestedview(reshape(view(x, :), 1, length(eachindex(x))))
 end
 
+
 # Specialize unshaped for real vectors that are array slices:
 const _MatrixSliceFirstDim{T} = SubArray{T,1,<:AbstractArray{T,2},<:Tuple{Int,AbstractArray{Int}}}
-function Base.copy(instance::VSBroadcasted1{1,typeof(unshaped),<:_MatrixSliceFirstDim{<:Real}})
-    instance
-    x = instance.args[1]
+function Base.Broadcast.broadcasted(::typeof(unshaped), x::_MatrixSliceFirstDim{<:Real})
     nestedview(view(parent(x), x.indices[1]:x.indices[1], x.indices[2]))
 end
 
