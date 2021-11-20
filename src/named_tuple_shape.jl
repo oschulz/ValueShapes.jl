@@ -527,7 +527,13 @@ Base.Broadcast.broadcasted(vs::NamedTupleShape, A::AbstractArray{<:AbstractVecto
 
 @inline elshape(A::ShapedAsNTArray) = _elshape(A)
 
+
 Base.Broadcast.broadcasted(::typeof(unshaped), A::ShapedAsNTArray) = _data(A)
+
+function (bc_inv_vs::_BroadcastInvValueShape)(A::ShapedAsNTArray)
+    elshape(A) <= bc_inv_vs.x.x || throw(ArgumentError("Shape of value not compatible with given shape"))
+    _data(A)
+end
 
 
 @inline function Base.getproperty(A::ShapedAsNTArray, p::Symbol)

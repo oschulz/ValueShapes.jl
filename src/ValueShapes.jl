@@ -12,9 +12,11 @@ module ValueShapes
 
 using ArgCheck
 using ArraysOfArrays
+using ChangesOfVariables
 using Distributions
 using ElasticArrays
 using FillArrays
+using InverseFunctions
 using Random
 using Statistics
 using StatsBase

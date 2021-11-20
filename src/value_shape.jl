@@ -220,6 +220,39 @@ unshaped(x::AbstractArray{<:Real,1}) = x
 unshaped(x::Base.ReshapedArray{T,N,<:AbstractArray{T,1}}) where {T<:Real,N} = parent(x)
 
 
+
+const _InvValueShape = Base.Fix2{typeof(unshaped),<:AbstractValueShape}
+
+InverseFunctions.inverse(vs::AbstractValueShape) = Base.Fix2(unshaped, vs)
+InverseFunctions.inverse(inv_vs::_InvValueShape) = inv_vs.x
+
+function ChangesOfVariables.with_logabsdet_jacobian(vs::AbstractValueShape, flat_x)
+    x = vs(flat_x)
+    x, zero(float(eltype(flat_x)))
+end
+
+function ChangesOfVariables.with_logabsdet_jacobian(inv_vs::_InvValueShape, x)
+    flat_x = inv_vs(x)
+    flat_x, zero(float(eltype(flat_x)))
+end
+
+const _BroadcastValueShape = Base.Fix1{typeof(broadcast),<:AbstractValueShape}
+const _BroadcastInvValueShape = Base.Fix1{typeof(broadcast),<:_InvValueShape}
+
+_inner_eltype(::AbstractArray{<:AbstractArray{T}}) where {T<:Real} = T
+
+function ChangesOfVariables.with_logabsdet_jacobian(bc_vs::_BroadcastValueShape, ao_flat_x)
+    ao_x = bc_vs(ao_flat_x)
+    ao_x, zero(float(_inner_eltype(ao_flat_x)))
+end
+
+function ChangesOfVariables.with_logabsdet_jacobian(bc_inv_vs::_BroadcastInvValueShape, ao_x)
+    ao_flat_x = bc_inv_vs(ao_x)
+    ao_flat_x, zero(float(_inner_eltype(ao_flat_x)))
+end
+
+
+
 """
     stripscalar(x)
 

@@ -7,6 +7,7 @@ using Random
 using ElasticArrays
 using ArraysOfArrays
 using FillArrays
+using InverseFunctions, ChangesOfVariables
 import TypedTables
 
 
@@ -48,6 +49,21 @@ import TypedTables
         data2 = VectorOfSimilarVectors(reshape(collect(1:22), 11, 2))
         @test_throws ArgumentError ValueShapes._checkcompat_inner(ntshape, data2)
         @test ValueShapes._checkcompat_inner(shape, data2) == nothing
+
+        let vs = shape, x = rand(totalndof(vs)), xs = nestedview(rand(totalndof(vs), 5))
+            vs_jacobian(f, x) = 1
+
+            InverseFunctions.test_inverse(vs, x)
+            ChangesOfVariables.test_with_logabsdet_jacobian(vs, x, vs_jacobian)
+            ChangesOfVariables.test_with_logabsdet_jacobian(inverse(vs), vs(x), vs_jacobian)
+
+            bc_vs = Base.Fix1(broadcast, vs)
+            InverseFunctions.test_inverse(bc_vs, xs)
+            @test with_logabsdet_jacobian(bc_vs, xs)[1] isa ShapedAsNTArray
+            ChangesOfVariables.test_with_logabsdet_jacobian(bc_vs, xs, vs_jacobian)
+            with_logabsdet_jacobian(inverse(bc_vs), vs.(xs))[1] isa ArrayOfSimilarArrays
+            ChangesOfVariables.test_with_logabsdet_jacobian(inverse(bc_vs), vs.(xs), vs_jacobian)
+        end
 
         @test @inferred(unshaped(4.2)) isa Fill{Float64,1}
         @test unshaped(4.2) == [4.2]
