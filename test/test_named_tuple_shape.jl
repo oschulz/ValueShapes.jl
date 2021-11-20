@@ -139,6 +139,10 @@ import Zygote, ForwardDiff
             @test_throws ArgumentError copy(A)[] = (a = [5 3 5; 9 4 5], b = 9, c = 4.2, x = [11 21; 12 23], y = [4, 7, 5, 6])
 
             @testset "rrules" begin
+                # Base.Returns is Julia >= v1.7 only, so define:
+                struct ReturnsValue{T} <: Function; value::T; end
+                (f::ReturnsValue)(args...; kw...) = f.value
+
                 vs_x = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2), c = ScalarShape{Real}(), d = ArrayShape{Real}(2), e = ArrayShape{Real}(1), f = ArrayShape{Real}(1), g = ConstValueShape([0.4, 0.5, 0.6]))
                 vs_dx = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2), c = ScalarShape{Real}(), d = ArrayShape{Real}(2), e = ArrayShape{Real}(1), f = ArrayShape{Real}(1), g = ConstValueShape{typeof(Fill(1.0, 3)),false}(Fill(0.0, 3)))
                 @test @inferred(gradient_shape(vs_x)) == vs_dx
@@ -175,7 +179,7 @@ import Zygote, ForwardDiff
 
                 @test @inferred(rrule(getindex, x))[1] == x[]
                 for unthunked_ΔΩ in [dy, dy_tangent, ZeroTangent(), NoTangent(), nothing]
-                    for ΔΩ in [unthunked_ΔΩ, Thunk(Returns(unthunked_ΔΩ))]
+                    for ΔΩ in [unthunked_ΔΩ, Thunk(ReturnsValue(unthunked_ΔΩ))]
                         @test @inferred(rrule(getindex, x)[2](ΔΩ)) == (NoTangent(), ProjectTo(x)(ref_dx_tangent(ΔΩ)))
                     end
                 end
@@ -184,7 +188,7 @@ import Zygote, ForwardDiff
                 @test rrule(unshaped, x, vs_x)[1] == x_unshaped
                 @test rrule(unshaped, x[], vs_x)[1] == x_unshaped
                 for unthunked_ΔΩ in [dy_unshaped, ZeroTangent(), NoTangent(), nothing]
-                    for ΔΩ in [unthunked_ΔΩ, Thunk(Returns(unthunked_ΔΩ))]
+                    for ΔΩ in [unthunked_ΔΩ, Thunk(ReturnsValue(unthunked_ΔΩ))]
                         @test @inferred(rrule(unshaped, x)[2](ΔΩ)) == (NoTangent(), ProjectTo(x)(ref_dx_tangent(ΔΩ)))
                         @test @inferred(rrule(unshaped, x, vs_x)[2](ΔΩ)) == (NoTangent(), ProjectTo(x)(ref_dx_tangent(ΔΩ)), NoTangent())
                         @test @inferred(rrule(unshaped, x[], vs_x)[2](ΔΩ)) == (NoTangent(), ref_ntdx_tangent(ΔΩ), NoTangent())
@@ -197,7 +201,7 @@ import Zygote, ForwardDiff
 
                 @test rrule(ShapedAsNT, x_unshaped, vs_x)[1] == x
                 for unthunked_ΔΩ in [dx, dx_tangent, dx_nttangent, ZeroTangent(), NoTangent(), nothing]
-                    for ΔΩ in [unthunked_ΔΩ, Thunk(Returns(unthunked_ΔΩ))]
+                    for ΔΩ in [unthunked_ΔΩ, Thunk(ReturnsValue(unthunked_ΔΩ))]
                         @test @inferred(rrule(ShapedAsNT, x_unshaped, vs_x)[2](ΔΩ)) == (NoTangent(), ref_flatdx_tangent(ΔΩ), NoTangent())
                     end
                 end
