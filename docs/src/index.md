@@ -26,6 +26,7 @@ ArrayShape{Real}(2, 3)
 ConstValueShape([1 2; 3 4])
 ```
 
+
 Array shapes can be used to construct a compatible real-valued data vector:
 
 ```julia
@@ -74,11 +75,8 @@ data_as_ntuple isa ShapedAsNT{(:a, :b, :c)}
 
 (See [`ShapedAsNT`](@ref).)
 
-Note: The package [EponymTuples](https://github.com/tpapp/EponymTuples.jl)
-may come in handy to define functions that take such tuples as
-parameters and deconstruct them, so that the variable names can be used
-directly inside the function body. The macro `@unpack` provided by the
-package [Parameters](https://github.com/mauro3/Parameters.jl) can be used
+Note: The macro `@unpack` provided by the package
+[UnPack](https://github.com/mauro3/UnPack.jl) is very hand to
 to unpack `NamedTuple`s selectively.
 
 ValueShapes can also handle multiple values for sets of variables and
