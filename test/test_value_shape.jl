@@ -46,11 +46,12 @@ import TypedTables
             y = ArrayShape{Real}(4)
         )
         shape = NamedTupleShape(;named_shapes...)
+        sntshape = NamedTupleShape(ShapedAsNT; named_shapes...)
         data2 = VectorOfSimilarVectors(reshape(collect(1:22), 11, 2))
         @test_throws ArgumentError ValueShapes._checkcompat_inner(ntshape, data2)
         @test ValueShapes._checkcompat_inner(shape, data2) == nothing
 
-        let vs = shape, x = rand(totalndof(vs)), xs = nestedview(rand(totalndof(vs), 5))
+        let vs = sntshape, x = rand(totalndof(vs)), xs = nestedview(rand(totalndof(vs), 5))
             vs_jacobian(f, x) = 1
 
             InverseFunctions.test_inverse(vs, x)

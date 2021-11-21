@@ -14,6 +14,7 @@ using StatsBase, Distributions, ArraysOfArrays
     a2shape = ArrayShape{Real}(2, 3)
 
     ntshape = NamedTupleShape(
+        ShapedAsNT,
         a = ArrayShape{Real}(2, 3),
         b = ScalarShape{Real}(),
         c = ConstValueShape(4.2),
@@ -69,9 +70,9 @@ using StatsBase, Distributions, ArraysOfArrays
         @test @inferred(rand(_mvnormalrd(a2shape), 7)) isa AbstractArray{<:AbstractMatrix{<:Real},1}
         @test size(rand(_mvnormalrd(a2shape), 7)) == (7,)
 
-        @test @inferred(rand(_mvnormalrd(ntshape))) isa NamedTuple{nms}
-        @test @inferred(rand(_mvnormalrd(ntshape), ())) isa ShapedAsNTArray{<:NamedTuple{nms},0}
-        @test @inferred(rand(_mvnormalrd(ntshape), 7)) isa ShapedAsNTArray{<:NamedTuple{nms},1}
+        @test @inferred(rand(_mvnormalrd(ntshape))) isa ShapedAsNT{nms}
+        @test @inferred(rand(_mvnormalrd(ntshape), ())) isa ShapedAsNTArray{<:ShapedAsNT{nms},0}
+        @test @inferred(rand(_mvnormalrd(ntshape), 7)) isa ShapedAsNTArray{<:ShapedAsNT{nms},1}
         @test size(rand(_mvnormalrd(ntshape), 7)) == (7,)
         let X = rand(_mvnormalrd(ntshape), 7)
             @test @inferred(rand!(_mvnormalrd(ntshape), view(X, 1))) == view(X, 1)

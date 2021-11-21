@@ -35,6 +35,7 @@ import Zygote, ForwardDiff
         )
 
         shape = @inferred NamedTupleShape(;named_shapes...)
+        sntshape = @inferred NamedTupleShape(ShapedAsNT; named_shapes...)
         @test @inferred(NamedTupleShape(named_shapes)) == shape
 
         @test @inferred(length(shape)) == 5
@@ -68,7 +69,7 @@ import Zygote, ForwardDiff
         @test @inferred(Base.propertynames(shape)) == (:a, :b, :c, :x, :y)
         @test @inferred(totalndof(shape)) == 11
 
-        @test @inferred(shape(data[1])[]) == ref_table[1]
+        @test @inferred(shape(data[1])) == ref_table[1]
         @test @inferred(broadcast(shape, data)) == ref_table
 
         @test @inferred(merge((foo = 42,), shape)) == merge((foo = 42,), named_shapes)
@@ -83,7 +84,7 @@ import Zygote, ForwardDiff
         @test typeof(@inferred(shape(undef))) == NamedTuple{(:a, :b, :c, :x, :y),Tuple{Array{Float64,2},Float64,Float64,Array{Int,2},Array{Float64,1}}}
         @test typeof(@inferred(valshape(shape(undef)))) <: NamedTupleShape
         @test typeof(valshape(shape(undef))(undef)) == NamedTuple{(:a, :b, :c, :x, :y),Tuple{Array{Float64,2},Float64,Float64,Array{Int,2},Array{Float64,1}}}
-        @test @inferred(shape(collect(1:11))[]) == (a = [1 3 5; 2 4 6], b = 7, c = 4.2, x = [11 21; 12 22], y = [8, 9, 10, 11])
+        @test @inferred(shape(collect(1:11))) == (a = [1 3 5; 2 4 6], b = 7, c = 4.2, x = [11 21; 12 22], y = [8, 9, 10, 11])
         @test_throws ArgumentError shape(collect(1:12))
 
         @test valshape(shape.(push!(@inferred(VectorOfSimilarVectors{Float64}(shape)), @inferred(Vector{Float64}(undef, shape))))[1]) == valshape(shape(undef))
@@ -101,8 +102,8 @@ import Zygote, ForwardDiff
             @test @inferred(a <= c) == false
         end
 
-        @test @inferred(unshaped(shape(data[1]), shape)) === data[1]
-        @test @inferred(unshaped(shape(data[1])[], shape)) == data[1]
+        @test @inferred(unshaped(sntshape(data[1]), sntshape)) === data[1]
+        @test @inferred(unshaped(sntshape(data[1])[], sntshape)) == data[1]
 
         @testset "ValueShapes.ShapedAsNT" begin
             UA = copy(data[1])
@@ -143,8 +144,8 @@ import Zygote, ForwardDiff
                 struct ReturnsValue{T} <: Function; value::T; end
                 (f::ReturnsValue)(args...; kw...) = f.value
 
-                vs_x = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2), c = ScalarShape{Real}(), d = ArrayShape{Real}(2), e = ArrayShape{Real}(1), f = ArrayShape{Real}(1), g = ConstValueShape([0.4, 0.5, 0.6]))
-                vs_dx = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2), c = ScalarShape{Real}(), d = ArrayShape{Real}(2), e = ArrayShape{Real}(1), f = ArrayShape{Real}(1), g = ConstValueShape{typeof(Fill(1.0, 3)),false}(Fill(0.0, 3)))
+                vs_x = NamedTupleShape(ShapedAsNT, a = ScalarShape{Real}(), b = ArrayShape{Real}(2), c = ScalarShape{Real}(), d = ArrayShape{Real}(2), e = ArrayShape{Real}(1), f = ArrayShape{Real}(1), g = ConstValueShape([0.4, 0.5, 0.6]))
+                vs_dx = NamedTupleShape(ShapedAsNT, a = ScalarShape{Real}(), b = ArrayShape{Real}(2), c = ScalarShape{Real}(), d = ArrayShape{Real}(2), e = ArrayShape{Real}(1), f = ArrayShape{Real}(1), g = ConstValueShape{typeof(Fill(1.0, 3)),false}(Fill(0.0, 3)))
                 @test @inferred(gradient_shape(vs_x)) == vs_dx
 
                 x_unshaped = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
@@ -210,7 +211,7 @@ import Zygote, ForwardDiff
             @testset "Zygote support" begin
                 using Zygote
 
-                vs = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2))
+                vs = NamedTupleShape(ShapedAsNT, a = ScalarShape{Real}(), b = ArrayShape{Real}(2))
 
                 # ToDo: Make this work with @inferred:
                 @test Zygote.gradient(x -> x[].a^2 + norm(x[].b)^2, vs([3, 4, 5])) == (gradient_shape(vs)([6, 8, 10]),)
@@ -353,6 +354,7 @@ import Zygote, ForwardDiff
 
     @testset "gradients" begin
         vs = NamedTupleShape(
+            ShapedAsNT,
             a = ScalarShape{Real}(),
             b = ConstValueShape([4.2, 3.3]),
             c = ScalarShape{Real}(),

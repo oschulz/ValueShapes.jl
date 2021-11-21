@@ -42,11 +42,22 @@ struct StructVariate{T} <: VariateForm end
 const NamedTupleVariate{names} = StructVariate{NamedTuple{names}}  # ToDo: Use StructVariate{<:NamedTuple{names}} instead?
 
 
-Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}) where names = stripscalar(rand(rng, d, ()))
+function _rand_flat_impl(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}) where names
+    shape = varshape(d)
+    X = Vector{default_unshaped_eltype(shape)}(undef, totalndof(varshape(d)))
+    (shape, rand!(rng, unshaped(d), X))
+end
+
+function Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}) where names
+    shape, X = _rand_flat_impl(rng, d)
+    shape(X)
+end
 
 function Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, dims::Tuple{}) where names
-    view(rand(rng, d, 1), 1)
+    shape, X = _rand_flat_impl(rng, d)
+    shape.(Fill(X))
 end
+
 
 function Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, dims::Dims) where names
     shape = varshape(d)
@@ -56,6 +67,10 @@ function Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}
     shape.(X)
 end
 
+
+function Random.rand!(d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{names}) where names
+    rand!(Random.default_rng(), d, x)
+end
 
 function Random.rand!(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{names}) where names
     valshape(x) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
@@ -73,7 +88,7 @@ function _aov_rand_impl!(rng::AbstractRNG, d::Distribution{Multivariate}, X::Abs
     rand!.(Ref(rng), Ref(unshaped(d)), X)
 end
 
-function Random.rand!(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, X::ShapedAsNTArray{<:NamedTuple{names}}) where names
+function Random.rand!(rng::AbstractRNG, d::Distribution{<:NamedTupleVariate}, X::ShapedAsNTArray)
     elshape(X) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
     _aov_rand_impl!(rng, unshaped(d), unshaped.(X))
     X

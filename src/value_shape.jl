@@ -381,3 +381,15 @@ function gradient_shape end
 
 gradient_shape(vs::AbstractValueShape) = replace_const_shapes(nonstrict_const_zero_shape, vs)
 export gradient_shape
+
+
+"""
+    variance_shape(variate_shape::AbstractValueShape)
+
+Return the value shape of the variance of a distribution whose variates have
+the value shape `variate_shape`.
+"""
+function variance_shape end
+
+variance_shape(vs::AbstractValueShape) = replace_const_shapes(const_zero_shape, vs)
+export variance_shape

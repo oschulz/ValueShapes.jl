@@ -8,11 +8,13 @@ using LinearAlgebra
 
 @testset "functions" begin
     input_shape = NamedTupleShape(
+        ShapedAsNT,
         a = ArrayShape{Real}(3,2),
         b = ArrayShape{Real}(2)
     )
 
     output_shape = NamedTupleShape(
+        ShapedAsNT,
         x = ScalarShape{Real}(),
         y = ArrayShape{Real}(3)
     )

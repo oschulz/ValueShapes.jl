@@ -69,11 +69,7 @@ which can again be viewed as a `NamedTuple` described by `shape` via
 
 ```julia
 data_as_ntuple = parshapes(data)
-
-data_as_ntuple isa ShapedAsNT{(:a, :b, :c)}
 ```
-
-(See [`ShapedAsNT`](@ref).)
 
 Note: The macro `@unpack` provided by the package
 [UnPack](https://github.com/mauro3/UnPack.jl) is very hand to

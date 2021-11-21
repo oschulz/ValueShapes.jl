@@ -27,23 +27,28 @@ struct NamedTupleDist{
     names,
     DT <: (NTuple{N,Distribution} where N),
     AT <: (NTuple{N,ValueShapes.ValueAccessor} where N),
+    VT
 } <: Distribution{NamedTupleVariate{names},Continuous}
     _internal_distributions::NamedTuple{names,DT}
-    _internal_shape::NamedTupleShape{names,AT}
+    _internal_shape::NamedTupleShape{names,AT,VT}
 end 
 
 export NamedTupleDist
 
 
-function NamedTupleDist(dists::NamedTuple{names}) where {names}
+function NamedTupleDist(::Type{VT}, dists::NamedTuple{names}) where {VT,names}
     dsb = map(_ntd_dist_and_shape, dists)
     NamedTupleDist(
         map(x -> x[1], dsb),
-        NamedTupleShape(map(x -> x[2], dsb))
+        NamedTupleShape(VT, map(x -> x[2], dsb))
     )
 end
 
-@inline NamedTupleDist(;named_dists...) = NamedTupleDist(values(named_dists))
+NamedTupleDist(dists::NamedTuple) = NamedTupleDist(NamedTuple, dists)
+
+@inline NamedTupleDist(::Type{VT} ;named_dists...) where VT = NamedTupleDist(VT, values(named_dists))
+@inline NamedTupleDist(;named_dists...) = NamedTupleDist(NamedTuple, values(named_dists))
+
 
 @inline Base.convert(::Type{NamedTupleDist}, named_dists::NamedTuple) = NamedTupleDist(;named_dists...)
 
@@ -89,9 +94,10 @@ end
 
 Base.merge(a::NamedTuple, dist::NamedTupleDist{names}) where {names} = merge(a, _distributions(dist))
 Base.merge(a::NamedTupleDist) = a
-Base.merge(a::NamedTupleDist, b::NamedTupleDist, cs::NamedTupleDist...) = merge(NamedTupleDist(;a..., b...), cs...)
+Base.merge(a::NamedTupleDist{names,DT,AT,VT}, b::NamedTupleDist, cs::NamedTupleDist...) where {names,DT,AT,VT} = 
+    merge(NamedTupleDist(VT; a..., b...), cs...)
 
-function Base.merge(a::NamedTupleDist, b::Union{NamedTupleDist,NamedTuple}, cs::Union{NamedTupleDist,NamedTuple}...)
+function Base.merge(a::NamedTupleDist{names,DT,AT,VT}, b::Union{NamedTupleDist,NamedTuple}, cs::Union{NamedTupleDist,NamedTuple}...) where {names,DT,AT,VT}
     merge(a, convert(NamedTupleDist, b), map(x -> convert(NamedTupleDist, x), cs)...)
 end
 
@@ -277,7 +283,7 @@ end
 
 
 # ToDo/Decision: Return NamedTuple or ShapedAsNT?
-StatsBase.mode(d::NamedTupleDist) = varshape(d)(_ntd_mode(d))[]
+StatsBase.mode(d::NamedTupleDist) = varshape(d)(mode(unshaped(d)))
 
 StatsBase.mode(ud::UnshapedNTD) = _ntd_mode(ud.shaped)
 
@@ -286,7 +292,7 @@ _ntd_mean(dist::ConstValueDist) = Float32[]
 _ntd_mean(dist::Distribution) = mean(unshaped(dist))
 
 # ToDo/Decision: Return NamedTuple or ShapedAsNT?
-Statistics.mean(d::NamedTupleDist) = map(mean, _distributions(d))
+Statistics.mean(d::NamedTupleDist) = varshape(d)(mean(unshaped(d)))
 
 function Statistics.mean(ud::UnshapedNTD)
     d = ud.shaped
@@ -298,7 +304,7 @@ _ntd_var(dist::ConstValueDist) = Float32[]
 _ntd_var(dist::Distribution) = var(unshaped(dist))
 
 # ToDo/Decision: Return NamedTuple or ShapedAsNT?
-Statistics.var(d::NamedTupleDist) = map(var, _distributions(d))
+Statistics.var(d::NamedTupleDist) = variance_shape(varshape(d))(var(unshaped(d)))
 
 function Statistics.var(ud::UnshapedNTD)
     d = ud.shaped

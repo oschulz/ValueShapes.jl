@@ -37,11 +37,11 @@ all(x -> x == 4.2, view(flatview(data), 1, :))
 
 See also the documentation of [`AbstractValueShape`](@ref).
 """
-struct NamedTupleShape{names,AT<:(NTuple{N,ValueAccessor} where N)} <: AbstractValueShape
+struct NamedTupleShape{names,AT<:(NTuple{N,ValueAccessor} where N),VT} <: AbstractValueShape
     _accessors::NamedTuple{names,AT}
     _flatdof::Int
 
-    @inline function NamedTupleShape(shape::NamedTuple{names,<:NTuple{N,AbstractValueShape}}) where {names,N}
+    @inline function NamedTupleShape(::Type{VT}, shape::NamedTuple{names,<:NTuple{N,AbstractValueShape}}) where {VT,names,N}
         labels = keys(shape)
         shapes = values(shape)
         shapelengths = map(totalndof, shapes)
@@ -51,13 +51,16 @@ struct NamedTupleShape{names,AT<:(NTuple{N,ValueAccessor} where N)} <: AbstractV
         # @assert shapelengths == acclengths
         n_flattened = sum(shapelengths)
         named_accessors = NamedTuple{labels}(accessors)
-        new{names,typeof(accessors)}(named_accessors, n_flattened)
+        new{names,typeof(accessors),VT}(named_accessors, n_flattened)
     end
 end
 
 export NamedTupleShape
 
-@inline NamedTupleShape(;named_shapes...) = NamedTupleShape(values(named_shapes))
+@inline NamedTupleShape(::Type{VT}; named_shapes...) where VT = NamedTupleShape(VT, values(named_shapes))
+
+@inline NamedTupleShape(shape::NamedTuple{names,<:NTuple{N,AbstractValueShape}}) where {names,N} = NamedTupleShape(NamedTuple, shape)
+@inline NamedTupleShape(;named_shapes...) = NamedTupleShape(NamedTuple;named_shapes...)
 
 
 @inline _accessors(x::NamedTupleShape) = getfield(x, :_accessors)
@@ -109,8 +112,9 @@ function Base.merge(a::NamedTuple, shape::NamedTupleShape{names}) where {names}
 end
 
 Base.merge(a::NamedTupleShape) = a
-Base.merge(a::NamedTupleShape, b::NamedTupleShape, cs::NamedTupleShape...) = merge(NamedTupleShape(;a..., b...), cs...)
-
+function Base.merge(a::NamedTupleShape{names,AT,VT}, b::NamedTupleShape, cs::NamedTupleShape...) where {names,AT,VT}
+    merge(NamedTupleShape(VT; a..., b...), cs...)
+end
 
 import Base.<=
 
@@ -121,13 +125,10 @@ end
 @inline <=(a::NamedTupleShape, b::NamedTupleShape) = false
 
 
-valshape(x::NamedTuple) = NamedTupleShape(map(valshape, x))
+valshape(x::NamedTuple) = NamedTupleShape(NamedTuple, map(valshape, x))
 
 
 (shape::NamedTupleShape)(::UndefInitializer) = map(x -> valshape(x)(undef), shape)
-
-
-Base.@propagate_inbounds (shape::NamedTupleShape)(data::AbstractVector{<:Real}) = ShapedAsNT(data, shape)
 
 
 @inline _multi_promote_type() = Nothing
@@ -137,9 +138,6 @@ Base.@propagate_inbounds (shape::NamedTupleShape)(data::AbstractVector{<:Real}) 
 
 @inline default_unshaped_eltype(shape::NamedTupleShape) =
     _multi_promote_type(map(default_unshaped_eltype, values(shape))...)
-
-@inline shaped_type(shape::NamedTupleShape{names}, ::Type{T}) where {names,T<:Real} =
-    NamedTuple{names,Tuple{map(acc -> shaped_type(acc.shape, T), values(_accessors(shape)))...}}
 
 
 function unshaped(x::NamedTuple{names}, shape::NamedTupleShape{names}) where names
@@ -159,7 +157,9 @@ function unshaped(x::AbstractArray{<:NamedTuple{names},0}, shape::NamedTupleShap
 end
 
 
-replace_const_shapes(f::Function, shape::NamedTupleShape) = NamedTupleShape(map(s -> replace_const_shapes(f, s), (;shape...)))
+function replace_const_shapes(f::Function, shape::NamedTupleShape{names,AT,VT}) where {names,AT,VT}
+    NamedTupleShape(VT, map(s -> replace_const_shapes(f, s), (;shape...)))
+end
 
 
 
@@ -179,14 +179,17 @@ The resulting `ShapedAsNT` shares memory with `data`:
 
 ```julia
 x = (a = 42, b = rand(1:9, 2, 3))
-shape = valshape(x)
+shape = NamedTupleShape(
+    ShapedAsNT,
+    a = ScalarShape{Real}(),
+    b = ArrayShape{Real}(2, 3)
+)
 data = Vector{Int}(undef, shape)
 y = shape(data)
 @assert y isa ShapedAsNT
 y[] = x
 @assert y[] == x
 y.a = 22
-y.a[] = 33
 @assert shape(data) == y
 @assert unshaped(y) === data
 ```
@@ -199,6 +202,10 @@ struct ShapedAsNT{names,D<:AbstractVector{<:Real},S<:NamedTupleShape{names}}
     __internal_data::D
     __internal_valshape::S
 
+    function ShapedAsNT{names,D,S}(__internal_data::D, __internal_valshape::S) where {names,D<:AbstractVector{<:Real},S<:NamedTupleShape{names}}
+        new{names,D,S}(__internal_data, __internal_valshape)
+    end
+
     Base.@propagate_inbounds function ShapedAsNT(data::D, shape::S) where {T<:Real,D<:AbstractVector{T},names,S<:NamedTupleShape{names}}
         @boundscheck _checkcompat(shape, data)
         new{names,D,S}(data, shape)
@@ -206,6 +213,23 @@ struct ShapedAsNT{names,D<:AbstractVector{<:Real},S<:NamedTupleShape{names}}
 end
 
 export ShapedAsNT
+
+
+
+@inline shaped_type(shape::NamedTupleShape{names,AT,<:NamedTuple}, ::Type{T}) where {names,AT,T<:Real} =
+    NamedTuple{names,Tuple{map(acc -> shaped_type(acc.shape, T), values(_accessors(shape)))...}}
+
+@inline shaped_type(shape::NamedTupleShape{names,AT,<:ShapedAsNT}, ::Type{T}) where {names,AT,T<:Real} =
+    ShapedAsNT{names,Vector{T},typeof(shape)}
+
+
+Base.@propagate_inbounds (shape::NamedTupleShape{names,AT,<:NamedTuple})(
+    data::AbstractVector{<:Real}
+) where {names,AT} = ShapedAsNT(data, shape)[]
+
+Base.@propagate_inbounds (shape::NamedTupleShape{names,AT,<:ShapedAsNT})(
+    data::AbstractVector{<:Real}
+) where {names,AT} = ShapedAsNT(data, shape)
 
 
 @inline _data(A::ShapedAsNT) = getfield(A, :__internal_data)
@@ -286,6 +310,8 @@ Base.@propagate_inbounds function Base.getindex(x::ShapedAsNT{names}) where name
     end
 end
 
+@inline Base.getindex(d::ShapedAsNT, k::Symbol) = getproperty(d, k)
+
 
 Base.@propagate_inbounds Base.view(A::ShapedAsNT) = A
 
@@ -315,6 +341,11 @@ Base.NamedTuple{names}(A::ShapedAsNT{names}) where {names} = A[]
 
 Base.convert(::Type{NamedTuple}, A::ShapedAsNT) = A[]
 Base.convert(::Type{NamedTuple{names}}, A::ShapedAsNT{names}) where {names} = A[]
+
+function Base.convert(::Type{ShapedAsNT{names,D_a,S}}, A::ShapedAsNT{names,D_b,S}) where {names,D_a,D_b,S}
+    ShapedAsNT{names,D_a,S}(convert(D_a,_data(A)), valshape(A))
+end
+
 
 stripscalar(A::ShapedAsNT) = A[]
 
@@ -479,7 +510,7 @@ Constructors:
 The resulting `ShapedAsNTArray` shares memory with `data`:
 
 ```julia
-using ArraysOfArrays, Tables, TypedTables
+using ValueShapes, ArraysOfArrays, Tables, TypedTables
 
 X = [
     (a = 42, b = rand(1:9, 2, 3))
@@ -491,7 +522,7 @@ data = nestedview(Array{Int}(undef, totalndof(shape), 2))
 Y = shape.(data)
 @assert Y isa ShapedAsNTArray
 Y[:] = X
-@assert Y[1] == X[1] == shape(data[1])[]
+@assert Y[1] == X[1] == shape(data[1])
 @assert Y.a == [42, 11]
 Tables.columns(Y)
 @assert unshaped.(Y) === data
@@ -504,7 +535,7 @@ Use `unshaped.(Y)` to access `data` directly.
 a copy the data, using a memory layout as contiguous as possible for each
 column.
 """
-struct ShapedAsNTArray{T<:NamedTuple,N,D<:AbstractArray{<:AbstractVector{<:Real},N},S<:NamedTupleShape} <: AbstractArray{T,N}
+struct ShapedAsNTArray{T,N,D<:AbstractArray{<:AbstractVector{<:Real},N},S<:NamedTupleShape} <: AbstractArray{T,N}
     __internal_data::D
     __internal_elshape::S
 end
@@ -576,8 +607,8 @@ Base.convert(::Type{ShapedAsNT}, A::ShapedAsNTArray{T,0}) where T = ShapedAsNT(A
 Base.convert(::Type{ShapedAsNT{names}}, A::ShapedAsNTArray{<:NamedTuple{names},0}) where {names,T} = ShapedAsNT{names}(A)
 
 
-Base.@propagate_inbounds _apply_ntshape_copy(data::AbstractVector{<:Real}, shape::NamedTupleShape) =
-    shape(data)[]
+Base.@propagate_inbounds _apply_ntshape_copy(data::AbstractVector{<:Real}, shape::NamedTupleShape) = shape(data)
+
 
 Base.@propagate_inbounds _apply_ntshape_copy(data::AbstractArray{<:AbstractVector{<:Real}}, shape::NamedTupleShape) =
     ShapedAsNTArray(data, shape)
@@ -609,6 +640,10 @@ end
 
 Base.empty(A::ShapedAsNTArray{T,N,D,S}) where {T,N,D,S} =
     ShapedAsNTArray{T,N,D,S}(empty(_data(A)), _elshape(A))
+
+# For some reason `TypedTables.columnnames` is a different function than Tables.columnnames(A),
+# `TypedTables.columnnames` doesn't support arrays of ShapedAsNT, so define:
+TypedTables.columnnames(A::ShapedAsNTArray) = Tables.columnnames(A)
 
 Base.show(io::IO, ::MIME"text/plain", A::ShapedAsNTArray) = TypedTables.showtable(io, A)
 

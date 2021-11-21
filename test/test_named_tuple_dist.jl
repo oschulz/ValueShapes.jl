@@ -8,6 +8,7 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
 
 @testset "NamedTupleDist" begin
     dist = @inferred NamedTupleDist(
+        ShapedAsNT,
         a = 5, b = Weibull(2, 1),
         c = -4..5,
         d = MvNormal([1.2 0.5; 0.5 2.1]),
@@ -33,13 +34,13 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
     @test (@inferred logpdf(dist, X_shaped[])) == logpdf(unshaped(dist), X_unshaped)
 
     @test (@inferred mode(unshaped(dist))) == [mode(dist.b), 0.5, 0.0, 0.0, 1.1]
-    @test (@inferred mode(dist)) == shape(mode(unshaped(dist)))[]
+    @test (@inferred mode(dist)) == shape(mode(unshaped(dist)))
 
     @test (@inferred mean(unshaped(dist))) == [mean(dist.b), 0.5, 0.0, 0.0, 1.1]
-    @test (@inferred mean(dist)) == shape(mean(unshaped(dist)))[]
+    @test (@inferred mean(dist)) == shape(mean(unshaped(dist)))
 
     @test @inferred(var(unshaped(dist))) ≈ [var(dist.b), 6.75, 1.2, 2.1, 0.04]
-    @test @inferred(var(dist)) == (a = 0, b = var(dist.b), c = var(dist.c), d = var(dist.d), x = var(dist.x), e = var(dist.e))
+    @test @inferred(var(dist))[] == (a = 0, b = var(dist.b), c = var(dist.c), d = var(dist.d), x = var(dist.x), e = var(dist.e))
 
     @test begin
         ref_cov =
@@ -52,20 +53,21 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
         (@inferred cov(unshaped(dist))) ≈ ref_cov
     end
 
-    @test @inferred(rand(dist)) isa NamedTuple
+    @test @inferred(rand(dist)) isa ShapedAsNT
+    @test @inferred(rand(dist)[]) isa NamedTuple
     @test pdf(dist, rand(dist)) > 0
     @test @inferred(rand(dist, ())) isa ShapedAsNTArray{T,0} where T
-    @test pdf(dist, rand(dist, ())) > 0
+    @test pdf(dist, rand(dist)) > 0
     @test @inferred(rand(dist, 100)) isa ShapedAsNTArray
     @test all(x -> x > 0, pdf.(Ref(dist), rand(dist, 10^3)))
 
-    let X = X = varshape(dist).(nestedview(Array{eltype(unshaped(dist))}(undef, length(unshaped(dist)), 14)))
-        @test @inferred(rand!(dist, view(X, 1))) == view(X, 1)
+    let X = varshape(dist).(nestedview(Array{eltype(unshaped(dist))}(undef, length(unshaped(dist)), 14)))
+        @test @inferred(rand!(dist, X[1])) == X[1]
         @test @inferred(rand!(dist, X)) === X
     end
 
     let X = varshape(dist).([Array{Float64}(undef, totalndof(varshape(dist))) for i in 1:11])
-        @test @inferred(rand!(dist, view(X, 1))) == view(X, 1)
+        @test @inferred(rand!(dist, X[1])) == X[1]
         @test @inferred(rand!(dist, X)) === X
     end
 
@@ -84,7 +86,7 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
     end
 
     @test @inferred(rand(unshaped(dist))) isa Vector{Float64}
-    @test shape(@inferred(rand(testrng(), unshaped(dist))))[] == @inferred(rand(testrng(), dist, ()))[] == @inferred(rand(testrng(), dist))
+    @test shape(@inferred(rand(testrng(), unshaped(dist)))) == @inferred(rand(testrng(), dist, ()))[] == @inferred(rand(testrng(), dist))
     @test @inferred(rand(unshaped(dist), 10^3)) isa Matrix{Float64}
     @test shape.(nestedview(@inferred(rand(testrng(), unshaped(dist), 10^3)))) == @inferred(rand(testrng(), dist, 10^3))
 
@@ -98,7 +100,7 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
 
     @test @inferred(convert(NamedTupleDist, (x = 5, z = Normal()))) == NamedTupleDist(x = 5, z = Normal())
     @test @inferred(merge((a = 42,), NamedTupleDist(x = 5, z = Normal()))) == (a = 42, x = ConstValueDist(5), z = Normal())
-    @test @inferred(NamedTupleDist((;dist...))) == dist
+    @test @inferred(NamedTupleDist(ShapedAsNT, (;dist...))) == dist
     @test @inferred(merge(dist)) === dist
     @test @inferred(merge(
         NamedTupleDist(x = Normal(), y = 42),
