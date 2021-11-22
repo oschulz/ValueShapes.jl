@@ -79,6 +79,8 @@ import Base.<=
         l = prod(field_flatlenghts)
         quote $l end
     else
+        # Shouldn't be used, ideally
+        @assert false
         fieldtypes = ntuple(i -> fieldtype(T, i), Val(fieldcount(T)))
         field_flatlenghts = sum(U -> totalndof(_valshapeoftype(U)), fieldtypes)
         l = prod(field_flatlenghts)

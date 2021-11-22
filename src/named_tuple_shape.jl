@@ -304,6 +304,8 @@ Base.@propagate_inbounds function Base.getindex(x::ShapedAsNT{names}) where name
     if @generated
         Expr(:tuple, map(p -> :($p = x.$p), names)...)
     else
+        # Shouldn't be used, ideally
+        @assert false
         accessors = _accessors(_valshape(x))
         data = _data(x)
         map(va -> getindex(data, va), accessors)
