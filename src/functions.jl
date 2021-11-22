@@ -14,9 +14,13 @@ with `valshape(x) == varshape(f)` as well all
     f(x::AbstractVector{<:Real})
 
 with `length(eachindex(x)) == vardof(f)` (see [`vardof`](@ref)).
+
+Defaults to `varshape(x::Any) === missing`.
 """
 function varshape end
 export varshape
+
+varshape(::Any) = missing
 
 
 """

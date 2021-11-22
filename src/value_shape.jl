@@ -181,6 +181,9 @@ data into a sequence of real numbers, excluding any constant values.
 function totalndof end
 export totalndof
 
+# Support for missing varshapes:
+totalndof(::Missing) = missing
+
 
 """
     unshaped(x)::AbstractVector{<:Real}
