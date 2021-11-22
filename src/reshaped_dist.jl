@@ -75,7 +75,7 @@ end
 @inline unshaped(rd::ReshapedDist) = rd.dist
 
 
-Random.rand(rng::AbstractRNG, rd::ReshapedDist{Univariate}) = stripscalar(varshape(rd)(rand(rng, unshaped(rd))))
+Random.rand(rng::AbstractRNG, rd::ReshapedDist{Univariate}) = varshape(rd)(rand(rng, unshaped(rd)))
 
 function Distributions._rand!(rng::AbstractRNG, rd::ReshapedDist{Multivariate}, x::AbstractVector{<:Real})
     Distributions._rand!(rng, unshaped(rd), x)
@@ -91,11 +91,11 @@ Base.length(rd::ReshapedDist{<:Multivariate}) = size(varshape(rd))[1]
 Base.size(rd::ReshapedDist{<:Matrixvariate}) = size(varshape(rd))
 
 
-Statistics.mean(rd::ReshapedDist) = stripscalar(varshape(rd)(mean(unshaped(rd))))
+Statistics.mean(rd::ReshapedDist) = varshape(rd)(mean(unshaped(rd)))
 
-StatsBase.mode(rd::ReshapedDist) = stripscalar(varshape(rd)(mode(unshaped(rd))))
+StatsBase.mode(rd::ReshapedDist) = varshape(rd)(mode(unshaped(rd)))
 
-Statistics.var(rd::ReshapedDist) = stripscalar(_with_zeroconst(varshape(rd))(var(unshaped(rd))))
+Statistics.var(rd::ReshapedDist) = _with_zeroconst(varshape(rd))(var(unshaped(rd)))
 
 Statistics.cov(rd::ReshapedDist{Multivariate}) = cov(unshaped(rd))
 

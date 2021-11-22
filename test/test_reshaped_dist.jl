@@ -111,9 +111,9 @@ using StatsBase, Distributions, ArraysOfArrays
             @test @inferred(insupport(rd, vs(ux))) == true
         end
 
-        @test @inferred(mean(_mvnormalrd(ntshape))) == (a = [2.0 2.0 2.0; 2.0 2.0 2.0], b = 2.0, c = 4.2, x = [11 21; 12 22], y = [2.0, 2.0, 2.0, 2.0])
-        @test @inferred(mode(_mvnormalrd(ntshape))) == (a = [2.0 2.0 2.0; 2.0 2.0 2.0], b = 2.0, c = 4.2, x = [11 21; 12 22], y = [2.0, 2.0, 2.0, 2.0])
-        @test @inferred(var(_mvnormalrd(ntshape))) == (a = [3.0 3.0 3.0; 3.0 3.0 3.0], b = 3.0, c = 0.0, x = [0 0; 0 0], y = [3.0, 3.0, 3.0, 3.0])
+        @test @inferred(mean(_mvnormalrd(ntshape)))[] == (a = [2.0 2.0 2.0; 2.0 2.0 2.0], b = 2.0, c = 4.2, x = [11 21; 12 22], y = [2.0, 2.0, 2.0, 2.0])
+        @test @inferred(mode(_mvnormalrd(ntshape)))[] == (a = [2.0 2.0 2.0; 2.0 2.0 2.0], b = 2.0, c = 4.2, x = [11 21; 12 22], y = [2.0, 2.0, 2.0, 2.0])
+        @test @inferred(var(_mvnormalrd(ntshape)))[] == (a = [3.0 3.0 3.0; 3.0 3.0 3.0], b = 3.0, c = 0.0, x = [0 0; 0 0], y = [3.0, 3.0, 3.0, 3.0])
         let rd = _mvnormalrd(ntshape), ux = rand(unshaped(rd)), vs = varshape(rd)
             @test @inferred(pdf(rd, vs(ux)[])) == pdf(unshaped(rd), ux)
             @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)

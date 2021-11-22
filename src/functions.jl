@@ -90,7 +90,7 @@ Base.@propagate_inbounds (fws::FuncWithVarShape)(x::Any) = fws.f(x)
 
 Base.@propagate_inbounds function (fws::FuncWithVarShape)(x::AbstractVector{<:Real})
     # ToDo: Check performance:
-    x_shaped = stripscalar(varshape(fws)(x))
+    x_shaped = varshape(fws)(x)
     fws.f(x_shaped)
 end
 

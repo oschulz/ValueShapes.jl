@@ -37,7 +37,7 @@ using LinearAlgebra
 
     @testset "FuncWithVarShape" begin
         x_flat = rand(@inferred totalndof(input_shape))
-        x = @inferred stripscalar(input_shape(x_flat))
+        x = @inferred input_shape(x_flat)
 
         g(x) = sum(x.a * x.b)
 

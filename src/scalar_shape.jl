@@ -27,6 +27,11 @@ export AbstractScalarShape
 @inline shaped_type(shape::AbstractScalarShape{<:Complex}, ::Type{T}) where {T<:Real} = Complex{T}
 
 
+@inline function _apply_shape_to_data(shape::AbstractScalarShape, data::AbstractVector{<:Real})
+    @boundscheck _checkcompat(shape, data)
+    getindex(data, ValueAccessor(shape, 0))
+end
+
 
 """
     ScalarShape{T} <: AbstractScalarShape{T}

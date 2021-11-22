@@ -36,7 +36,7 @@ import TypedTables
     @test @inferred(ScalarShape{Real}()(undef)) === zero(Float64)
     @test @inferred(ScalarShape{Complex}()(undef)) === zero(Complex{Float64})
 
-    @test typeof(@inferred(ScalarShape{Real}()([42]))) <: SubArray{Int,0}
+    @test typeof(@inferred(ScalarShape{Real}()([42]))) <: Integer
     @test @inferred(ScalarShape{Real}()([42])[]) == 42
 
     @test @inferred (ScalarShape{Int}() <= ScalarShape{Real}()) == true
