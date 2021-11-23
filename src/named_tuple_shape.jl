@@ -563,6 +563,11 @@ Base.Broadcast.broadcasted(vs::NamedTupleShape, A::AbstractArray{<:AbstractVecto
 
 Base.Broadcast.broadcasted(::typeof(unshaped), A::ShapedAsNTArray) = _data(A)
 
+function Base.Broadcast.broadcasted(::typeof(unshaped), A::ShapedAsNTArray, vsref::Ref{<:AbstractValueShape})
+    elshape(A) <= vsref[] || throw(ArgumentError("Shape of value not compatible with given shape"))
+    _data(A)
+end
+
 function (bc_inv_vs::_BroadcastInvValueShape)(A::ShapedAsNTArray)
     elshape(A) <= bc_inv_vs.x.x || throw(ArgumentError("Shape of value not compatible with given shape"))
     _data(A)

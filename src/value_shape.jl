@@ -339,11 +339,21 @@ function Base.Broadcast.broadcasted(::typeof(unshaped), x::AbstractVector{<:Real
     nestedview(reshape(view(x, :), 1, length(eachindex(x))))
 end
 
+function Base.Broadcast.broadcasted(::typeof(unshaped), x::AbstractVector{<:Real}, vsref::Ref{<:AbstractValueShape})
+    elshape(x) <= vsref[] || throw(ArgumentError("Shape of value not compatible with given shape"))
+    Base.Broadcast.broadcasted(unshaped, x)
+end
+
 
 # Specialize unshaped for real vectors that are array slices:
 const _MatrixSliceFirstDim{T} = SubArray{T,1,<:AbstractArray{T,2},<:Tuple{Int,AbstractArray{Int}}}
 function Base.Broadcast.broadcasted(::typeof(unshaped), x::_MatrixSliceFirstDim{<:Real})
     nestedview(view(parent(x), x.indices[1]:x.indices[1], x.indices[2]))
+end
+
+function Base.Broadcast.broadcasted(::typeof(unshaped), x::_MatrixSliceFirstDim{<:Real}, vsref::Ref{<:AbstractValueShape})
+    elshape(x) <= vsref[] || throw(ArgumentError("Shape of value not compatible with given shape"))
+    Base.Broadcast.broadcasted(unshaped, x)
 end
 
 

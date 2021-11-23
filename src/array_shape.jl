@@ -189,12 +189,16 @@ Base.Broadcast.broadcasted(vs::ArrayShape{T,1}, A::AbstractArray{<:AbstractVecto
 
 
 @inline _bcasted_unshaped(A::AbstractArrayOfSimilarVectors{<:Real}) = A
-@inline _bcasted_unshaped(A::AbstractArray{<:AbstractVector{<:Real}}) = convert(AbstractArrayOfSimilarVectors, A)
+@inline _bcasted_unshaped(A::AbstractArray{<:AbstractVector{<:Real}}) = convert(ArrayOfSimilarVectors, A)
 
 # Specialize unshaped.(::AbstractArray{<:AbstractVector{<:Real}}):
 Base.Broadcast.broadcasted(::typeof(unshaped), A::AbstractArray{<:AbstractVector{<:Real}}) =
     _bcasted_unshaped(A)
 
+function Base.Broadcast.broadcasted(::typeof(unshaped), A::AbstractArray{<:AbstractVector{<:Real}}, vsref::Ref{<:AbstractValueShape})
+    elshape(A) <= vsref[] || throw(ArgumentError("Shape of value not compatible with given shape"))
+    Base.Broadcast.broadcasted(unshaped, A)
+end
 
 # TODO: Add support for StaticArray.
 
