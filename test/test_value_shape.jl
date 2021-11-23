@@ -8,6 +8,7 @@ using ElasticArrays
 using ArraysOfArrays
 using FillArrays
 using InverseFunctions, ChangesOfVariables
+using ChainRulesCore: rrule, NoTangent
 import TypedTables
 
 
@@ -83,6 +84,22 @@ import TypedTables
         let A = rand(1,15)
             @test @inferred(broadcast(unshaped, view(A, 1, :))) isa ArrayOfSimilarArrays{Float64,1,1,2,<:SubArray}
             @test broadcast(unshaped, view(A, 1, :)) == nestedview(A)
+        end
+    end
+
+    @testset "value shape comparison" begin
+        for (T, U) in [(Real, Float64), (Float64, Real), (Real, Real), (Float64, Float64)]
+            @test @inferred(ScalarShape{T}() <= ScalarShape{U}())[1] == (T <: U)
+            @test @inferred(rrule(Base.:(<=), ScalarShape{T}(), ScalarShape{U}()))[1] == (T <: U)
+            @test @inferred(rrule(Base.:(<=), ScalarShape{T}(), ScalarShape{U}()))[2](T <: U) == (NoTangent(), NoTangent(), NoTangent())
+
+            @test @inferred(ScalarShape{T}() >= ScalarShape{U}())[1] == (T >: U)
+            @test @inferred(rrule(Base.:(>=), ScalarShape{T}(), ScalarShape{U}()))[1] == (T >: U)
+            @test @inferred(rrule(Base.:(>=), ScalarShape{T}(), ScalarShape{U}()))[2](T >: U) == (NoTangent(), NoTangent(), NoTangent())
+
+            @test @inferred(ScalarShape{T}() == ScalarShape{U}())[1] == (T == U)
+            @test @inferred(rrule(Base.:(==), ScalarShape{T}(), ScalarShape{U}()))[1] == (T == U)
+            @test @inferred(rrule(Base.:(==), ScalarShape{T}(), ScalarShape{U}()))[2](T == U) == (NoTangent(), NoTangent(), NoTangent())
         end
     end
 end

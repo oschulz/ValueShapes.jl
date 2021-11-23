@@ -34,8 +34,7 @@ ConstValueShape(x::T) where T = ConstValueShape{T,true}(x)
 @inline Base.length(shape::ConstValueShape) = length(shape.value)
 
 
-import Base.<=
-@inline <=(a::ConstValueShape{T}, b::ConstValueShape{U}) where {T,U} = T<:U && a.value ≈ b.value
+@inline Base.:(<=)(a::ConstValueShape{T}, b::ConstValueShape{U}) where {T,U} = T<:U && a.value ≈ b.value
 
 
 @inline default_unshaped_eltype(shape::ConstValueShape) = Int32

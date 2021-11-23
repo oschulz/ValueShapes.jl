@@ -104,8 +104,12 @@ abstract type AbstractValueShape end
 export AbstractValueShape
 
 
-import Base.>=
-@inline >=(a::AbstractValueShape, b::AbstractValueShape) = b <= a
+@inline Base.:(>=)(a::AbstractValueShape, b::AbstractValueShape) = b <= a
+
+vs_cmp_pullback(ΔΩ) = (NoTangent(), NoTangent(), NoTangent())
+ChainRulesCore.rrule(::typeof(Base.:(==)), a::AbstractValueShape, b::AbstractValueShape) = (a == b, vs_cmp_pullback)
+ChainRulesCore.rrule(::typeof(Base.:(<=)), a::AbstractValueShape, b::AbstractValueShape) = (a <= b, vs_cmp_pullback)
+ChainRulesCore.rrule(::typeof(Base.:(>=)), a::AbstractValueShape, b::AbstractValueShape) = (a >= b, vs_cmp_pullback)
 
 
 # Reserve broadcasting semantics for value shapes:
