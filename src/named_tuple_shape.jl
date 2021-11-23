@@ -568,11 +568,6 @@ function Base.Broadcast.broadcasted(::typeof(unshaped), A::ShapedAsNTArray, vsre
     _data(A)
 end
 
-function (bc_inv_vs::_BroadcastInvValueShape)(A::ShapedAsNTArray)
-    elshape(A) <= bc_inv_vs.x.x || throw(ArgumentError("Shape of value not compatible with given shape"))
-    _data(A)
-end
-
 
 @inline function Base.getproperty(A::ShapedAsNTArray, p::Symbol)
     # Need to include internal fields of ShapedAsNTArray to make Zygote happy (ToDo: still true?):

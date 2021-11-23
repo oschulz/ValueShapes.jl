@@ -226,6 +226,11 @@ unshaped(x::Base.ReshapedArray{T,N,<:AbstractArray{T,1}}) where {T<:Real,N} = pa
 
 const _InvValueShape = Base.Fix2{typeof(unshaped),<:AbstractValueShape}
 
+@inline function Base.Broadcast.broadcasted(inv_vs::_InvValueShape, xs)
+    Base.Broadcast.broadcasted(unshaped, xs, Ref(inv_vs.x))
+end
+
+
 InverseFunctions.inverse(vs::AbstractValueShape) = Base.Fix2(unshaped, vs)
 InverseFunctions.inverse(inv_vs::_InvValueShape) = inv_vs.x
 
