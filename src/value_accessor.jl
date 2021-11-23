@@ -22,7 +22,7 @@ Example:
 acc = ValueAccessor(ArrayShape{Real}(2,3), 2)
 valshape(acc) == ArrayShape{Real,2}((2, 3))
 data = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-data[acc] == [3 5 7; 4 6 8]
+data[acc] == acc(data) == [3 5 7; 4 6 8]
 ```
 
 Note: Subtypes of [`AbstractValueShape`](@ref) should specialize
@@ -44,6 +44,14 @@ end
 export ValueAccessor
 
 ValueAccessor(shape::S, offset::Int) where {S<:AbstractValueShape} = ValueAccessor{S}(shape, offset)
+
+
+
+@inline _apply_accessor_to_data(acc::ValueAccessor, data::AbstractVector{<:Real}) = view(data, acc)
+
+@inline function (acc::ValueAccessor)(data::AbstractVector{<:Real})
+    _apply_accessor_to_data(acc, data)
+end
 
 
 # Reserve broadcasting semantics for value accessors:

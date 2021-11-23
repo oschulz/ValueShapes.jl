@@ -310,7 +310,7 @@ end
 
 @inline function _apply_shape_to_data(shape::AbstractValueShape, data::AbstractVector{<:Real})
     @boundscheck _checkcompat(shape, data)
-    view(data, ValueAccessor(shape, 0))
+    _apply_accessor_to_data(ValueAccessor(shape, 0), data)
 end
 
 

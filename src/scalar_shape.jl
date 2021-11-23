@@ -27,11 +27,6 @@ export AbstractScalarShape
 @inline shaped_type(shape::AbstractScalarShape{<:Complex}, ::Type{T}) where {T<:Real} = Complex{T}
 
 
-@inline function _apply_shape_to_data(shape::AbstractScalarShape, data::AbstractVector{<:Real})
-    @boundscheck _checkcompat(shape, data)
-    getindex(data, ValueAccessor(shape, 0))
-end
-
 
 """
     ScalarShape{T} <: AbstractScalarShape{T}
@@ -102,6 +97,9 @@ replace_const_shapes(f::Function, shape::ScalarShape) = shape
 
 
 const ScalarAccessor{T} = ValueAccessor{ScalarShape{T}} where {T}
+
+# Scalar accessors should return value, not 0-dim array view:
+@inline _apply_accessor_to_data(acc::ScalarAccessor, data::AbstractVector{<:Real}) = getindex(data, acc)
 
 
 @inline view_idxs(idxs::AbstractUnitRange{<:Integer}, va::ScalarAccessor{<:Real}) = first(idxs) + va.offset
