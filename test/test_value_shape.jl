@@ -68,6 +68,11 @@ import TypedTables
             ChangesOfVariables.test_with_logabsdet_jacobian(inverse(bc_vs), vs.(xs), vs_jacobian)
             @test with_logabsdet_jacobian(bc_unshaped, vs.(xs))[1] isa ArrayOfSimilarArrays
             ChangesOfVariables.test_with_logabsdet_jacobian(bc_unshaped, vs.(xs), vs_jacobian)
+
+            for f in [vs, inverse(vs), bc_vs, inverse(bc_vs), unshaped]
+                @test @inferred(identity ∘ f) === f
+                @test @inferred(f ∘ identity) === f
+            end
         end
 
         @test @inferred(unshaped(4.2)) isa Fill{Float64,1}

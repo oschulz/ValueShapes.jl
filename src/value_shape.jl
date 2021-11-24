@@ -294,6 +294,13 @@ function ChangesOfVariables.with_logabsdet_jacobian(bc_inv_vs::Union{_BroadcastI
     ao_flat_x, zero(float(realnumtype(typeof(ao_flat_x))))
 end
 
+const _VSTrafo = Union{
+    AbstractValueShape, _InvValueShape, typeof(unshaped),
+    _BroadcastValueShape, _BroadcastInvValueShape, _BroadcastUnshaped
+}
+
+Base.:(∘)(::typeof(identity), f::_VSTrafo) = f
+Base.:(∘)(f::_VSTrafo, ::typeof(identity)) = f
 
 
 """
