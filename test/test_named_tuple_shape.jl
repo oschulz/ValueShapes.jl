@@ -121,6 +121,8 @@ import Zygote, ForwardDiff
 
             @test @inferred(valshape(A)) === shape
 
+            @test @inferred(realnumtype(typeof(A))) == Int
+
             @test @inferred(unshaped(A)) === UA
             @test @inferred(unshaped(A.a)) == view(UA, 1:6)
             @test @inferred(unshaped(A.b)) == view(UA, 7:7)
@@ -243,6 +245,8 @@ import Zygote, ForwardDiff
             @test @inferred(get_y(A)) == [[8, 9, 10, 11], [19, 20, 21, 22]]
 
             @test @inferred(elshape(A)) === shape
+
+            @test @inferred(realnumtype(typeof(A))) == Int
 
             @test @inferred(broadcast(unshaped, A)) === UA
 

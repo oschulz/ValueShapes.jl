@@ -87,6 +87,20 @@ import TypedTables
         end
     end
 
+    @testset "realnumtype" begin
+        a = 4.2f0
+        b = Complex(a, a)
+        A = fill(fill(rand(Float32, 5), 10), 5)
+        B = fill(rand(Float32, 5), 10)
+        C = ArrayOfSimilarArrays(B)
+        nt = (a = 4.2f0, b = 42)
+        tpl = (4.2f0, Float16(2.3))
+        deepnt = (a = a, b = b, A = A, B = B, C = C, nt = nt, tpl = tpl)
+        for x in [a, A, B, C, nt, tpl, deepnt]
+            @test @inferred (realnumtype(typeof(x))) == Float32
+        end
+    end
+
     @testset "value shape comparison" begin
         for (T, U) in [(Real, Float64), (Float64, Real), (Real, Real), (Float64, Float64)]
             @test @inferred(ScalarShape{T}() <= ScalarShape{U}())[1] == (T <: U)

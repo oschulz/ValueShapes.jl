@@ -2,6 +2,38 @@
 
 
 """
+    realnumtype(T::Type)
+
+Return the underlying numerical type of T that's a subtype of `Real`.
+
+Uses type promotion among underlying `Real` type in `T`.
+
+e.g.
+
+```julia
+
+A = fill(fill(rand(Float32, 5), 10), 5)
+realnumtype(typeof(A)) == Float32
+```
+"""
+function realnumtype end
+export realnumtype
+
+realnumtype(::Type{T}) where T = throw(ArgumentError("Can't derive numeric type for type $T"))
+
+realnumtype(::Type{T}) where {T<:Real} = T
+realnumtype(::Type{<:Complex{T}}) where {T<:Real} = T
+realnumtype(::Type{<:AbstractArray{T}}) where {T} = realnumtype(T)
+realnumtype(::Type{<:NamedTuple{names,T}}) where {names,T} = realnumtype(T)
+
+realnumtype(::Type{NTuple{N,T}}) where {N,T} = realnumtype(T)
+
+@generated function realnumtype(::Type{T}) where {T<:Tuple}
+    :(promote_type(map(realnumtype, $((T.parameters...,)))...))
+end
+
+
+"""
     ValueShapes.default_datatype(T::Type)
 
 Return a default specific type U that is more specific than T, with U <: T.
@@ -251,16 +283,14 @@ end
 const _BroadcastValueShape = Base.Fix1{typeof(broadcast),<:AbstractValueShape}
 const _BroadcastInvValueShape = Base.Fix1{typeof(broadcast),<:_InvValueShape}
 
-_inner_eltype(::AbstractArray{<:AbstractArray{T}}) where {T<:Real} = T
-
 function ChangesOfVariables.with_logabsdet_jacobian(bc_vs::_BroadcastValueShape, ao_flat_x)
     ao_x = bc_vs(ao_flat_x)
-    ao_x, zero(float(_inner_eltype(ao_flat_x)))
+    ao_x, zero(float(realnumtype(typeof(ao_flat_x))))
 end
 
 function ChangesOfVariables.with_logabsdet_jacobian(bc_inv_vs::_BroadcastInvValueShape, ao_x)
     ao_flat_x = bc_inv_vs(ao_x)
-    ao_flat_x, zero(float(_inner_eltype(ao_flat_x)))
+    ao_flat_x, zero(float(realnumtype(typeof(ao_flat_x))))
 end
 
 

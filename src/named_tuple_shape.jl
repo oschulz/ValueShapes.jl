@@ -346,6 +346,7 @@ function Base.convert(::Type{ShapedAsNT{names,D_a,S}}, A::ShapedAsNT{names,D_b,S
     ShapedAsNT{names,D_a,S}(convert(D_a,_data(A)), valshape(A))
 end
 
+realnumtype(::Type{<:ShapedAsNT{<:Any,<:AbstractArray{T}}}) where {T<:Real} = T
 
 stripscalar(A::ShapedAsNT) = A[]
 
@@ -557,6 +558,8 @@ Base.Broadcast.broadcasted(vs::NamedTupleShape, A::AbstractArray{<:AbstractVecto
 @inline _elshape(A::ShapedAsNTArray) = getfield(A, :__internal_elshape)
 
 @inline elshape(A::ShapedAsNTArray) = _elshape(A)
+
+realnumtype(::Type{<:ShapedAsNTArray{<:Any,N,<:AbstractArray{<:AbstractArray{T}}}}) where {T<:Real,N} = T
 
 
 Base.Broadcast.broadcasted(::typeof(identity), A::ShapedAsNTArray) = A
