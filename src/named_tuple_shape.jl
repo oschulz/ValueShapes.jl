@@ -559,6 +559,8 @@ Base.Broadcast.broadcasted(vs::NamedTupleShape, A::AbstractArray{<:AbstractVecto
 @inline elshape(A::ShapedAsNTArray) = _elshape(A)
 
 
+Base.Broadcast.broadcasted(::typeof(identity), A::ShapedAsNTArray) = A
+
 Base.Broadcast.broadcasted(::typeof(unshaped), A::ShapedAsNTArray) = _data(A)
 
 function Base.Broadcast.broadcasted(::typeof(unshaped), A::ShapedAsNTArray, vsref::Ref{<:AbstractValueShape})

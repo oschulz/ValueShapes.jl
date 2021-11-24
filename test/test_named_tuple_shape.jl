@@ -232,6 +232,8 @@ import Zygote, ForwardDiff
             @test @inferred(size(@inferred(ValueShapes.ShapedAsNTArray(UA, shape)))) == (2,)
             A = ValueShapes.ShapedAsNTArray(UA, shape)
 
+            @inferred(broadcast(identity, A)) === A
+
             @inferred typeof(@inferred broadcast(shape, data)) == typeof(A)
             @test shape.(data) == A
             @test @inferred(broadcast(unshaped, shape.(data))) == data
