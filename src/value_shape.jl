@@ -282,13 +282,14 @@ end
 
 const _BroadcastValueShape = Base.Fix1{typeof(broadcast),<:AbstractValueShape}
 const _BroadcastInvValueShape = Base.Fix1{typeof(broadcast),<:_InvValueShape}
+const _BroadcastUnshaped = Base.Fix1{typeof(broadcast),typeof(unshaped)}
 
 function ChangesOfVariables.with_logabsdet_jacobian(bc_vs::_BroadcastValueShape, ao_flat_x)
     ao_x = bc_vs(ao_flat_x)
     ao_x, zero(float(realnumtype(typeof(ao_flat_x))))
 end
 
-function ChangesOfVariables.with_logabsdet_jacobian(bc_inv_vs::_BroadcastInvValueShape, ao_x)
+function ChangesOfVariables.with_logabsdet_jacobian(bc_inv_vs::Union{_BroadcastInvValueShape,_BroadcastUnshaped}, ao_x)
     ao_flat_x = bc_inv_vs(ao_x)
     ao_flat_x, zero(float(realnumtype(typeof(ao_flat_x))))
 end

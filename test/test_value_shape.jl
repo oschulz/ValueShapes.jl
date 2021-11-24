@@ -60,11 +60,14 @@ import TypedTables
             ChangesOfVariables.test_with_logabsdet_jacobian(inverse(vs), vs(x), vs_jacobian)
 
             bc_vs = Base.Fix1(broadcast, vs)
+            bc_unshaped = Base.Fix1(broadcast, unshaped)
             InverseFunctions.test_inverse(bc_vs, xs)
             @test with_logabsdet_jacobian(bc_vs, xs)[1] isa ShapedAsNTArray
             ChangesOfVariables.test_with_logabsdet_jacobian(bc_vs, xs, vs_jacobian)
-            with_logabsdet_jacobian(inverse(bc_vs), vs.(xs))[1] isa ArrayOfSimilarArrays
+            @test with_logabsdet_jacobian(inverse(bc_vs), vs.(xs))[1] isa ArrayOfSimilarArrays
             ChangesOfVariables.test_with_logabsdet_jacobian(inverse(bc_vs), vs.(xs), vs_jacobian)
+            @test with_logabsdet_jacobian(bc_unshaped, vs.(xs))[1] isa ArrayOfSimilarArrays
+            ChangesOfVariables.test_with_logabsdet_jacobian(bc_unshaped, vs.(xs), vs_jacobian)
         end
 
         @test @inferred(unshaped(4.2)) isa Fill{Float64,1}
