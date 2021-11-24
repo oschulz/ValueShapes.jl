@@ -16,22 +16,22 @@ using Random
     @test @inferred(length(ConstValueDist([1, 2, 3]))) == 3
     @test @inferred(length(ConstValueDist([1 2; 3 4]))) == 4
 
-    @test @inferred(pdf(ConstValueDist(4.2), 4.2)) == Inf
-    @test @inferred(logpdf(ConstValueDist(4.2), 4.2)) == Inf
+    @test @inferred(pdf(ConstValueDist(4.2), 4.2)) == 1
+    @test @inferred(logpdf(ConstValueDist(4.2), 4.2)) == 0
     @test @inferred(pdf(ConstValueDist(4.2), 3.7)) == 0
     @test @inferred(logpdf(ConstValueDist(4.2), 3.7)) == -Inf
-    @test @inferred(pdf(ConstValueDist(4.2), [4.2, 3.7])) == [Inf, 0.0]
-    @test @inferred(logpdf(ConstValueDist(4.2), [4.2, 3.7])) == [Inf, -Inf]
+    @test @inferred(pdf(ConstValueDist(4.2), [4.2, 3.7])) == [1, 0]
+    @test @inferred(logpdf(ConstValueDist(4.2), [4.2, 3.7])) == [0, -Inf]
 
-    @test @inferred(pdf(ConstValueDist([1, 2, 3]), [1, 2, 3])) == Inf
-    @test @inferred(logpdf(ConstValueDist([1, 2, 3]), [1, 2, 3])) == Inf
+    @test @inferred(pdf(ConstValueDist([1, 2, 3]), [1, 2, 3])) == 1
+    @test @inferred(logpdf(ConstValueDist([1, 2, 3]), [1, 2, 3])) == 0
     @test @inferred(pdf(ConstValueDist([1, 2, 3]), [2, 3, 4])) == 0
     @test @inferred(logpdf(ConstValueDist([1, 2, 3]), [2, 3, 4])) == -Inf
-    @test (pdf(ConstValueDist([1, 2, 3]), hcat([1, 2, 3], [2, 3, 4]))) == [Inf, 0.0]
-    @test (logpdf(ConstValueDist([1, 2, 3]), hcat([1, 2, 3], [2, 3, 4]))) == [Inf, -Inf]
+    @test (pdf(ConstValueDist([1, 2, 3]), hcat([1, 2, 3], [2, 3, 4]))) == [1, 0]
+    @test (logpdf(ConstValueDist([1, 2, 3]), hcat([1, 2, 3], [2, 3, 4]))) == [0, -Inf]
 
-    @test @inferred(pdf(ConstValueDist([1 2; 3 4]), [1 2; 3 4])) == Inf
-    @test @inferred(logpdf(ConstValueDist([1 2; 3 4]), [1 2; 3 4])) == Inf
+    @test @inferred(pdf(ConstValueDist([1 2; 3 4]), [1 2; 3 4])) == 1
+    @test @inferred(logpdf(ConstValueDist([1 2; 3 4]), [1 2; 3 4])) == 0
     @test @inferred(pdf(ConstValueDist([1 2; 3 4]), [4 5; 6 7])) == 0
     @test @inferred(logpdf(ConstValueDist([1 2; 3 4]), [4 5; 6 7])) == -Inf
 
@@ -66,7 +66,7 @@ using Random
     @test @inferred(minimum(univariate_cvd)) == 42
     @test @inferred(maximum(univariate_cvd)) == 42
 
-    @test @inferred(pdf(univariate_cvd, 42)) == Inf
+    @test @inferred(pdf(univariate_cvd, 42)) == 1
 
     @test @inferred(cdf(univariate_cvd, 41.999)) == 0
     @test @inferred(cdf(univariate_cvd, 42)) == 1
@@ -81,7 +81,7 @@ using Random
     μ1, μ2 = rand(2)
     cvd_from_named_tuple = @inferred(ConstValueDist((a=μ1, b=μ2)))
 
-    @test @inferred(log(@inferred(pdf(cvd_from_named_tuple, (a=μ1, b=μ2))))) == @inferred(logpdf(cvd_from_named_tuple, (a=μ1, b=μ2))) == Inf
+    @test @inferred(log(@inferred(pdf(cvd_from_named_tuple, (a=μ1, b=μ2))))) == @inferred(logpdf(cvd_from_named_tuple, (a=μ1, b=μ2))) == 0
 
     @test @inferred(insupport(cvd_from_named_tuple, (a=μ1, b=μ2))) == true
     @test @inferred(insupport(cvd_from_named_tuple, (a=μ1+eps(μ1), b=μ2+eps(μ2)))) == false

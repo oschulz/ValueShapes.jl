@@ -9,7 +9,7 @@ Represents a delta distribution for a constant value of arbritrary type.
 Calling `varshape` on a `ConstValueDist` will yield a
 [`ConstValueShape`](@ref).
 """
-struct ConstValueDist{VF<:VariateForm,T} <: Distribution{VF,Continuous}
+struct ConstValueDist{VF<:VariateForm,T} <: Distribution{VF,Discrete}
     value::T
 end
 
@@ -21,8 +21,8 @@ ConstValueDist(x::T) where {T<:AbstractMatrix{<:Real}} = ConstValueDist{Matrixva
 ConstValueDist(x::NamedTuple{names}) where names = ConstValueDist{NamedTupleVariate{names},typeof(x)}(x)
 
 
-_pdf_impl(d::ConstValueDist, x) = d.value == x ? float(eltype(d))(Inf) : float(eltype(d))(0)
-_logpdf_impl(d::ConstValueDist, x) = d.value == x ? float(eltype(d))(Inf) : float(eltype(d))(-Inf)
+_pdf_impl(d::ConstValueDist, x) = d.value == x ? float(eltype(d))(1) : float(eltype(d))(0)
+_logpdf_impl(d::ConstValueDist, x) = d.value == x ? float(eltype(d))(0) : float(eltype(d))(-Inf)
 
 Distributions.pdf(d::ConstValueDist{Univariate}, x::Real) = _pdf_impl(d, x)
 Distributions.logpdf(d::ConstValueDist{Univariate}, x::Real) = _logpdf_impl(d, x)
