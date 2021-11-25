@@ -108,8 +108,8 @@ will have the same effect:
 
 ```julia
 using TypedTables
-flatview(Table(A).b) isa Array{Int}
+flatview(Table(A).b) isa AbstractArray{Int}
 
 using DataFrames
-flatview(DataFrame(A).b) isa Array{Int}
+flatview(DataFrame(A).b) isa AbstractArray{Int}
 ```
