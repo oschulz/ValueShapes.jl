@@ -210,7 +210,7 @@ function _ntd_rand!(
 end
 
 function _ntd_rand!(
-    rng::AbstractRNG, dist::UnivariateDistribution,
+    rng::AbstractRNG, dist::Distribution{Univariate},
     acc::ValueShapes.ValueAccessor,
     x::AbstractVector{<:Real}
 )
@@ -222,7 +222,7 @@ function _ntd_rand!(
 end
 
 function _ntd_rand!(
-    rng::AbstractRNG, dist::Union{Distribution{Multivariate}, Distribution{Matrixvariate}},
+    rng::AbstractRNG, dist::Union{Distribution{<:PlainVariate}},
     acc::ValueShapes.ValueAccessor,
     x::AbstractVector{<:Real}
 )

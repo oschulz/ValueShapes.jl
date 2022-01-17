@@ -1,5 +1,11 @@
 # This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
+@static if hasmethod(reshape, Tuple{Distribution{Multivariate,Continuous}, Int, Int})
+    _reshape_arraylike_dist(d::Distribution, sz::Integer...) = reshape(d, sz)
+else
+    _reshape_arraylike_dist(d::Distribution, sz1::Integer, sz2::Integer) = MatrixReshaped(d, sz1, sz2)
+end
+
 
 """
     ReshapedDist <: Distribution
@@ -41,8 +47,14 @@ export ReshapedDist
 
 
 _variate_form(shape::ScalarShape) = Univariate
-_variate_form(shape::ArrayShape{T,1}) where T = Multivariate
-_variate_form(shape::ArrayShape{T,2}) where T = Matrixvariate
+
+@static if isdefined(Distributions, :ArrayLikeVariate)
+    _variate_form(shape::ArrayShape{T,N}) where {T,N} = ArrayLikeVariate{N}
+else
+    _variate_form(shape::ArrayShape{T,1}) where T = Multivariate
+    _variate_form(shape::ArrayShape{T,2}) where T = Matrixvariate
+end
+
 _variate_form(shape::NamedTupleShape{names}) where names = NamedTupleVariate{names}
 
 _with_zeroconst(shape::AbstractValueShape) = replace_const_shapes(const_zero_shape, shape)
@@ -57,17 +69,17 @@ function ReshapedDist(dist::MultivariateDistribution{VS}, shape::AbstractValueSh
 end
 
 
-(shape::AbstractValueShape)(dist::MultivariateDistribution) = ReshapedDist(dist, shape)
-
-
-function (shape::ArrayShape{T,1})(dist::MultivariateDistribution) where T
+function (shape::ArrayShape{<:Real,1})(dist::MultivariateDistribution) where {T<:Real}
     @argcheck totalndof(varshape(dist)) == totalndof(shape)
     dist
 end
 
-function (shape::ArrayShape{T,2})(dist::MultivariateDistribution) where T
-    MatrixReshaped(dist, size(shape)...)
-end
+(shape::ArrayShape{<:Real})(dist::MultivariateDistribution) = _reshape_arraylike_dist(dist, size(shape)...)
+
+# ToDo: Enable when `reshape(::MultivariateDistribution, ())` becomes fully functional in Distributions:
+#(shape::ScalarShape{<:Real})(dist::MultivariateDistribution) = _reshape_arraylike_dist(dist, size(shape)...)
+
+(shape::AbstractValueShape)(dist::MultivariateDistribution) = ReshapedDist(dist, shape)
 
 
 @inline varshape(rd::ReshapedDist) = rd.shape
@@ -81,15 +93,19 @@ function Distributions._rand!(rng::AbstractRNG, rd::ReshapedDist{Multivariate}, 
     Distributions._rand!(rng, unshaped(rd), x)
 end
 
-function Distributions._rand!(rng::AbstractRNG, rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real})
-    Distributions._rand!(rng, MatrixReshaped(unshaped(rd), size(rd)...), x)
+@static if isdefined(Distributions, :ArrayLikeVariate)
+    function Distributions._rand!(rng::AbstractRNG, rd::ReshapedDist{<:ArrayLikeVariate{N}}, x::AbstractArray{<:Real,N}) where N
+        Distributions._rand!(rng, _reshape_arraylike_dist(unshaped(rd), size(rd)...), x)
+    end
+else
+    function Distributions._rand!(rng::AbstractRNG, rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real})
+        Distributions._rand!(rng, _reshape_arraylike_dist(unshaped(rd), size(rd)...), x)
+    end
 end
 
+Base.size(rd::ReshapedDist{<:PlainVariate}) = size(varshape(rd))
 
-Base.length(rd::ReshapedDist{<:Multivariate}) = size(varshape(rd))[1]
-
-Base.size(rd::ReshapedDist{<:Matrixvariate}) = size(varshape(rd))
-
+Base.length(rd::ReshapedDist{<:PlainVariate}) = prod(size(rd))
 
 Statistics.mean(rd::ReshapedDist) = varshape(rd)(mean(unshaped(rd)))
 
@@ -102,12 +118,12 @@ Statistics.cov(rd::ReshapedDist{Multivariate}) = cov(unshaped(rd))
 
 Distributions.pdf(rd::ReshapedDist{Univariate}, x::Real) = pdf(unshaped(rd), unshaped(x))
 Distributions._pdf(rd::ReshapedDist{Multivariate}, x::AbstractVector{<:Real}) = pdf(unshaped(rd), x)
-Distributions._pdf(rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = pdf(MatrixReshaped(unshaped(rd), size(rd)...), x)
+Distributions._pdf(rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = pdf(_reshape_arraylike_dist(unshaped(rd), size(rd)...), x)
 
 Distributions.logpdf(rd::ReshapedDist{Univariate}, x::Real) = logpdf(unshaped(rd), unshaped(x))
 Distributions._logpdf(rd::ReshapedDist{Multivariate}, x::AbstractVector{<:Real}) = logpdf(unshaped(rd), x)
-Distributions._logpdf(rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = logpdf(MatrixReshaped(unshaped(rd), size(rd)...), x)
+Distributions._logpdf(rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = logpdf(_reshape_arraylike_dist(unshaped(rd), size(rd)...), x)
 
 Distributions.insupport(rd::ReshapedDist{Univariate}, x::Real) = insupport(unshaped(rd), unshaped(x))
 Distributions.insupport(rd::ReshapedDist{Multivariate}, x::AbstractVector{<:Real}) = insupport(unshaped(rd), x)
-Distributions.insupport(rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = insupport(MatrixReshaped(unshaped(rd), size(rd)...), x)
+Distributions.insupport(rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = insupport(_reshape_arraylike_dist(unshaped(rd), size(rd)...), x)

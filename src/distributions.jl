@@ -7,8 +7,12 @@
 Get the value shape of the variates of distribution `d`.
 """
 varshape(d::Distribution{Univariate}) = ScalarShape{Real}()
-varshape(d::Distribution{Multivariate}) = ArrayShape{Real}(size(d)...)
-varshape(d::Distribution{Matrixvariate}) = ArrayShape{Real}(size(d)...)
+@static if isdefined(Distributions, :ArrayLikeVariate)
+    varshape(d::Distribution{<:ArrayLikeVariate}) = ArrayShape{Real}(size(d)...)
+else
+    varshape(d::Distribution{Multivariate}) = ArrayShape{Real}(size(d)...)
+    varshape(d::Distribution{Matrixvariate}) = ArrayShape{Real}(size(d)...)
+end
 
 @deprecate valshape(d::Distribution) varshape(d)
 
@@ -28,13 +32,26 @@ vardof(d::Distribution) = totalndof(varshape(d))
 Turns `d` into a `Distributions.Distribution{Multivariate}` based on
 `varshape(d)`.
 """
+function unshaped(d::UnivariateDistribution)
+    # ToDo: Replace with `reshape(d, 1)` when result of `reshape(::UnivariateDistribution, 1)`
+    # becomes fully functional in Distributions:
+    Distributions.Product(Fill(d, 1))
+end
+
 unshaped(d::Distribution{Multivariate}) = d
-unshaped(d::MatrixReshaped) = d.d
+
+@static if isdefined(Distributions, :ReshapedDistribution)
+    unshaped(d::Distribution{<:ArrayLikeVariate}) = reshape(d, length(d))
+else
+    unshaped(d::MatrixReshaped) = d.d
+end
 
 
-
-const PlainVariate = Union{Univariate,Multivariate,Matrixvariate}
-
+@static if isdefined(Distributions, :ArrayLikeVariate)
+    const PlainVariate = ArrayLikeVariate
+else
+    const PlainVariate = Union{Univariate,Multivariate,Matrixvariate}
+end
 
 struct StructVariate{T} <: VariateForm end
 

@@ -20,8 +20,8 @@ using Random
     @test @inferred(logpdf(ConstValueDist(4.2), 4.2)) == 0
     @test @inferred(pdf(ConstValueDist(4.2), 3.7)) == 0
     @test @inferred(logpdf(ConstValueDist(4.2), 3.7)) == -Inf
-    @test @inferred(pdf(ConstValueDist(4.2), [4.2, 3.7])) == [1, 0]
-    @test @inferred(logpdf(ConstValueDist(4.2), [4.2, 3.7])) == [0, -Inf]
+    @test @inferred(broadcast(pdf, ConstValueDist(4.2), [4.2, 3.7])) == [1, 0]
+    @test @inferred(broadcast(logpdf, ConstValueDist(4.2), [4.2, 3.7])) == [0, -Inf]
 
     @test @inferred(pdf(ConstValueDist([1, 2, 3]), [1, 2, 3])) == 1
     @test @inferred(logpdf(ConstValueDist([1, 2, 3]), [1, 2, 3])) == 0

@@ -27,9 +27,13 @@ _logpdf_impl(d::ConstValueDist, x) = d.value == x ? float(eltype(d))(0) : float(
 Distributions.pdf(d::ConstValueDist{Univariate}, x::Real) = _pdf_impl(d, x)
 Distributions.logpdf(d::ConstValueDist{Univariate}, x::Real) = _logpdf_impl(d, x)
 
+@static if isdefined(Distributions, :ArrayLikeVariate)
+    Distributions._pdf(d::ConstValueDist{<:ArrayLikeVariate{N}}, x::AbstractArray{<:Real,N}) where N = _pdf_impl(d, x)
+    Distributions._logpdf(d::ConstValueDist{<:ArrayLikeVariate{N}}, x::AbstractArray{<:Real,N}) where N = _logpdf_impl(d, x)
+end
+# Explicit defintions for Multivariate and Matrixvariate to avoid ambiguities with Distributions:
 Distributions._pdf(d::ConstValueDist{Multivariate}, x::AbstractVector{<:Real}) = _pdf_impl(d, x)
 Distributions._logpdf(d::ConstValueDist{Multivariate}, x::AbstractVector{<:Real}) = log(pdf(d, x))
-
 Distributions._pdf(d::ConstValueDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = _pdf_impl(d, x)
 Distributions._logpdf(d::ConstValueDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = log(pdf(d, x))
 
@@ -38,8 +42,12 @@ Distributions.logpdf(d::ConstValueDist{<:NamedTupleVariate{names}}, x::NamedTupl
 
 
 Distributions.insupport(d::ConstValueDist{Univariate}, x::Real) = x == d.value
-Distributions.insupport(d::ConstValueDist{Multivariate}, x::AbstractVector{<:Real}) = x == d.value
-Distributions.insupport(d::ConstValueDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = x == d.value
+@static if isdefined(Distributions, :ArrayLikeVariate)
+    Distributions.insupport(d::ConstValueDist{<:ArrayLikeVariate{N}}, x::AbstractArray{<:Real,N}) where N = x == d.value
+else
+    Distributions.insupport(d::ConstValueDist{Multivariate}, x::AbstractVector{<:Real}) = x == d.value
+    Distributions.insupport(d::ConstValueDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = x == d.value
+end
 Distributions.insupport(d::ConstValueDist{<:NamedTupleVariate{names}}, x::NamedTuple{names}) where names = x == d.value
 
 Distributions.cdf(d::ConstValueDist{Univariate}, x::Real) = d.value <= x ? Float32(1) : Float32(0)
@@ -58,8 +66,12 @@ Base.eltype(d::ConstValueDist{<:PlainVariate}) = eltype(d.value)
 
 Random.rand(rng::AbstractRNG, d::ConstValueDist) = d.value
 
-Distributions._rand!(rng::AbstractRNG, d::ConstValueDist{<:Multivariate}, x::AbstractVector{<:Real}) = copyto!(x, d.value)
-Distributions._rand!(rng::AbstractRNG, d::ConstValueDist{<:Matrixvariate}, x::AbstractMatrix{<:Real}) = copyto!(x, d.value)
+@static if isdefined(Distributions, :ArrayLikeVariate)
+    Distributions._rand!(rng::AbstractRNG, d::ConstValueDist{<:ArrayLikeVariate{N}}, x::AbstractArray{<:Real,N}) where N = copyto!(x, d.value)
+else
+    Distributions._rand!(rng::AbstractRNG, d::ConstValueDist{<:Multivariate}, x::AbstractVector{<:Real}) = copyto!(x, d.value)
+    Distributions._rand!(rng::AbstractRNG, d::ConstValueDist{<:Matrixvariate}, x::AbstractMatrix{<:Real}) = copyto!(x, d.value)
+end
 
 Random.rand(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, dims::Dims) = Fill(d.value, dims)
 Random.rand!(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, A::AbstractArray) = fill!(A, d.value)
