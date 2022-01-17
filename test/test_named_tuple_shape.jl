@@ -42,6 +42,9 @@ import Zygote, ForwardDiff
         @test @inferred(propertynames(shape)) == keys(shape)
         @test propertynames(shape, true) == (propertynames(shape)..., :_flatdof, :_accessors)
 
+        @test shape == deepcopy(shape)
+        @test isequal(shape, deepcopy(shape))
+
         @test @inferred(unshaped(shape(data[1]), shape)) == data[1]
         @test @inferred(unshaped(sntshape(data[1]), sntshape)) == data[1]
 

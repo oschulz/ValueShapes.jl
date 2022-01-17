@@ -29,6 +29,11 @@ export ConstValueShape
 ConstValueShape{T}(x::T) where T = ConstValueShape{T,true}(x)
 ConstValueShape(x::T) where T = ConstValueShape{T,true}(x)
 
+Base.:(==)(a::ConstValueShape, b::ConstValueShape) = a.value == b.value
+Base.isequal(a::ConstValueShape, b::ConstValueShape) = isequal(a.value, b.value)
+Base.isapprox(a::ConstValueShape, b::ConstValueShape; kwargs...) = isapprox(a.value, b.value; kwargs...)
+Base.hash(x::ConstValueShape, h::UInt) = hash(x.value, hash(:ConstValueShape, hash(:ValueShapes, h)))
+
 
 @inline Base.size(shape::ConstValueShape) = size(shape.value)
 @inline Base.length(shape::ConstValueShape) = length(shape.value)

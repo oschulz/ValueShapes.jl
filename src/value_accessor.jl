@@ -45,7 +45,10 @@ export ValueAccessor
 
 ValueAccessor(shape::S, offset::Int) where {S<:AbstractValueShape} = ValueAccessor{S}(shape, offset)
 
-
+Base.:(==)(a::ValueAccessor, b::ValueAccessor) = a.shape == b.shape && a.offset == b.offset && a.len == b.len
+Base.isequal(a::ValueAccessor, b::ValueAccessor) = isequal(a.shape, b.shape) && isequal(a.offset, b.offset) && isequal(a.len, b.len)
+# Base.isapprox(a::ValueAccessor, b::ValueAccessor) = ...
+Base.hash(x::ValueAccessor, h::UInt) = hash(x.len, hash(x.offset, hash(x.shape, hash(:ValueAccessor, hash(:ValueShapes, h)))))
 
 @inline _apply_accessor_to_data(acc::ValueAccessor, data::AbstractVector{<:Real}) = view(data, acc)
 

@@ -72,6 +72,12 @@ function Base.show(io::IO, shape::NamedTupleShape)
     print(io, ")")
 end
 
+Base.:(==)(a::NamedTupleShape, b::NamedTupleShape) = _accessors(a) == _accessors(b)
+Base.isequal(a::NamedTupleShape, b::NamedTupleShape) = isequal(_accessors(a), _accessors(b))
+#Base.isapprox(a::NamedTupleShape, b::NamedTupleShape; kwargs...) = ...
+Base.hash(x::NamedTupleShape, h::UInt) = hash(_accessors(x), hash(:NamedTupleShape, hash(:ValueShapes, h)))
+
+
 @inline totalndof(shape::NamedTupleShape) = _flatdof(shape)
 
 @inline Base.keys(shape::NamedTupleShape) = keys(_accessors(shape))
