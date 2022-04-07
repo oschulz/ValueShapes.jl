@@ -460,7 +460,8 @@ end
 
 function _unshaped_tangent(x::NamedTuple, vs::NamedTupleShape, dy::AbstractArray{<:Real})
     gs = gradient_shape(vs)
-    dx = gs(dy)[]
+    # gs(dy) can be a NamedTuple or a ShapedAsNT, depending on vs:
+    dx = convert(NamedTuple, gs(dy))
     Tangent{typeof(x),typeof(dx)}(dx)
 end
 
