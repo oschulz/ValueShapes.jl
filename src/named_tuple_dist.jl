@@ -144,7 +144,7 @@ end
 function _ntd_logpdf(d::NamedTupleDist, x::AbstractVector{<:Real})
     distributions = values(d)
     accessors = values(varshape(d))
-    sum(map((dist, acc) -> _ntd_logpdf(dist, acc, x), distributions, accessors))
+    mapreduce((dist, acc) -> _ntd_logpdf(dist, acc, x), +, distributions, accessors)
 end
 
 
