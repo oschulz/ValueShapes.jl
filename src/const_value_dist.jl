@@ -18,6 +18,9 @@ export ConstValueDist
 ConstValueDist(x::T) where {T<:Real} = ConstValueDist{Univariate,T}(x)
 ConstValueDist(x::T) where {T<:AbstractVector{<:Real}} = ConstValueDist{Multivariate,T}(x)
 ConstValueDist(x::T) where {T<:AbstractMatrix{<:Real}} = ConstValueDist{Matrixvariate,T}(x)
+@static if isdefined(Distributions, :ArrayLikeVariate)
+    ConstValueDist(x::T) where {T<:AbstractArray{<:Real,N}} where N = ConstValueDist{ArrayLikeVariate{N},T}(x)
+end
 ConstValueDist(x::NamedTuple{names}) where names = ConstValueDist{NamedTupleVariate{names},typeof(x)}(x)
 
 
