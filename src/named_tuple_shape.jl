@@ -66,8 +66,12 @@ export NamedTupleShape
 @inline _accessors(x::NamedTupleShape) = getfield(x, :_accessors)
 @inline _flatdof(x::NamedTupleShape) = getfield(x, :_flatdof)
 
-function Base.show(io::IO, shape::NamedTupleShape)
+function Base.show(io::IO, shape::NamedTupleShape{names,AT,VT}) where {names,AT,VT}
     print(io, Base.typename(typeof(shape)).name, "(")
+    if !(VT <: NamedTuple)
+        show(io, VT)
+        print(io, ", ")
+    end
     show(io, (;shape...))
     print(io, ")")
 end
