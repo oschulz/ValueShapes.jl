@@ -173,11 +173,13 @@ import Zygote, ForwardDiff
                 dy_tangent = Tangent{typeof(dy),typeof(dy)}(dy)
 
                 ref_dx_tangent(ΔΩ::AbstractThunk) = ref_dx_tangent(unthunk(ΔΩ))
-                ref_dx_tangent(::Union{ZeroTangent,NoTangent,Nothing}) = ZeroTangent()
+                ref_dx_tangent(::Union{ZeroTangent,Nothing}) = ZeroTangent()
+                ref_dx_tangent(::NoTangent) = NoTangent()
                 ref_dx_tangent(::Any) = dx_tangent
 
                 ref_ntdx_tangent(ΔΩ::AbstractThunk) = ref_ntdx_tangent(unthunk(ΔΩ))
-                ref_ntdx_tangent(::Union{ZeroTangent,NoTangent,Nothing}) = ZeroTangent()
+                ref_ntdx_tangent(::Union{ZeroTangent,Nothing}) = ZeroTangent()
+                ref_ntdx_tangent(::NoTangent) = NoTangent()
                 ref_ntdx_tangent(ΔΩ::Any) = dx_nttangent
 
                 @test @inferred(ProjectTo(x)(dx_tangent)) == dx
@@ -202,7 +204,8 @@ import Zygote, ForwardDiff
                 end
 
                 ref_flatdx_tangent(ΔΩ::AbstractThunk) = ref_flatdx_tangent(unthunk(ΔΩ))
-                ref_flatdx_tangent(::Union{ZeroTangent,NoTangent,Nothing}) = ZeroTangent()
+                ref_flatdx_tangent(::Union{ZeroTangent,Nothing}) = ZeroTangent()
+                ref_flatdx_tangent(::NoTangent) = NoTangent()
                 ref_flatdx_tangent(::Any) = dx_unshaped
 
                 @test rrule(ShapedAsNT, x_unshaped, vs_x)[1] == x

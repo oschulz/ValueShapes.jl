@@ -441,12 +441,12 @@ function (project::GradShapedAsNTProjector{<:NamedTupleShape{names}})(tangent::S
     tangent
 end
 
-function (project::GradShapedAsNTProjector{<:NamedTupleShape{names}})(::Union{ZeroTangent,NoTangent,Nothing}) where names
-    ZeroTangent()
-end
+(project::GradShapedAsNTProjector{<:NamedTupleShape})(::Union{ZeroTangent,Nothing}) = ZeroTangent()
+(project::GradShapedAsNTProjector{<:NamedTupleShape})(::NoTangent) = NoTangent()
 
 
-_getindex_tangent(x::ShapedAsNT, ::Union{ZeroTangent,NoTangent,Nothing}) = ZeroTangent()
+_getindex_tangent(x::ShapedAsNT, ::Union{ZeroTangent,Nothing}) = ZeroTangent()
+_getindex_tangent(x::ShapedAsNT, ::NoTangent) = NoTangent()
 
 _notangent_to_zerotangent(x::Any) = x
 _notangent_to_zerotangent(x::Union{NoTangent,Nothing}) = ZeroTangent()
@@ -470,7 +470,8 @@ end
 
 
 _unshaped_tangent(x::ShapedAsNT, dy::AbstractArray{<:Real}) = Tangent(x, dy)
-_unshaped_tangent(x::ShapedAsNT, ::Union{ZeroTangent,NoTangent,Nothing}) = ZeroTangent()
+_unshaped_tangent(x::ShapedAsNT, ::Union{ZeroTangent,Nothing}) = ZeroTangent()
+_unshaped_tangent(x::ShapedAsNT, ::NoTangent) = NoTangent()
 
 function ChainRulesCore.rrule(::typeof(unshaped), x::ShapedAsNT)
     unshaped_nt_pullback(ΔΩ) = (NoTangent(), ProjectTo(x)(_unshaped_tangent(x, _unpack_tangent(ΔΩ))))
@@ -489,7 +490,8 @@ function _unshaped_tangent(x::NamedTuple, vs::NamedTupleShape, dy::AbstractArray
     Tangent{typeof(x),typeof(dx)}(dx)
 end
 
-_unshaped_tangent(x::NamedTuple, vs::NamedTupleShape, ::Union{ZeroTangent,NoTangent,Nothing}) = ZeroTangent()
+_unshaped_tangent(x::NamedTuple, vs::NamedTupleShape, ::Union{ZeroTangent,Nothing}) = ZeroTangent()
+_unshaped_tangent(x::NamedTuple, vs::NamedTupleShape, ::NoTangent) = NoTangent()
 
 function ChainRulesCore.rrule(::typeof(unshaped), x::NamedTuple, vs::NamedTupleShape)
     unshaped_nt_pullback(ΔΩ) = (NoTangent(), _unshaped_tangent(x, vs, _unpack_tangent(ΔΩ)), NoTangent())
@@ -497,7 +499,8 @@ function ChainRulesCore.rrule(::typeof(unshaped), x::NamedTuple, vs::NamedTupleS
 end
 
 
-_shapedasnt_tangent(::Union{ZeroTangent,NoTangent,Nothing}, vs::NamedTupleShape{names}) where names = ZeroTangent()
+_shapedasnt_tangent(::Union{ZeroTangent,Nothing}, vs::NamedTupleShape{names}) where names = ZeroTangent()
+_shapedasnt_tangent(::NoTangent, vs::NamedTupleShape{names}) where names = NoTangent()
 
 _shapedasnt_tangent(dy::ShapedAsNT{names}, vs::NamedTupleShape{names}) where names = unshaped(dy)
 
