@@ -411,26 +411,37 @@ function ChainRulesCore.Tangent(x::T, unshaped_dx::AbstractVector{<:Real}) where
 end
 
 
-struct GradShapedAsNTProjector{T<:ShapedAsNT} <: Function
-    primary::T
+struct GradShapedAsNTProjector{VS<:NamedTupleShape} <: Function
+    gradshape::VS
 end
 
-ChainRulesCore.ProjectTo(x::ShapedAsNT) = GradShapedAsNTProjector(x)
+ChainRulesCore.ProjectTo(x::ShapedAsNT) = GradShapedAsNTProjector(gradient_shape(valshape(x)))
 
-#TODO: Tighten signature, use names
-function (project::GradShapedAsNTProjector{<:ShapedAsNT})(data::NamedTuple{(:__internal_data, :__internal_valshape)})
-    ShapedAsNT(data.__internal_data, data.__internal_valshape)
+
+_check_ntgs_tangent_compat(a::NamedTupleShape, ::NoTangent) = nothing
+function _check_ntgs_tangent_compat(a::NamedTupleShape{names}, b::NamedTupleShape{names}) where names
+    a >= b || error("Incompatible tangent NamedTupleShape")
 end
 
-function (project::GradShapedAsNTProjector{<:ShapedAsNT{names}})(tangent::Tangent{<:ShapedAsNT{names}}) where names
+_snt_from_tangent(data::AbstractVector{<:Real}, gs::NamedTupleShape) = ShapedAsNT(data, gs)
+_snt_from_tangent(::NoTangent, gs::NamedTupleShape) = NoTangent()
+_snt_from_tangent(::ZeroTangent, gs::NamedTupleShape) = gs(Fill(0, totalndof(gs))) # Return ZeroTangent() instead?
+
+function (project::GradShapedAsNTProjector{<:NamedTupleShape{names}})(data::NamedTuple{(:__internal_data, :__internal_valshape)}) where names
+    gs = project.gradshape
+    _check_ntgs_tangent_compat(gs, data.__internal_valshape)
+    _snt_from_tangent(data.__internal_data, project.gradshape)
+end
+
+function (project::GradShapedAsNTProjector{<:NamedTupleShape{names}})(tangent::Tangent{<:ShapedAsNT{names}}) where names
     project(_backing(tangent))
 end
 
-function (project::GradShapedAsNTProjector{<:ShapedAsNT{names}})(tangent::ShapedAsNT{names}) where names
+function (project::GradShapedAsNTProjector{<:NamedTupleShape{names}})(tangent::ShapedAsNT{names}) where names
     tangent
 end
 
-function (project::GradShapedAsNTProjector{<:ShapedAsNT{names}})(::Union{ZeroTangent,NoTangent,Nothing}) where names
+function (project::GradShapedAsNTProjector{<:NamedTupleShape{names}})(::Union{ZeroTangent,NoTangent,Nothing}) where names
     ZeroTangent()
 end
 

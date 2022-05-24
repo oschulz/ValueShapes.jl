@@ -228,6 +228,18 @@ import Zygote, ForwardDiff
 
                 # ToDo: Make this work with @inferred:
                 @test Zygote.gradient(x -> foo(vs(x)[]), [3, 4, 5]) == ([6, 8, 10],)
+
+                let
+                    function foo(x)
+                        vs = valshape(x)
+                        ux = unshaped(x, vs)
+                        x2 = vs(ux)
+                        sum(x2.a) + sum(x2.b) + sum(x2.c)
+                    end
+                    vs = NamedTupleShape(a = ArrayShape{Real}(2), b = ConstValueShape([5, 6]), c = ArrayShape{Real}(2))
+                    x = ShapedAsNT([1.1, 2.2, 3.3, 4.4], vs)
+                    @test Zygote.gradient(foo, x)[1] == gradient_shape(NamedTupleShape(ShapedAsNT; vs...))([1.0, 1.0, 1.0, 1.0])
+                end
             end
         end
 
