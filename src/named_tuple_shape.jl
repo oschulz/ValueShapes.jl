@@ -41,6 +41,12 @@ struct NamedTupleShape{names,AT<:(NTuple{N,ValueAccessor} where N),VT} <: Abstra
     _accessors::NamedTuple{names,AT}
     _flatdof::Int
 
+    @inline function NamedTupleShape{names,AT,VT}(
+        _accessors::NamedTuple{names,AT}, _flatdof::Int
+    ) where {names,AT,VT}
+        new{names,AT,VT}(_accessors, _flatdof)
+    end
+
     @inline function NamedTupleShape(::Type{VT}, shape::NamedTuple{names,<:NTuple{N,AbstractValueShape}}) where {VT,names,N}
         labels = keys(shape)
         shapes = values(shape)
@@ -216,12 +222,15 @@ struct ShapedAsNT{names,D<:AbstractVector{<:Real},S<:NamedTupleShape{names}}
 
     Base.@propagate_inbounds function ShapedAsNT(data::D, shape::S) where {T<:Real,D<:AbstractVector{T},names,S<:NamedTupleShape{names}}
         @boundscheck _checkcompat(shape, data)
-        new{names,D,S}(data, shape)
+        fixed_shape = _snt_ntshape(shape)
+        new{names,D,typeof(fixed_shape)}(data, fixed_shape)
     end
 end
 
 export ShapedAsNT
 
+_snt_ntshape(vs::NamedTupleShape{names,AT,<:ShapedAsNT}) where {names,AT} = vs
+_snt_ntshape(vs::NamedTupleShape{names,AT}) where {names,AT} = NamedTupleShape{names,AT,ShapedAsNT}(_accessors(vs), _flatdof(vs))
 
 
 @inline shaped_type(shape::NamedTupleShape{names,AT,<:NamedTuple}, ::Type{T}) where {names,AT,T<:Real} =

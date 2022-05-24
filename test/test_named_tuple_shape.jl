@@ -122,7 +122,7 @@ import Zygote, ForwardDiff
 
             @test typeof(A.b) <: Integer
 
-            @test @inferred(valshape(A)) === shape
+            @test @inferred(valshape(A)) === NamedTupleShape(ShapedAsNT; shape...)
 
             @test @inferred(realnumtype(typeof(A))) == Int
 
