@@ -425,7 +425,7 @@ end
 
 _snt_from_tangent(data::AbstractVector{<:Real}, gs::NamedTupleShape) = ShapedAsNT(data, gs)
 _snt_from_tangent(::NoTangent, gs::NamedTupleShape) = NoTangent()
-_snt_from_tangent(::ZeroTangent, gs::NamedTupleShape) = gs(Fill(0, totalndof(gs))) # Return ZeroTangent() instead?
+_snt_from_tangent(::ZeroTangent, gs::NamedTupleShape) = ZeroTangent() # return gs(Fill(0, totalndof(gs))) instead?
 
 function (project::GradShapedAsNTProjector{<:NamedTupleShape{names}})(data::NamedTuple{(:__internal_data, :__internal_valshape)}) where names
     gs = project.gradshape
