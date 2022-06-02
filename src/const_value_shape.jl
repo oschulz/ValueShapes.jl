@@ -96,7 +96,16 @@ const ConstAccessor{T,strict} = ValueAccessor{ConstValueShape{T,strict}}
 
 @inline vs_getindex(data::AbstractVector{<:Real}, va::ConstAccessor) = va.shape.value
 
-@inline vs_unsafe_view(::AbstractVector, va::ConstAccessor) = va.shape.value
+@inline vs_unsafe_view(::AbstractVector{<:Real}, va::ConstAccessor) = va.shape.value
+
+# Zygote has a generic `@adjoint getindex(x::AbstractArray, inds...)` and same for view that
+# will result in overwriting va.shape.value with dy without these custom adjoints:
+ZygoteRules.@adjoint function getindex(x::AbstractVector{<:Real}, va::ConstAccessor)
+    getindex(x, va), dy -> nothing, nothing
+end
+ZygoteRules.@adjoint function view(x::AbstractVector{<:Real}, va::ConstAccessor)
+    view(x, va), dy -> nothing, nothing
+end
 
 
 function vs_setindex!(data::AbstractVector{<:Real}, v, va::ConstAccessor{T,true}) where T
