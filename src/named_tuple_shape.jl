@@ -292,7 +292,8 @@ Base.@propagate_inbounds function Base.setproperty!(A::ShapedAsNT, p::Symbol, x:
     data = _data(A)
     shape = _valshape(A)
     va = getproperty(_accessors(shape), p)
-    fill!(view(data, va), zero(eltype(data)))
+    idxs = view_idxs(eachindex(data), va)
+    fill!(view(data, idxs), zero(eltype(data)))
     A
 end
 
