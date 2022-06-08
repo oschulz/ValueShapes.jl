@@ -399,11 +399,6 @@ function ChainRulesCore.add!!(A::ShapedAsNT{names}, B::ShapedAsNT{names}) where 
 end
 
 
-_backing(x::Any) = x
-_backing(x::Tangent) = backing(x)
-_unpack_tangent(x::Any) = _backing(unthunk(x))
-
-
 function ChainRulesCore.Tangent(x::T, unshaped_dx::AbstractVector{<:Real}) where {T<:ShapedAsNT}
     vs = valshape(x)
     gs = gradient_shape(vs)
@@ -425,8 +420,7 @@ function _check_ntgs_tangent_compat(a::NamedTupleShape{names}, b::NamedTupleShap
 end
 
 _snt_from_tangent(data::AbstractVector{<:Real}, gs::NamedTupleShape) = ShapedAsNT(data, gs)
-_snt_from_tangent(::NoTangent, gs::NamedTupleShape) = NoTangent()
-_snt_from_tangent(::ZeroTangent, gs::NamedTupleShape) = ZeroTangent() # return gs(Fill(0, totalndof(gs))) instead?
+_snt_from_tangent(data::_ZeroLike, gs::NamedTupleShape) = _az_tangent(data)
 
 function (project::GradShapedAsNTProjector{<:NamedTupleShape{names}})(data::NamedTuple{(:__internal_data, :__internal_valshape)}) where names
     gs = project.gradshape
@@ -442,23 +436,13 @@ function (project::GradShapedAsNTProjector{<:NamedTupleShape{names}})(tangent::S
     tangent
 end
 
-(project::GradShapedAsNTProjector{<:NamedTupleShape})(::Union{ZeroTangent,Nothing}) = ZeroTangent()
-(project::GradShapedAsNTProjector{<:NamedTupleShape})(::NoTangent) = NoTangent()
+(project::GradShapedAsNTProjector{<:NamedTupleShape})(tangent::_ZeroLike) = _az_tangent(tangent)
 
 
-_getindex_tangent(x::ShapedAsNT, ::Union{ZeroTangent,Nothing}) = ZeroTangent()
-_getindex_tangent(x::ShapedAsNT, ::NoTangent) = NoTangent()
-
-_notangent_to_zerotangent(x::Any) = x
-_notangent_to_zerotangent(x::Union{NoTangent,Nothing}) = ZeroTangent()
-_notangent_to_zerotangent(x::Union{Tuple,NamedTuple}) = map(_notangent_to_zerotangent, x)
+_getindex_tangent(x::ShapedAsNT, dy::_ZeroLike) = _az_tangent(dy)
 
 function _getindex_tangent(x::ShapedAsNT, dy::NamedTuple)
-    x_unshaped = unshaped(x)
-    T = float(eltype(x_unshaped))
-    dx_unshaped = similar(x_unshaped, T)
-    fill!(dx_unshaped, NaN) # For safety
-    tangent = Tangent(x, dx_unshaped)
+    tangent = Tangent(x, _tangent_array(unshaped(x)))
     dx_unshaped, gs = _backing(tangent)
     ShapedAsNT(dx_unshaped, gs)[] = _notangent_to_zerotangent(dy)
     tangent
@@ -471,8 +455,7 @@ end
 
 
 _unshaped_tangent(x::ShapedAsNT, dy::AbstractArray{<:Real}) = Tangent(x, dy)
-_unshaped_tangent(x::ShapedAsNT, ::Union{ZeroTangent,Nothing}) = ZeroTangent()
-_unshaped_tangent(x::ShapedAsNT, ::NoTangent) = NoTangent()
+_unshaped_tangent(x::ShapedAsNT, dy::_ZeroLike) = _az_tangent(dy)
 
 function ChainRulesCore.rrule(::typeof(unshaped), x::ShapedAsNT)
     unshaped_nt_pullback(ΔΩ) = (NoTangent(), ProjectTo(x)(_unshaped_tangent(x, _unpack_tangent(ΔΩ))))
@@ -491,8 +474,7 @@ function _unshaped_tangent(x::NamedTuple, vs::NamedTupleShape, dy::AbstractArray
     Tangent{typeof(x),typeof(dx)}(dx)
 end
 
-_unshaped_tangent(x::NamedTuple, vs::NamedTupleShape, ::Union{ZeroTangent,Nothing}) = ZeroTangent()
-_unshaped_tangent(x::NamedTuple, vs::NamedTupleShape, ::NoTangent) = NoTangent()
+_unshaped_tangent(x::NamedTuple, vs::NamedTupleShape, dy::_ZeroLike) = _az_tangent(dy)
 
 function ChainRulesCore.rrule(::typeof(unshaped), x::NamedTuple, vs::NamedTupleShape)
     unshaped_nt_pullback(ΔΩ) = (NoTangent(), _unshaped_tangent(x, vs, _unpack_tangent(ΔΩ)), NoTangent())
@@ -500,8 +482,7 @@ function ChainRulesCore.rrule(::typeof(unshaped), x::NamedTuple, vs::NamedTupleS
 end
 
 
-_shapedasnt_tangent(::Union{ZeroTangent,Nothing}, vs::NamedTupleShape{names}) where names = ZeroTangent()
-_shapedasnt_tangent(::NoTangent, vs::NamedTupleShape{names}) where names = NoTangent()
+_shapedasnt_tangent(dy::_ZeroLike, vs::NamedTupleShape{names}) where names = _az_tangent(dy)
 
 _shapedasnt_tangent(dy::ShapedAsNT{names}, vs::NamedTupleShape{names}) where names = unshaped(dy)
 
@@ -602,7 +583,7 @@ Base.Broadcast.broadcasted(::typeof(identity), A::ShapedAsNTArray) = A
 Base.Broadcast.broadcasted(::typeof(unshaped), A::ShapedAsNTArray) = _data(A)
 
 function Base.Broadcast.broadcasted(::typeof(unshaped), A::ShapedAsNTArray, vsref::Ref{<:AbstractValueShape})
-    elshape(A) <= vsref[] || throw(ArgumentError("Shape of value not compatible with given shape"))
+    @_adignore elshape(A) <= vsref[] || throw(ArgumentError("Shape of value not compatible with given shape"))
     _data(A)
 end
 

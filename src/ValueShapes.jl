@@ -29,8 +29,10 @@ import TypedTables
 # Long-term, ChainRulesCore should be sufficient:
 import ZygoteRules
 
-using ChainRulesCore: AbstractTangent, Tangent, NoTangent, ZeroTangent, AbstractThunk, ProjectTo, unthunk, backing
+using ChainRulesCore: AbstractTangent, Tangent, AbstractZero, NoTangent, ZeroTangent
+using ChainRulesCore: AbstractThunk, ProjectTo, unthunk, backing
 
+include("tangent_utils.jl")
 include("value_shape.jl")
 include("value_accessor.jl")
 include("scalar_shape.jl")
