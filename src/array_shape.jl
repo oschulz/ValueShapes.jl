@@ -175,7 +175,7 @@ Base.Broadcast.broadcasted(::typeof(getindex), A::AbstractVectorOfSimilarVectors
     copy(_bcasted_view(A, acc[]))
 
 Base.Broadcast.broadcasted(::typeof(view), A::AbstractVectorOfSimilarVectors{<:Real}, acc::Ref{<:ArrayAccessor}) =
-    copy(_bcasted_view(A, acc[]))
+    _bcasted_view(A, acc[])
 
 
 function _bcasted_view_unchanged(data::AbstractArray{<:AbstractVector{T}}, shape::ArrayShape{U,1}) where {T<:Real,U>:T}
