@@ -746,3 +746,107 @@ function Tables.columns(A::ShapedAsNTArray)
 end
 
 @inline Tables.rows(A::ShapedAsNTArray) = A
+
+
+
+const _AnySNTArray{names} = ShapedAsNTArray{<:Union{NamedTuple{names},ShapedAsNT{names}}}
+
+
+function ChainRulesCore.Tangent(X::T, unshaped_dX::AbstractArray{<:AbstractVector{<:Real}}) where {T<:ShapedAsNTArray}
+    vs = elshape(X)
+    gs = gradient_shape(vs)
+    contents = (__internal_data = unshaped_dX, __internal_elshape = gs)
+    Tangent{T,typeof(contents)}(contents)
+end
+
+
+struct GradShapedAsNTArrayProjector{VS<:NamedTupleShape} <: Function
+    gradshape::VS
+end
+
+ChainRulesCore.ProjectTo(X::ShapedAsNTArray) = GradShapedAsNTArrayProjector(gradient_shape(elshape(X)))
+
+function (project::GradShapedAsNTArrayProjector{<:NamedTupleShape{names}})(data::NamedTuple{(:__internal_data, :__internal_elshape)}) where names
+    _check_ntgs_tangent_compat(project.gradshape, data.__internal_elshape)
+    _keep_zerolike(ShapedAsNTArray, data.__internal_data, project.gradshape)
+end
+
+(project::GradShapedAsNTArrayProjector{<:NamedTupleShape{names}})(tangent::Tangent{<:_AnySNTArray}) where names = project(_backing(tangent))
+(project::GradShapedAsNTArrayProjector{<:NamedTupleShape{names}})(tangent::_AnySNTArray) where names = tangent
+(project::GradShapedAsNTArrayProjector{<:NamedTupleShape})(tangent::_ZeroLike) = _az_tangent(tangent)
+
+function (project::GradShapedAsNTArrayProjector{<:NamedTupleShape{names}})(
+    tangent::AbstractArray{<:Union{Tangent{<:Any,<:NamedTuple{names}},ShapedAsNT{names}}}
+) where names
+    data =_shapedasntarray_tangent(tangent, project.gradshape)
+    ShapedAsNTArray(data, project.gradshape)
+end
+
+
+_tablecols_tangent(X::ShapedAsNTArray, dY::_ZeroLike) = _az_tangent(dY)
+
+function _write_snta_col!(data::AbstractArray{<:AbstractVector{<:Real}}, va::ValueAccessor, A::AbstractArray)
+    B = view.(data, Ref(va))
+    B .= A
+end
+_write_snta_col!(data::AbstractArray{<:AbstractVector{<:Real}}, va::ConstAccessor, A) = nothing
+
+function _tablecols_tangent(X::_AnySNTArray, dY::NamedTuple{names}) where names
+    tangent = Tangent(X, _tangent_array(_data(X)))
+    dx_unshaped, gs = _backing(tangent)
+    global g_state = (;X, dY)
+    # ToDo: Re-check safety of this after nested-NT arrays are implemented:
+    map((va_i, dY_i) -> _write_snta_col!(dx_unshaped, va_i, dY_i), _accessors(gs), _notangent_to_zerotangent(dY))
+    tangent
+end
+
+g_state = nothing
+function ChainRulesCore.rrule(::typeof(Tables.columns), X::ShapedAsNTArray)
+    tablecols_pullback(ΔΩ) = begin
+        (NoTangent(), ProjectTo(X)(_tablecols_tangent(X, _unpack_tangent(ΔΩ))))
+    end
+    return Tables.columns(X), tablecols_pullback
+end
+
+
+_data_tangent(X::ShapedAsNTArray, dY::AbstractArray{<:AbstractVector{<:Real}}) = Tangent(X, dY)
+_data_tangent(X::ShapedAsNTArray, dY::_ZeroLike) = _az_tangent(dY)
+
+function ChainRulesCore.rrule(::typeof(_data), X::ShapedAsNTArray)
+    _data_pullback(ΔΩ) = (NoTangent(), ProjectTo(X)(_data_tangent(X, _unpack_tangent(ΔΩ))))
+    return _data(X), _data_pullback
+end
+
+
+_shapedasntarray_tangent(dY::_ZeroLike, vs::NamedTupleShape{names}) where names = _az_tangent(dY)
+
+_shapedasntarray_tangent(dY::_AnySNTArray, vs::NamedTupleShape{names}) where names = unshaped.(dY)
+
+function _shapedasntarray_tangent(
+    dY::AbstractArray{<:Tangent{<:Any,<:NamedTuple{names}}},
+    vs::NamedTupleShape{names}
+) where names
+    ArrayOfSimilarArrays(unshaped.(ValueShapes._backing.(dY), Ref(gradient_shape(vs))))
+end
+
+function _shapedasntarray_tangent(
+    dY::AbstractArray{<:ShapedAsNT{names}},
+    vs::NamedTupleShape{names}
+) where names
+    ArrayOfSimilarArrays(unshaped.(dY))
+end
+
+function _shapedasntarray_tangent(
+    dY::Tangent{<:Any,<:NamedTuple{(:__internal_data, :__internal_elshape)}},
+    vs::NamedTupleShape{names}
+) where names
+    _backing(dY).__internal_data
+end
+
+function ChainRulesCore.rrule(::Type{ShapedAsNTArray}, A::AbstractArray{<:AbstractVector{<:Real}}, vs::NamedTupleShape{names}) where names
+    shapedasntarray_pullback(ΔΩ) = begin
+        global g_state = (;A, ΔΩ, vs)
+        (NoTangent(), _shapedasntarray_tangent(unthunk(ΔΩ), vs), NoTangent())
+    end
+    return ShapedAsNTArray(A, vs), shapedasntarray_pullback
+end

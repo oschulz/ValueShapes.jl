@@ -377,7 +377,7 @@ import Zygote, ForwardDiff
 
 
     @testset "gradients" begin
-        vs = NamedTupleShape(
+        sntvs = NamedTupleShape(
             ShapedAsNT,
             a = ScalarShape{Real}(),
             b = ConstValueShape([4.2, 3.3]),
@@ -387,7 +387,9 @@ import Zygote, ForwardDiff
             f = ArrayShape{Real}(2)
         )
 
-        f = let vs = vs
+        ntvs = NamedTupleShape(;sntvs...)
+
+        f = let vs = sntvs
             v_unshaped_0 -> begin
                 v_shaped_1 = vs(v_unshaped_0)
                 v_unshaped_1 = unshaped(v_shaped_1)
@@ -410,23 +412,34 @@ import Zygote, ForwardDiff
             end
         end
 
-        g = let vs = vs
+        g = let vs = sntvs
             v_shaped -> f(unshaped(v_shaped, vs))
         end
 
-        v = randn(totalndof(vs))
+        for vs in (sntvs,)
+            v = randn(totalndof(vs))
 
-        @test @inferred(f(v)) isa Real
-        @test ForwardDiff.gradient(f, v) isa AbstractVector{<:Real}
-        grad_f_fw = ForwardDiff.gradient(f, v)
-        @test @inferred(Zygote.gradient(f, v)[1]) isa AbstractVector{<:Real}
-        grad_f_zg = Zygote.gradient(f, v)[1]
-        @test grad_f_fw ≈ grad_f_zg
+            @test @inferred(f(v)) isa Real
+            @test ForwardDiff.gradient(f, v) isa AbstractVector{<:Real}
+            grad_f_fw = ForwardDiff.gradient(f, v)
+            @test @inferred(Zygote.gradient(f, v)[1]) isa AbstractVector{<:Real}
+            grad_f_zg = Zygote.gradient(f, v)[1]
+            @test grad_f_fw ≈ grad_f_zg
 
-        @test @inferred(Zygote.gradient(g, vs(v))[1]) isa ShapedAsNT
-        @test unshaped(Zygote.gradient(g, vs(v))[1], gradient_shape(vs)) == grad_f_zg
+            @test @inferred(Zygote.gradient(g, vs(v))[1]) isa ShapedAsNT
+            @test unshaped(Zygote.gradient(g, vs(v))[1], gradient_shape(vs)) == grad_f_zg
 
-        @test @inferred(Zygote.gradient(g, vs(v)[])[1]) isa NamedTuple
-        @test unshaped(Zygote.gradient(g, vs(v)[])[1], gradient_shape(vs)) == grad_f_zg
+            @test @inferred(Zygote.gradient(g, vs(v)[])[1]) isa NamedTuple
+            @test unshaped(Zygote.gradient(g, vs(v)[])[1], gradient_shape(vs)) == grad_f_zg
+        end
+
+        for vs in (sntvs, ntvs)
+            X = nestedview(rand(totalndof(vs), 10))
+            f_X = let vs = vs; X -> sum(norm.(norm.(values(Tables.columns((vs.(X))))))); end
+            @test Zygote.gradient(f_X, X)[1] ≈ nestedview(ForwardDiff.gradient(f_X∘nestedview, flatview(X)))
+            sX = vs.(X)
+            f_sX = sX -> norm(flatview(unshaped.(sX)))
+            @test unshaped.(Zygote.gradient(f_sX, sX)[1], Ref(gradient_shape(vs))) ≈ nestedview(ForwardDiff.gradient(X_flat -> f_sX(vs.(nestedview(X_flat))), flatview(X)))
+        end
     end
 end
