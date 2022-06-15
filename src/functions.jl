@@ -1,47 +1,9 @@
 # This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
 
-"""
-    varshape(f::Function)::AbstractValueShape
-
-Get the value shape of the input/argument of an unary function `f`. `f`
-should support call syntax
-
-    f(x::T)
-
-with `valshape(x) == varshape(f)` as well all
-
-    f(x::AbstractVector{<:Real})
-
-with `length(eachindex(x)) == vardof(f)` (see [`vardof`](@ref)).
-
-Defaults to `varshape(x::Any) === missing`.
-"""
-function varshape end
-export varshape
-
-varshape(::Any) = missing
-
-
-"""
-    vardof(f::Function)::Integer
-
-Get the number of degrees of freedom of the input/argument of f.
-
-Equivalent to `totalndof(varshape(f))` (see [`varshape`](@ref)).
-"""
-function vardof end
-export vardof
-
-vardof(f::Function) = totalndof(varshape(f))
-
-
-
-@inline _maybe_shaped(x::Any, vs::Nothing) = x
-Base.@propagate_inbounds _maybe_shaped(x::Any, vs::AbstractValueShape) = stripscalar(vs(x))
-
-@inline _maybe_unshaped(x::Any, vs::Nothing) = x
-Base.@propagate_inbounds _maybe_unshaped(x::Any, vs::AbstractValueShape) = unshaped(x, vs)
+#!!!!!!!!!!!!! ToDo: Remove varshape, vardof and unshaped for functions,
+# untroduce retshape(f, ::AbstractValueShape...) instead.
+# varshape becomes specific to distributions and measures
 
 
 struct UnshapedFunction{F<:Function,IS<:Union{Nothing,AbstractValueShape},OS<:Union{Nothing,AbstractValueShape}} <: Function
@@ -73,6 +35,12 @@ Base.@propagate_inbounds function (uf::UnshapedFunction)(x)
     orig_y = uf.orig_f(orig_x) 
     _maybe_unshaped(orig_y, uf.orig_valshape)
 end
+
+@inline _maybe_shaped(x::Any, vs::Nothing) = x
+Base.@propagate_inbounds _maybe_shaped(x::Any, vs::AbstractValueShape) = stripscalar(vs(x))
+
+@inline _maybe_unshaped(x::Any, vs::Nothing) = x
+Base.@propagate_inbounds _maybe_unshaped(x::Any, vs::AbstractValueShape) = unshaped(x, vs)
 
 
 
