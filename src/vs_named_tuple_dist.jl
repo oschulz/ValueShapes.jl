@@ -9,10 +9,10 @@ end
 
 
 # ToDo: Find more generic way of handling this:
-effndof(d::NamedTupleDist) = sum(map(effndof, values(d)))
+getdof(d::NamedTupleDist) = sum(map(getdof, values(d)))
 
 
-_flat_ntd_elshape(d::Distribution) = ArrayShape{Real}(effndof(d))
+_flat_ntd_elshape(d::Distribution) = ArrayShape{Real}(getdof(d))
 
 function _flat_ntd_accessors(d::NamedTupleDist{names,DT,AT,VT}) where {names,DT,AT,VT}
     shapes = map(_flat_ntd_elshape, values(d))
