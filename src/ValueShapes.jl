@@ -21,6 +21,12 @@ using Random
 using Statistics
 using StatsBase
 
+import MeasureBase
+using MeasureBase: transport_to, transport_def, transport_origin, from_origin, to_origin
+using MeasureBase: PowerMeasure
+
+import DistributionMeasures
+
 import ChainRulesCore
 import IntervalSets
 import Tables
