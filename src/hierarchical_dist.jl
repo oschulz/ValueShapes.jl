@@ -82,11 +82,6 @@ end
 export HierarchicalDist
 
 
-Base.@deprecate HierarchicalDistribution(f::Function, primary_dist::ContinuousDistribution) HierarchicalDist(f, primary_dist)
-
-export HierarchicalDistribution
-
-
 function HierarchicalDist(f::Function, primary_dist::ContinuousDistribution)
     vs_primary = varshape(primary_dist)
     vf_primary = _variate_form(primary_dist)
@@ -134,11 +129,11 @@ end
 MeasureBase.getdof(d::HierarchicalDist) = d.dof
 
 # Bypass `checked_var`, would require potentially costly transformation:
-@inline MeasureBase.checked_var(::HierarchicalDistribution, x) = x
+@inline MeasureBase.checked_var(::HierarchicalDist, x) = x
 
-@inline MeasureBase.transport_origin(ν::HierarchicalDistribution) = unshaped(ν)
-@inline MeasureBase.from_origin(ν::HierarchicalDistribution, x) = varshape(ν)(x)
-@inline MeasureBase.to_origin(ν::HierarchicalDistribution, y) = unshaped(y, varshape(ν))
+@inline MeasureBase.transport_origin(ν::HierarchicalDist) = unshaped(ν)
+@inline MeasureBase.from_origin(ν::HierarchicalDist, x) = varshape(ν)(x)
+@inline MeasureBase.to_origin(ν::HierarchicalDist, y) = unshaped(y, varshape(ν))
 
 
 

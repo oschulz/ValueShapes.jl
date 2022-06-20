@@ -10,6 +10,8 @@ and structures.
 """
 module ValueShapes
 
+using Base: @propagate_inbounds
+
 using ArgCheck
 using ArraysOfArrays
 using ChangesOfVariables
@@ -23,7 +25,7 @@ using StatsBase
 
 import MeasureBase
 using MeasureBase: transport_to, transport_def, transport_origin, from_origin, to_origin
-using MeasureBase: PowerMeasure
+using MeasureBase: VarTransformation, PowerMeasure
 
 import DistributionMeasures
 
