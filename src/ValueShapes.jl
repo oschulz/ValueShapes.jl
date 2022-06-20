@@ -30,7 +30,7 @@ using MeasureBase: transport_to, transport_def, transport_origin, from_origin, t
 using MeasureBase: TransportFunction, PowerMeasure
 
 import DistributionMeasures
-using DistributionMeasures: DistributionMeasure
+using DistributionMeasures: DistributionMeasure, StandardDist
 
 import ChainRulesCore
 import IntervalSets

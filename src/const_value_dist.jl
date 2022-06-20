@@ -75,9 +75,11 @@ Random.rand(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, dims::Dims) = 
 Random.rand!(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, A::AbstractArray) = fill!(A, d.value)
 
 
-ValueShapes.varshape(d::ConstValueDist) = ConstValueShape(d.value)
+varshape(d::ConstValueDist) = ConstValueShape(d.value)
 
 Statistics.var(d::ConstValueDist) = zero(d.value)
+
+unshaped(::ConstValueDist) = StandardDist{Uniform}(0)
 
 
 MeasureBase.testvalue(μ::ConstValueDist) = μ.x
