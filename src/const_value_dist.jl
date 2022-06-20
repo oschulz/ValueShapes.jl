@@ -40,10 +40,6 @@ Distributions._logpdf(d::ConstValueDist{Multivariate}, x::AbstractVector{<:Real}
 Distributions._pdf(d::ConstValueDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = _pdf_impl(d, x)
 Distributions._logpdf(d::ConstValueDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = log(pdf(d, x))
 
-Distributions.pdf(d::ConstValueDist{<:NamedTupleVariate{names}}, x::NamedTuple{names}) where names = _pdf_impl(d, x)
-Distributions.logpdf(d::ConstValueDist{<:NamedTupleVariate{names}}, x::NamedTuple{names}) where names = log(pdf(d, x))
-
-
 Distributions.insupport(d::ConstValueDist{Univariate}, x::Real) = x == d.value
 @static if isdefined(Distributions, :ArrayLikeVariate)
     Distributions.insupport(d::ConstValueDist{<:ArrayLikeVariate{N}}, x::AbstractArray{<:Real,N}) where N = x == d.value
@@ -51,7 +47,6 @@ else
     Distributions.insupport(d::ConstValueDist{Multivariate}, x::AbstractVector{<:Real}) = x == d.value
     Distributions.insupport(d::ConstValueDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = x == d.value
 end
-Distributions.insupport(d::ConstValueDist{<:NamedTupleVariate{names}}, x::NamedTuple{names}) where names = x == d.value
 
 Distributions.cdf(d::ConstValueDist{Univariate}, x::Real) = d.value <= x ? Float32(1) : Float32(0)
 Distributions.quantile(d::ConstValueDist{Univariate}, q::Real) = d.value # Sensible?

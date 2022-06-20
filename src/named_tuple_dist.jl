@@ -8,6 +8,10 @@ Variate kind for `NamedTuple`s.
 """
 const NamedTupleVariate{names} = StructVariate{NamedTuple{names}}  # ToDo: Use StructVariate{<:NamedTuple{names}} instead?
 
+Distributions.insupport(d::ConstValueDist{<:NamedTupleVariate{names}}, x::NamedTuple{names}) where names = x == d.value
+Distributions.pdf(d::ConstValueDist{<:NamedTupleVariate{names}}, x::NamedTuple{names}) where names = _pdf_impl(d, x)
+Distributions.logpdf(d::ConstValueDist{<:NamedTupleVariate{names}}, x::NamedTuple{names}) where names = log(pdf(d, x))
+
 
 function _rand_flat_impl(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}) where names
     shape = varshape(d)
