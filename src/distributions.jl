@@ -10,6 +10,8 @@ varshape(d::Distribution{Univariate}) = ScalarShape{Real}()
 varshape(d::Distribution{<:ArrayLikeVariate}) = ArrayShape{Real}(size(d)...)
 
 
+unshaped(d::StandardDist{D,0}) where D = StandardDist{D}(static(1))
+
 
 const UvDistAsMv{D<:Distribution{Univariate}} = Product{<:Any,D,Fill{D,1,Tuple{Base.OneTo{StaticInt{1}}}}}
 
