@@ -4,7 +4,8 @@ using ValueShapes
 using Test
 
 using Statistics, Random
-using StatsBase, Distributions, ArraysOfArrays, IntervalSets
+using StatsBase, ArraysOfArrays, IntervalSets
+using Distributions, DistributionMeasures, MeasureBase
 
 include("testutils.jl")
 
