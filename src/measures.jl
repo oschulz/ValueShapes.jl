@@ -20,15 +20,24 @@ end
 @inline varshape(μ::PowerMeasure) = _power_varshape(varshape(μ.parent), map(length, μ.axes))
 
 
+unshaped(μ::DistributionMeasure) = DistributionMeasure(unshaped(μ.d))
+varshape(μ::DistributionMeasure) = varshape(μ.d)
+
+
 function retshape(f::MeasureBase.VarTransformation, vs::AbstractValueShape)
     @argcheck vs <= varshape(f.μ)
     return varshape(trafo.ν)
 end
 
 
+
+
+#!!!!!!!!!!!!!!!!!
+#=
 function Base.Broadcast.broadcasted(
     trafo::VarTransformation,
     v_src::Union{ArrayOfSimilarVectors{<:Real},ShapedAsNTArray}
 )
     return broadcast_trafo(trafo, v_src)
 end
+=#

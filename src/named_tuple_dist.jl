@@ -1,5 +1,118 @@
 # This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
+
+"""
+    const NamedTupleVariate{names} = StructVariate{NamedTuple{names}}
+
+Variate kind for `NamedTuple`s.
+"""
+const NamedTupleVariate{names} = StructVariate{NamedTuple{names}}  # ToDo: Use StructVariate{<:NamedTuple{names}} instead?
+
+
+function _rand_flat_impl(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}) where names
+    shape = varshape(d)
+    X = Vector{default_unshaped_eltype(shape)}(undef, totalndof(varshape(d)))
+    (shape, rand!(rng, unshaped(d), X))
+end
+
+function Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}) where names
+    shape, X = _rand_flat_impl(rng, d)
+    shape(X)
+end
+
+function Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, dims::Tuple{}) where names
+    shape, X = _rand_flat_impl(rng, d)
+    shape.(Fill(X))
+end
+
+
+function Random.rand(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, dims::Dims) where names
+    shape = varshape(d)
+    X_flat = Array{default_unshaped_eltype(shape)}(undef, totalndof(varshape(d)), dims...)
+    X = ArrayOfSimilarVectors(X_flat)
+    rand!(rng, unshaped(d), X)
+    shape.(X)
+end
+
+
+function Random.rand!(d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{names}) where names
+    rand!(Random.default_rng(), d, x)
+end
+
+function Random.rand!(rng::AbstractRNG, d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{names}) where names
+    valshape(x) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
+    rand!(rng, unshaped(d), unshaped(x))
+    x
+end
+
+
+function _aov_rand_impl!(rng::AbstractRNG, d::Distribution{Multivariate}, X::ArrayOfSimilarVectors{<:Real})
+    rand!(rng, unshaped(d), flatview(X))
+end
+
+# Workaround for current limitations of ArraysOfArrays.unshaped for standard arrays of vectors
+function _aov_rand_impl!(rng::AbstractRNG, d::Distribution{Multivariate}, X::AbstractArray{<:AbstractVector{<:Real}})
+    rand!.(Ref(rng), Ref(unshaped(d)), X)
+end
+
+function Random.rand!(rng::AbstractRNG, d::Distribution{<:NamedTupleVariate}, X::ShapedAsNTArray)
+    elshape(X) >= varshape(d) || throw(ArgumentError("Shapes of variate and value are not compatible"))
+    _aov_rand_impl!(rng, unshaped(d), unshaped.(X))
+    X
+end
+
+
+function Distributions.logpdf(d::Distribution{NamedTupleVariate{names}}, x::NamedTuple{names}) where names
+    logpdf(unshaped(d), unshaped(x, varshape(d)))
+end
+
+function Distributions.logpdf(d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{names}) where names
+    @argcheck valshape(x) <= varshape(d)
+    logpdf(unshaped(d), unshaped(x))
+end
+
+function Distributions.logpdf(d::Distribution{NamedTupleVariate{names}}, x::AbstractArray{<:NamedTuple{names},0}) where names
+    logpdf(unshaped(d), unshaped(x, varshape(d)))
+end
+
+
+function Distributions.pdf(d::Distribution{NamedTupleVariate{names}}, x::NamedTuple{names}) where names
+    pdf(unshaped(d), unshaped(x, varshape(d)))
+end
+
+function Distributions.pdf(d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{names}) where names
+    @argcheck valshape(x) <= varshape(d)
+    pdf(unshaped(d), unshaped(x))
+end
+
+function Distributions.pdf(d::Distribution{NamedTupleVariate{names}}, x::AbstractArray{<:NamedTuple{names},0}) where names
+    pdf(unshaped(d), unshaped(x, varshape(d)))
+end
+
+
+function Distributions.insupport(d::Distribution{NamedTupleVariate{names}}, x::NamedTuple{names}) where names
+    insupport(unshaped(d), unshaped(x, varshape(d)))
+end
+
+function Distributions.insupport(d::Distribution{NamedTupleVariate{names}}, x::ShapedAsNT{names}) where names
+    @argcheck valshape(x) <= varshape(d)
+    insupport(unshaped(d), unshaped(x))
+end
+
+function Distributions.insupport(d::Distribution{NamedTupleVariate{names}}, x::AbstractArray{<:NamedTuple{names},0}) where names
+    insupport(unshaped(d), unshaped(x, varshape(d)))
+end
+
+function Distributions.insupport(d::Distribution{NamedTupleVariate{names}}, X::AbstractArray{<:NamedTuple{names},N}) where {N,names}
+    Distributions.insupport!(BitArray(undef, size(X)), d, X)
+end
+
+function Distributions.insupport!(r::AbstractArray{Bool,N}, d::Distribution{NamedTupleVariate{names}}, X::AbstractArray{<:NamedTuple{names},N}) where {N,names}
+    r .= insupport.(Ref(d), X)
+end
+
+
+
 _ntd_dist_and_shape(d::Distribution) = (d, varshape(d))
 
 _ntd_dist_and_shape(s::ConstValueShape) = (ConstValueDist(s.value), s)
@@ -241,7 +354,7 @@ function _ntd_rand!(
 end
 
 function _ntd_rand!(
-    rng::AbstractRNG, dist::Union{Distribution{<:PlainVariate}},
+    rng::AbstractRNG, dist::Union{Distribution{<:ArrayLikeVariate}},
     acc::ValueShapes.ValueAccessor,
     x::AbstractVector{<:Real}
 )

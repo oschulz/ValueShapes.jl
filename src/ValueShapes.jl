@@ -28,6 +28,7 @@ using MeasureBase: transport_to, transport_def, transport_origin, from_origin, t
 using MeasureBase: VarTransformation, PowerMeasure
 
 import DistributionMeasures
+using DistributionMeasures: DistributionMeasure
 
 import ChainRulesCore
 import IntervalSets
@@ -47,6 +48,7 @@ include("scalar_shape.jl")
 include("array_shape.jl")
 include("const_value_shape.jl")
 include("named_tuple_shape.jl")
+include("varshape.jl")
 include("retshape.jl")
 include("measures.jl")
 include("distributions.jl")

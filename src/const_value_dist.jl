@@ -62,9 +62,9 @@ StatsBase.mean(d::ConstValueDist) = d.value
 
 StatsBase.mode(d::ConstValueDist) = d.value
 
-Base.size(d::ConstValueDist{<:PlainVariate}) = size(d.value)
-Base.length(d::ConstValueDist{<:PlainVariate}) = prod(size(d))
-Base.eltype(d::ConstValueDist{<:PlainVariate}) = eltype(d.value)
+Base.size(d::ConstValueDist{<:ArrayLikeVariate}) = size(d.value)
+Base.length(d::ConstValueDist{<:ArrayLikeVariate}) = prod(size(d))
+Base.eltype(d::ConstValueDist{<:ArrayLikeVariate}) = eltype(d.value)
 
 
 Random.rand(rng::AbstractRNG, d::ConstValueDist) = d.value

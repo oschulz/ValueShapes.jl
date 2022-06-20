@@ -103,9 +103,9 @@ else
     end
 end
 
-Base.size(rd::ReshapedDist{<:PlainVariate}) = size(varshape(rd))
+Base.size(rd::ReshapedDist{<:ArrayLikeVariate}) = size(varshape(rd))
 
-Base.length(rd::ReshapedDist{<:PlainVariate}) = prod(size(rd))
+Base.length(rd::ReshapedDist{<:ArrayLikeVariate}) = prod(size(rd))
 
 Statistics.mean(rd::ReshapedDist) = varshape(rd)(mean(unshaped(rd)))
 

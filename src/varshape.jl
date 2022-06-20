@@ -2,57 +2,25 @@
 
 
 """
-    MissingVarShape(x)
+    UnknownVarShape(x)
 
-`varshape(x) == MissingVarShape(x)` indicates that variate shape
+`varshape(x) == UnknownVarShape(x)` indicates that variate shape
 information is not available for `x`
 """
-struct MissingVarShape{T}
+struct UnknownVarShape{T}
     x::T
 end
 
-export MissingVarShape
+export UnknownVarShape
 
 
 """
-    varshape(md::Any)::AbstractValueShape
+    varshape(x::Any)::AbstractValueShape
 
-Get the total number of degrees of freedom variates of the distribution-
-resp. measure-like object `md`.
+Get the shape of the variates of `x`. `x` may be a measure,
+distributions, random variable, sampler or similar.
 
-Defaults to `varshape(x::Any) == MissingVarShape(x)`.
+Defaults to `UnknownVarShape(x)`.
 """
-varshape(x::Any) = MissingVarShape(x)
+varshape(x::Any) = UnknownVarShape(x)
 export varshape
-
-
-
-"""
-    MissingTotalNDOF(x)
-
-`varshape(x) == MissingTotalNDOF(x)` indicates that the total number of
-degrees of freedom is not available for `x`
-"""
-struct MissingTotalNDOF{T}
-    x::T
-end
-
-export MissingTotalNDOF
-
-
-"""
-    vardof(md::Any)::Integer
-
-Get the total number of degrees of freedom variates of the distribution-
-resp. measure-like object `md`.
-
-Defaults to `totalndof(varshape(md))` (see [`varshape`](@ref)) and
-`MissingTotalNDOF(x)` if `varshape(md) <: MissingVarShape`.
-"""
-function vardof end
-export vardof
-
-function vardof(md::Any)
-    vs = varshape(md)
-    vs <: MissingVarShape ? MissingTotalNDOF(x) : totalndof(vs)
-end

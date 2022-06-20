@@ -6,7 +6,7 @@ using Test
 using LinearAlgebra
 
 
-@testset "functions" begin
+@testset "retshape" begin
     f1_with_rs(x) = (x = norm(x.a)^2 + norm(x.b)^2, y = vec(sum(x.a, dims = 2)))
 
     function ValueShapes.retshape(::typeof(f1_with_rs), argshape::NamedTupleShape)
