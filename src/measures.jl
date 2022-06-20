@@ -1,6 +1,13 @@
 # This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
-const MvStdMeasure = PowerMeasure{<:StdMeasure,<:NTuple{1,Base.OneTo}}
+const UvStdMeasure = MeasureBase.StdMeasure
+const MvStdMeasure = PowerMeasure{<:MeasureBase.StdMeasure,<:NTuple{1,Base.OneTo}}
+
+uv_stdmeasure(μ::MvStdMeasure) = μ.parent
+mv_stdmeasure(μ::UvStdMeasure, n::Int) = μ^n
+
+stdmeasure_size(μ::UvStdMeasure) = ()
+stdmeasure_size(μ::MvStdMeasure) = map(length, m.axes)
 
 
 @inline varshape(μ::MeasureBase.StdMeasure) = ScalarShape{Real}()

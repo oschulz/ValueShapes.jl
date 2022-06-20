@@ -56,11 +56,19 @@ NamedTupleDist(dists::NamedTuple) = NamedTupleDist(NamedTuple, dists)
 @inline _distributions(d::NamedTupleDist) = getfield(d, :_internal_distributions)
 @inline _shape(d::NamedTupleDist) = getfield(d, :_internal_shape)
 
+
+#function Base.show(io::IO, d::NamedTupleDist)
+#    print(io, Base.typename(typeof(d)).name, "(")
+#    show(io, _distributions(d))
+#    print(io, ")")
+#end
+
 function Base.show(io::IO, d::NamedTupleDist)
-    print(io, Base.typename(typeof(d)).name, "(")
-    show(io, _distributions(d))
-    print(io, ")")
+    print(io, Base.typename(typeof(d)).name, "{")
+    show(io, propertynames(d))
+    print(io, "}(…)")
 end
+
 
 @inline Base.keys(d::NamedTupleDist) = keys(_distributions(d))
 
@@ -103,7 +111,15 @@ end
 
 varshape(d::NamedTupleDist) = _shape(d)
 
+
 MeasureBase.getdof(d::NamedTupleDist) = sum(map(getdof, values(d)))
+
+# Bypass `checked_var`, would require potentially costly transformation:
+@inline MeasureBase.checked_var(::NamedTupleDist, x) = x
+
+@inline MeasureBase.vartransform_origin(ν::NamedTupleDist) = unshaped(ν)
+@inline MeasureBase.from_origin(ν::NamedTupleDist, x) = varshape(ν)(x)
+@inline MeasureBase.to_origin(ν::NamedTupleDist, y) = unshaped(y, varshape(ν))
 
 
 
@@ -360,3 +376,51 @@ Statistics.cov(ud::UnshapedNTD) = _ntd_cov(ud.shaped)
 
 
 MeasureBase.getdof(d::ValueShapes.UnshapedNTD) = getdof(d.shaped)
+
+
+
+# ToDo add custom rrules for parts of the NamedTupleDist transform process.
+
+_flat_ntd_elshape(d::Distribution) = ArrayShape{Real}(getdof(d))
+
+function _flat_ntd_accessors(d::NamedTupleDist{names,DT,AT,VT}) where {names,DT,AT,VT}
+    shapes = map(_flat_ntd_elshape, values(d))
+    vs = NamedTupleShape(VT, NamedTuple{names}(shapes))
+    values(vs)
+end
+
+
+function _flat_ntdistelem_to_stdmv(trg::UvStdMeasure, sd::Distribution, x_unshaped::AbstractVector{<:Real}, trg_acc::ValueAccessor)
+    # ToDo: This may fail for Dirichlet and the like, trg_acc may be wrong:
+    vartransform_def(mv_stdmeasure(trg, trg_acc.len), unshaped(sd), trg_acc(x_unshaped))
+end
+
+function _flat_ntdistelem_to_stdmv(trg::MvStdMeasure, sd::ConstValueDist, x_unshaped::AbstractVector{<:Real}, trg_acc::ValueAccessor)
+    Zeros{Bool}(0)
+end
+
+function MeasureBase.vartransform_def(ν::UvStdMeasure, μ::ValueShapes.UnshapedNTD, x::AbstractVector{<:Real})
+    # @argcheck length(src) == length(eachindex(x))
+    trg_accessors = _flat_ntd_accessors(μ.shaped)
+    rs = map((acc, sd) -> _flat_ntdistelem_to_stdmv(uv_stdmeasure(ν), sd, x, acc), trg_accessors, values(μ.shaped))
+    vcat(rs...)
+end
+
+
+function _stdmv_to_flat_ntdistelem(td::Distribution, src::UvStdMeasure, x::AbstractVector{<:Real}, src_acc::ValueAccessor)
+    sd = resize_mvstdmeasure(src, src_acc.len)
+    vartransform_def(unshaped(td), sd, src_acc(x))
+end
+
+function _stdmv_to_flat_ntdistelem(td::ConstValueDist, src::MvStdMeasure, x::AbstractVector{<:Real}, src_acc::ValueAccessor)
+    Zeros{Bool}(0)
+end
+
+function MeasureBase.vartransform_def(ν::ValueShapes.UnshapedNTD, μ::MvStdMeasure, x::AbstractVector{<:Real})
+    # @argcheck length(μ) == length(eachindex(x))
+    src_accessors = _flat_ntd_accessors(ν.shaped)
+    rs = map((acc, td) -> _stdmv_to_flat_ntdistelem(td, uv_stdmeasure(μ), x, acc), src_accessors, values(ν.shaped))
+    vcat(rs...)
+end
+
+

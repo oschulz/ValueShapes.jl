@@ -85,4 +85,11 @@ ValueShapes.varshape(d::ConstValueDist) = ConstValueShape(d.value)
 Statistics.var(d::ConstValueDist) = zero(d.value)
 
 
-MeasureBase.dof(d::ConstValueDist) = static(0)
+@inline MeasureBase.dof(d::ConstValueDist) = static(0)
+
+@inline vartransform_def(ν::ConstValueDist, ::MvStdMeasure, ::Any) = ν.value
+@inline vartransform_def(::MvStdMeasure, ν::ConstValueDist, ::Any) = Zeros{Bool}(0)
+
+@inline MeasureBase.vartransform_origin(ν::ConstValueDist) = unshaped(ν)
+@inline MeasureBase.from_origin(ν::ConstValueDist, x) = ν.value
+@inline MeasureBase.to_origin(ν::ConstValueDist, y) = Zeros{Bool}(0)
