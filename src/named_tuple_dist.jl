@@ -103,6 +103,9 @@ end
 
 varshape(d::NamedTupleDist) = _shape(d)
 
+MeasureBase.getdof(d::NamedTupleDist) = sum(map(getdof, values(d)))
+
+
 
 struct UnshapedNTD{NTD<:NamedTupleDist} <: Distribution{Multivariate,Continuous}
     shaped::NTD
@@ -354,3 +357,6 @@ end
 
 
 Statistics.cov(ud::UnshapedNTD) = _ntd_cov(ud.shaped)
+
+
+MeasureBase.getdof(d::ValueShapes.UnshapedNTD) = getdof(d.shaped)

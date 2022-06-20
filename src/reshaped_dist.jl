@@ -1,4 +1,4 @@
-# This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
+# This file is a part of jl, licensed under the MIT License (MIT).
 
 @static if hasmethod(reshape, Tuple{Distribution{Multivariate,Continuous}, Int, Int})
     _reshape_arraylike_dist(d::Distribution, sz::Integer...) = reshape(d, sz)
@@ -127,3 +127,13 @@ Distributions._logpdf(rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real}
 Distributions.insupport(rd::ReshapedDist{Univariate}, x::Real) = insupport(unshaped(rd), unshaped(x))
 Distributions.insupport(rd::ReshapedDist{Multivariate}, x::AbstractVector{<:Real}) = insupport(unshaped(rd), x)
 Distributions.insupport(rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Real}) = insupport(_reshape_arraylike_dist(unshaped(rd), size(rd)...), x)
+
+
+MeasureBase.getdof(μ::ReshapedDist) = getdof(unshaped(μ))
+
+# Bypass `checked_var`, would require potentially costly transformation:
+@inline MeasureBase.checked_var(::ReshapedDist, x) = x
+
+@inline MeasureBase.vartransform_origin(ν::ReshapedDist) = unshaped(ν)
+@inline MeasureBase.from_origin(ν::ReshapedDist, x) = varshape(ν)(x)
+@inline MeasureBase.to_origin(ν::ReshapedDist, y) = unshaped(y, varshape(ν))

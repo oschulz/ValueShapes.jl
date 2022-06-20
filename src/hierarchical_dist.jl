@@ -137,8 +137,8 @@ MeasureBase.getdof(d::HierarchicalDist) = d.dof
 @inline MeasureBase.checked_var(::HierarchicalDistribution, x) = x
 
 @inline MeasureBase.vartransform_origin(ν::HierarchicalDistribution) = unshaped(ν)
-@inline MeasureBase.to_origin(ν::HierarchicalDistribution, x) = unshaped(x, varshape(ν))
-@inline MeasureBase.from_origin(ν::HierarchicalDistribution, y) = varshape(ν)(y)
+@inline MeasureBase.from_origin(ν::HierarchicalDistribution, x) = varshape(ν)(y)
+@inline MeasureBase.to_origin(ν::HierarchicalDistribution, y) = unshaped(y, varshape(ν))
 
 
 
