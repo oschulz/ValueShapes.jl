@@ -1,67 +1,31 @@
 # This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
+"""
+    UnknownReturnShape{F}(argshape)
 
-#!!!!!!!!!!!!! ToDo: Remove varshape, vardof and unshaped for functions,
-# untroduce retshape(f, ::AbstractValueShape...) instead.
-# varshape becomes specific to distributions and measures
+Indicates that that shape of the return value for functions of type `F` and
+arguments of shape `argshape` cannot be determined.
 
-
-struct UnshapedFunction{F<:Function,IS<:Union{Nothing,AbstractValueShape},OS<:Union{Nothing,AbstractValueShape}} <: Function
-    orig_f::F
-    orig_varshape::IS
-    orig_valshape::OS
+See [`retshape`](@ref).
+"""
+struct UnknownReturnShape{F,S}
+    argshape::S
 end
+
+UnknownReturnShape{F}(argshape::S) where {F,S<:AbstractValueShape} = UnknownReturnShape{F,S}(argshape)
+UnknownReturnShape{F}(argshape::UnknownReturnShape) where {F} = argshape
+
 
 """
-    unshaped(
-        f::Function,
-        orig_varshape::Union{Nothing,AbstractValueShape},
-        orig_valshape::Union{Nothing,AbstractValueShape} = nothing
-    )
+    retshape(f::F, argshape::AbstractValueShape)::AbstractValueShape
 
-Return a function that
-    * Shapes it's input from a flat vector of `Real` using `orig_varshape`, if not `nothing`.
-    * Calls `f` with the (optionally) unshaped input.
-    * Unshapes the result to a flat vector of `Real` using `orig_valshape`, if not `nothing`.
+Compute the value shape of `y = f(x)` for values `x` with shape `argshape`.
+
+Defaults to `UnknownReturnShape{F}(shape_x)`.
 """
-function unshaped(f::Function, orig_varshape::Union{Nothing,AbstractValueShape}, orig_valshape::Union{Nothing,AbstractValueShape} = nothing)
-    UnshapedFunction(f, orig_varshape, orig_valshape)
-end
+@inline retshape(::F, argshape::AbstractValueShape) where {F} = UnknownReturnShape{F}(argshape)
+export retshape
 
-varshape(uf::UnshapedFunction) = uf.varshape
+@inline retshape(::typeof(identity), argshape::AbstractValueShape) = argshape
 
-Base.@propagate_inbounds function (uf::UnshapedFunction)(x)
-    orig_x =_maybe_shaped(x, uf.orig_varshape)
-    orig_y = uf.orig_f(orig_x) 
-    _maybe_unshaped(orig_y, uf.orig_valshape)
-end
-
-@inline _maybe_shaped(x::Any, vs::Nothing) = x
-Base.@propagate_inbounds _maybe_shaped(x::Any, vs::AbstractValueShape) = stripscalar(vs(x))
-
-@inline _maybe_unshaped(x::Any, vs::Nothing) = x
-Base.@propagate_inbounds _maybe_unshaped(x::Any, vs::AbstractValueShape) = unshaped(x, vs)
-
-
-
-
-
-# ToDo: Deprecate/remove:
-struct FuncWithVarShape{F<:Function,VS<:AbstractValueShape} <: Function
-    f::F
-    varshape::VS
-end
-
-varshape(fws::FuncWithVarShape) = fws.varshape
-
-Base.@propagate_inbounds (fws::FuncWithVarShape)(x::Any) = fws.f(x)
-
-Base.@propagate_inbounds function (fws::FuncWithVarShape)(x::AbstractVector{<:Real})
-    # ToDo: Check performance:
-    x_shaped = varshape(fws)(x)
-    fws.f(x_shaped)
-end
-
-# ToDo: Deprecate/remove:
-import Base.>>
-@inline >>(varshape::AbstractValueShape, f::Function) = FuncWithVarShape(f, varshape)
+@inline retshape(f::ComposedFunction, argshape::AbstractValueShape) = retshape(f.outer, retshape(f.inner, argshape))

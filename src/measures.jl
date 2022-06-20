@@ -20,7 +20,7 @@ end
 @inline varshape(μ::PowerMeasure) = _power_varshape(varshape(μ.parent), map(length, μ.axes))
 
 
-function resultshape(f::MeasureBase.VarTransformation, vs::AbstractValueShape)
+function retshape(f::MeasureBase.VarTransformation, vs::AbstractValueShape)
     @argcheck vs <= varshape(f.μ)
     return varshape(trafo.ν)
 end
