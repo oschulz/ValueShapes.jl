@@ -123,11 +123,11 @@ include("testutils.jl")
 
     @testset "NamedTupleDist transport" begin
         ntdist = NamedTupleDist(
-            a = uniform1,
-            b = mvnorm,
+            a = Uniform(-5.0, -0.01),
+            b = MvNormal([0.3, -2.9], [1.7 0.5; 0.5 2.3]),
             c = [4.2, 3.7],
-            x = beta,
-            y = gamma
+            x = Beta(3,1),
+            y = Gamma(0.1,0.7)
         )
 
         test_transport(ntdist, StdNormal()^5)
