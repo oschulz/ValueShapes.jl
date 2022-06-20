@@ -1,6 +1,6 @@
-# This file is a part of BAT.jl, licensed under the MIT License (MIT).
+# This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
-using BAT
+using ValueShapes
 using Test
 
 using Distributions, StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
@@ -24,7 +24,7 @@ using Distributions, StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
         hd = HierarchicalDist(f, primary_dist)
         snt_hd = HierarchicalDist(f, snt_primary_dist)
 
-        @test @inferred(unshaped(hd)) isa BAT.UnshapedHDist
+        @test @inferred(unshaped(hd)) isa ValueShapes.UnshapedHDist
         ud = unshaped(hd)
 
         @test @inferred(rand(hd)) isa NamedTuple
@@ -37,9 +37,6 @@ using Distributions, StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
         @test @inferred(logpdf(ud, ux)) ≈ logpdf(primary_dist.foo, 2.7) + logpdf(primary_dist.bar, 4.3) + 3 * logpdf(Normal(4.3, 2.7), 8.7)
         @test @inferred(logpdf(hd, varshape(hd)(ux))) == logpdf(ud, ux)
         @test @inferred(logpdf(hd, varshape(hd)(ux))) == logpdf(ud, ux)
-
-        samples = bat_sample(hd, MCMCSampling(mcalg = HamiltonianMC(), trafo = NoDensityTransform(), nsteps = 10^4)).result
-        @test isapprox(cov(unshaped.(samples)), cov(ud), rtol = 0.25)
     end
 
     let
@@ -51,6 +48,6 @@ using Distributions, StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
         cov_expected = [1.9^2 1.9^2; 1.9^2 1.9^2 + 1.2^2]
 
         @test isapprox(cov(unshaped(hd)), cov_expected, rtol = 0.05)
-        @test isapprox(mean(unshaped.(rand(sampler(hd), 10^5))), [2.3, 2.3], rtol = 0.05)
+        @test isapprox(mean(unshaped.(rand(hd, 10^5))), [2.3, 2.3], rtol = 0.05)
     end
 end
