@@ -13,7 +13,9 @@ varshape(d::Distribution{<:ArrayLikeVariate}) = ArrayShape{Real}(size(d)...)
 unshaped(d::StandardDist{D,0}) where D = StandardDist{D}(static(1))
 
 
-const UvDistAsMv{D<:Distribution{Univariate}} = Product{<:Any,D,Fill{D,1,Tuple{Base.OneTo{StaticInt{1}}}}}
+# ToDo: Replace with custom UnshapedUvDist?
+const UnshapedUvDist{D<:Distribution{Univariate}} = Product{<:Any,D,Fill{D,1,Tuple{Base.OneTo{StaticInt{1}}}}}
+
 
 """
     unshaped(d::Distributions.Distribution)
@@ -27,9 +29,9 @@ function unshaped(d::UnivariateDistribution)
     Distributions.Product(Fill(d, static(1)))
 end
 
-@inline MeasureBase.transport_origin(ν::UvDistAsMv) = only(ν.v)
-@inline MeasureBase.from_origin(ν::UvDistAsMv, x) = Fill(x, static(1))
-@inline MeasureBase.to_origin(ν::UvDistAsMv, y) = only(y)
+@inline MeasureBase.transport_origin(ν::UnshapedUvDist) = only(ν.v)
+@inline MeasureBase.from_origin(ν::UnshapedUvDist, x) = Fill(x, static(1))
+@inline MeasureBase.to_origin(ν::UnshapedUvDist, y) = only(y)
 
 
 unshaped(d::Distribution{Multivariate}) = d
