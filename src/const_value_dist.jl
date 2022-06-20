@@ -83,3 +83,6 @@ Random.rand!(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, A::AbstractAr
 ValueShapes.varshape(d::ConstValueDist) = ConstValueShape(d.value)
 
 Statistics.var(d::ConstValueDist) = zero(d.value)
+
+
+MeasureBase.dof(d::ConstValueDist) = static(0)
