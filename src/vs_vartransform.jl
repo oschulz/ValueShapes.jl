@@ -1,5 +1,7 @@
 # This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
+const MvStdMeasure = PowerMeasure{<:StdMeasure,<:NTuple{1,Base.OneTo}}
+
 
 function resultshape(f::MeasureBase.VarTransformation, vs::AbstractValueShape)
     @argcheck vs <= varshape(f.μ)

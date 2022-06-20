@@ -44,5 +44,6 @@ include("distributions.jl")
 include("const_value_dist.jl")
 include("named_tuple_dist.jl")
 include("reshaped_dist.jl")
+include("hierarchical_dist.jl")
 
 end # module
