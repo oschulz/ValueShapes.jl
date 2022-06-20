@@ -512,7 +512,7 @@ function _flat_ntdistelem_to_stdmv(trg::UvStdMeasure, sd::Distribution, x_unshap
     transport_def(mv_stdmeasure(trg, trg_acc.len), unshaped(sd), trg_acc(x_unshaped))
 end
 
-function MeasureBase.transport_def(ν::MvStdMeasure, μ::ValueShapes.UnshapedNTD, x)
+function MeasureBase.transport_def(ν::MvStdMeasure, μ::ValueShapes.UnshapedNTD{<:NamedTupleDist{names}}, x) where names
     # @argcheck length(src) == length(eachindex(x))
     trg_accessors = _flat_ntd_accessors(μ.shaped)
     rs = map((acc, sd) -> _flat_ntdistelem_to_stdmv(uv_stdmeasure(ν), sd, x, acc), trg_accessors, values(μ.shaped))
@@ -525,7 +525,7 @@ function _stdmv_to_flat_ntdistelem(td::Distribution, src::UvStdMeasure, x::Abstr
     transport_def(unshaped(td), sd, src_acc(x))
 end
 
-function MeasureBase.transport_def(ν::ValueShapes.UnshapedNTD, μ::MvStdMeasure, x)
+function MeasureBase.transport_def(ν::ValueShapes.ValueShapes.UnshapedNTD{<:NamedTupleDist{names}}, μ::MvStdMeasure, x) where names
     # @argcheck length(μ) == length(eachindex(x))
     src_accessors = _flat_ntd_accessors(ν.shaped)
     rs = map((acc, td) -> _stdmv_to_flat_ntdistelem(td, uv_stdmeasure(μ), x, acc), src_accessors, values(ν.shaped))
