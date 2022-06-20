@@ -136,7 +136,7 @@ MeasureBase.getdof(d::HierarchicalDist) = d.dof
 # Bypass `checked_var`, would require potentially costly transformation:
 @inline MeasureBase.checked_var(::HierarchicalDistribution, x) = x
 
-@inline MeasureBase.vartransform_origin(ν::HierarchicalDistribution) = unshaped(ν)
+@inline MeasureBase.transport_origin(ν::HierarchicalDistribution) = unshaped(ν)
 @inline MeasureBase.from_origin(ν::HierarchicalDistribution, x) = varshape(ν)(x)
 @inline MeasureBase.to_origin(ν::HierarchicalDistribution, y) = unshaped(y, varshape(ν))
 

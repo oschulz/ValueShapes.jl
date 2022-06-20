@@ -134,6 +134,6 @@ MeasureBase.getdof(μ::ReshapedDist) = getdof(unshaped(μ))
 # Bypass `checked_var`, would require potentially costly transformation:
 @inline MeasureBase.checked_var(::ReshapedDist, x) = x
 
-@inline MeasureBase.vartransform_origin(ν::ReshapedDist) = unshaped(ν)
+@inline MeasureBase.transport_origin(ν::ReshapedDist) = unshaped(ν)
 @inline MeasureBase.from_origin(ν::ReshapedDist, x) = varshape(ν)(x)
 @inline MeasureBase.to_origin(ν::ReshapedDist, y) = unshaped(y, varshape(ν))
