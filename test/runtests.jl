@@ -3,6 +3,7 @@
 import Test
 
 Test.@testset "Package ValueShapes" begin
+    include("test_aqua.jl")
     include("test_value_shape.jl")
     include("test_value_accessor.jl")
     include("test_scalar_shape.jl")
@@ -16,4 +17,5 @@ Test.@testset "Package ValueShapes" begin
     include("test_named_tuple_dist.jl")
     include("test_reshaped_dist.jl")
     include("test_hierarchical_dist.jl")
+    include("test_docs.jl")
 end # testset
