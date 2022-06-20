@@ -22,6 +22,7 @@ using InverseFunctions
 using Random
 using Statistics
 using StatsBase
+using Static
 
 import MeasureBase
 using MeasureBase: transport_to, transport_def, transport_origin, from_origin, to_origin

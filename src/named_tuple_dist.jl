@@ -229,7 +229,7 @@ end
 varshape(d::NamedTupleDist) = _shape(d)
 
 
-MeasureBase.getdof(d::NamedTupleDist) = sum(map(getdof, values(d)))
+MeasureBase.getdof(d::NamedTupleDist) = sum(map(MeasureBase.getdof, values(d)))
 
 # Bypass `checked_arg`, would require potentially costly transformation:
 @inline MeasureBase.checked_arg(::NamedTupleDist, x) = x

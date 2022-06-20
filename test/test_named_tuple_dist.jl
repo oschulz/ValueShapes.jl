@@ -20,8 +20,6 @@ include("testutils.jl")
             e = [Normal(1.1, 0.2)]
         )
 
-        @testset "NamedTupleDist transport" begin
-
         @test typeof(@inferred varshape(dist)) <: NamedTupleShape
 
         shape = varshape(dist)
@@ -86,9 +84,9 @@ include("testutils.jl")
             @test @inferred(Distributions._logpdf(unshaped(dist), Xn[1])) == @inferred(logpdf(unshaped(dist), Xn[1]))
             @test @inferred(logpdf(unshaped(dist), X)) == @inferred(broadcast(logpdf, Ref(unshaped(dist)), Xn))
 
-            @test @inferred(insupport(unshaped(dist), Xn[1])) == true
-            @test @inferred(insupport(unshaped(dist), fill(-Inf, length(Xn)))) == false
-            @test @inferred(insupport(unshaped(dist), X)) == fill(true, length(Xn))
+            @test @inferred(Distributions.insupport(unshaped(dist), Xn[1])) == true
+            @test @inferred(Distributions.insupport(unshaped(dist), fill(-Inf, length(Xn)))) == false
+            @test @inferred(Distributions.insupport(unshaped(dist), X)) == fill(true, length(Xn))
         end
 
         @test @inferred(rand(unshaped(dist))) isa Vector{Float64}
