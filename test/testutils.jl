@@ -12,7 +12,7 @@ function test_transport(ν, μ)
 
     @testset "transport from $(nameof(typeof(ν))) to $(nameof(typeof(μ)))" begin
         x = rand(μ)
-        @test !(@inferred(MeasureBase.transport_to(ν, μ)(x)) isa NoVarTransform)
+        @test !(@inferred(MeasureBase.transport_to(ν, μ)(x)) isa NoTransport)
         f = MeasureBase.transport_to(ν, μ)
         y = f(x)
         @test @inferred(inverse(f)(y)) ≈ x

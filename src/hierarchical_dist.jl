@@ -128,8 +128,8 @@ end
 
 MeasureBase.getdof(d::HierarchicalDist) = d.dof
 
-# Bypass `checked_var`, would require potentially costly transformation:
-@inline MeasureBase.checked_var(::HierarchicalDist, x) = x
+# Bypass `checked_arg`, would require potentially costly transformation:
+@inline MeasureBase.checked_arg(::HierarchicalDist, x) = x
 
 @inline MeasureBase.transport_origin(ν::HierarchicalDist) = unshaped(ν)
 @inline MeasureBase.from_origin(ν::HierarchicalDist, x) = varshape(ν)(x)

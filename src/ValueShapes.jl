@@ -25,7 +25,7 @@ using StatsBase
 
 import MeasureBase
 using MeasureBase: transport_to, transport_def, transport_origin, from_origin, to_origin
-using MeasureBase: VarTransformation, PowerMeasure
+using MeasureBase: TransportFunction, PowerMeasure
 
 import DistributionMeasures
 using DistributionMeasures: DistributionMeasure

@@ -131,8 +131,8 @@ Distributions.insupport(rd::ReshapedDist{Matrixvariate}, x::AbstractMatrix{<:Rea
 
 MeasureBase.getdof(μ::ReshapedDist) = getdof(unshaped(μ))
 
-# Bypass `checked_var`, would require potentially costly transformation:
-@inline MeasureBase.checked_var(::ReshapedDist, x) = x
+# Bypass `checked_arg`, would require potentially costly transformation:
+@inline MeasureBase.checked_arg(::ReshapedDist, x) = x
 
 @inline MeasureBase.transport_origin(ν::ReshapedDist) = unshaped(ν)
 @inline MeasureBase.from_origin(ν::ReshapedDist, x) = varshape(ν)(x)

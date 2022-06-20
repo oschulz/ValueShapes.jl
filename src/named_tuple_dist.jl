@@ -227,8 +227,8 @@ varshape(d::NamedTupleDist) = _shape(d)
 
 MeasureBase.getdof(d::NamedTupleDist) = sum(map(getdof, values(d)))
 
-# Bypass `checked_var`, would require potentially costly transformation:
-@inline MeasureBase.checked_var(::NamedTupleDist, x) = x
+# Bypass `checked_arg`, would require potentially costly transformation:
+@inline MeasureBase.checked_arg(::NamedTupleDist, x) = x
 
 @inline MeasureBase.transport_origin(ν::NamedTupleDist) = unshaped(ν)
 @inline MeasureBase.from_origin(ν::NamedTupleDist, x) = varshape(ν)(x)

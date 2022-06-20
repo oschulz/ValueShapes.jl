@@ -24,7 +24,7 @@ unshaped(μ::DistributionMeasure) = DistributionMeasure(unshaped(μ.d))
 varshape(μ::DistributionMeasure) = varshape(μ.d)
 
 
-function retshape(f::MeasureBase.VarTransformation, vs::AbstractValueShape)
+function retshape(f::MeasureBase.TransportFunction, vs::AbstractValueShape)
     @argcheck vs <= varshape(f.μ)
     return varshape(trafo.ν)
 end
@@ -35,7 +35,7 @@ end
 #!!!!!!!!!!!!!!!!!
 #=
 function Base.Broadcast.broadcasted(
-    trafo::VarTransformation,
+    trafo::TransportFunction,
     v_src::Union{ArrayOfSimilarVectors{<:Real},ShapedAsNTArray}
 )
     return broadcast_trafo(trafo, v_src)

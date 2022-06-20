@@ -91,7 +91,7 @@ MeasureBase.insupport(μ::ConstValueDist, x) = x == μ.value
 
 @inline MeasureBase.getdof(::ConstValueDist) = static(0)
 
-@propagate_inbounds function MeasureBase.checked_var(μ::ConstValueDist, x)
+@propagate_inbounds function MeasureBase.checked_arg(μ::ConstValueDist, x)
     @boundscheck insupport(μ, x) || throw(ArgumentError("Invalid variate for measure"))
     x
 end
