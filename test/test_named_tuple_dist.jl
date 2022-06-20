@@ -131,7 +131,13 @@ include("testutils.jl")
 
         test_transport(ntdist, StdNormal()^5)
         test_transport(ntdist, StdUniform()^5)
-        test_transport(StdLogistic()^5, ntdist)
+        test_transport(StdNormal()^5, ntdist)
+        test_transport(StandardDist{Normal}(5), ntdist)
+        test_transport(ntdist, StandardDist{Normal}(5))
+        # test_transport(StdLogistic()^5, ntdist)
+
+        test_transport(StandardDist{Uniform}(5), ntdist)
+        test_transport(ntdist, StandardDist{Uniform}(5))
 
         dist1 = @inferred(NamedTupleDist(a = Normal(), b = Uniform(), c = Cauchy()))
         dist2 = @inferred(NamedTupleDist(a = Exponential(), b = Weibull(), c = Beta()))
