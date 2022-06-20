@@ -85,11 +85,19 @@ ValueShapes.varshape(d::ConstValueDist) = ConstValueShape(d.value)
 Statistics.var(d::ConstValueDist) = zero(d.value)
 
 
-@inline MeasureBase.dof(d::ConstValueDist) = static(0)
+MeasureBase.testvalue(μ::ConstValueDist) = μ.x
 
-@inline vartransform_def(ν::ConstValueDist, ::MvStdMeasure, ::Any) = ν.value
-@inline vartransform_def(::MvStdMeasure, ν::ConstValueDist, ::Any) = Zeros{Bool}(0)
+MeasureBase.insupport(μ::ConstValueDist, x) = x == μ.value
 
-@inline MeasureBase.vartransform_origin(ν::ConstValueDist) = unshaped(ν)
-@inline MeasureBase.from_origin(ν::ConstValueDist, x) = ν.value
-@inline MeasureBase.to_origin(ν::ConstValueDist, y) = Zeros{Bool}(0)
+@inline MeasureBase.getdof(::ConstValueDist) = static(0)
+
+@propagate_inbounds function MeasureBase.checked_var(μ::ConstValueDist, x)
+    @boundscheck insupport(μ, x) || throw(ArgumentError("Invalid variate for measure"))
+    x
+end
+
+@inline MeasureBase.vartransform_def(ν::ConstValueDist, ::MvStdMeasure, ::Any) = ν.value
+
+@inline function MeasureBase.vartransform_def(ν::MvStdMeasure, ::ConstValueDist, ::Any)
+    Zeros{Bool}(map(_ -> 0, ν.axes))
+end
