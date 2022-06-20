@@ -96,8 +96,8 @@ MeasureBase.insupport(μ::ConstValueDist, x) = x == μ.value
     x
 end
 
-@inline MeasureBase.vartransform_def(ν::ConstValueDist, ::MvStdMeasure, ::Any) = ν.value
+@inline MeasureBase.transport_def(ν::ConstValueDist, ::MvStdMeasure, ::Any) = ν.value
 
-@inline function MeasureBase.vartransform_def(ν::MvStdMeasure, ::ConstValueDist, ::Any)
+@inline function MeasureBase.transport_def(ν::MvStdMeasure, ::ConstValueDist, ::Any)
     Zeros{Bool}(map(_ -> 0, ν.axes))
 end

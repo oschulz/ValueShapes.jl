@@ -263,20 +263,20 @@ end
 
 MeasureBase.getdof(d::UnshapedHDist) = getdof(d.shaped)
 
-function MeasureBase.vartransform_def(ν::MvStdMeasure, μ::UnshapedHDist, x)
+function MeasureBase.transport_def(ν::MvStdMeasure, μ::UnshapedHDist, x)
     x_primary, x_secondary = _hd_split(μ, x)
     trg_primary = typeof(ν)(length(eachindex(x_primary)))
     trg_secondary = typeof(ν)(length(eachindex(x_secondary)))
-    trg_v_primary = vartransform_def(trg_primary, _hd_pridist(μ), x_primary)
-    trg_v_secondary = vartransform_def(trg_secondary, _hd_secdist(μ, x_primary), x_secondary)
+    trg_v_primary = transport_def(trg_primary, _hd_pridist(μ), x_primary)
+    trg_v_secondary = transport_def(trg_secondary, _hd_secdist(μ, x_primary), x_secondary)
     vcat(trg_v_primary, trg_v_secondary)
 end
 
-function MeasureBase.vartransform_def(ν::UnshapedHDist, μ::MvStdMeasure, x)
+function MeasureBase.transport_def(ν::UnshapedHDist, μ::MvStdMeasure, x)
     x_primary, x_secondary = _hd_split(ν, x)
     src_primary = typeof(μ)(length(eachindex(x_primary)))
     src_secondary = typeof(μ)(length(eachindex(x_secondary)))
-    trg_v_primary = vartransform_def(_hd_pridist(ν), src_primary, x_primary)
-    trg_v_secondary = vartransform_def(_hd_secdist(ν, trg_v_primary), src_secondary, x_secondary)
+    trg_v_primary = transport_def(_hd_pridist(ν), src_primary, x_primary)
+    trg_v_secondary = transport_def(_hd_secdist(ν, trg_v_primary), src_secondary, x_secondary)
     vcat(trg_v_primary, trg_v_secondary)
 end
