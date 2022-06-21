@@ -38,6 +38,9 @@ function unshaped(d::UnivariateDistribution)
     Distributions.Product(Fill(d, 1))
 end
 
+_unshaped_uv_pullback(ΔΩ) = NoTangent(), only(unthunk(ΔΩ).v)
+ChainRulesCore.rrule(::typeof(unshaped), d::UnivariateDistribution) = unshaped(d), _unshaped_uv_pullback
+
 unshaped(d::Distribution{Multivariate}) = d
 
 @static if isdefined(Distributions, :ReshapedDistribution)
