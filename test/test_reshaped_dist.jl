@@ -89,7 +89,7 @@ using StatsBase, Distributions, ArraysOfArrays
             @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)
             @test @inferred(logpdf(rd, vs(ux)[])) == logpdf(unshaped(rd), ux)
             @test @inferred(logpdf(rd, vs(ux))) == logpdf(unshaped(rd), ux)
-            @test @inferred(insupport(rd, vs(ux)[])) == true
+            @test @inferred(Distributions.insupport(rd, vs(ux)[])) == true
         end
 
         @test @inferred(mean(_mvnormalrd(a1shape))) ≈ fill(2, 3)
@@ -99,7 +99,7 @@ using StatsBase, Distributions, ArraysOfArrays
         let rd = _mvnormalrd(a1shape), ux = rand(unshaped(rd)), vs = varshape(rd)
             @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)
             @test @inferred(logpdf(rd, vs(ux))) == logpdf(unshaped(rd), ux)
-            @test @inferred(insupport(rd, vs(ux))) == true
+            @test @inferred(Distributions.insupport(rd, vs(ux))) == true
         end
 
         @test @inferred(mean(_mvnormalrd(a2shape))) ≈ fill(2, 2, 3)
@@ -108,7 +108,7 @@ using StatsBase, Distributions, ArraysOfArrays
         let rd = _mvnormalrd(a2shape), ux = rand(unshaped(rd)), vs = varshape(rd)
             @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)
             @test @inferred(logpdf(rd, vs(ux))) == logpdf(unshaped(rd), ux)
-            @test @inferred(insupport(rd, vs(ux))) == true
+            @test @inferred(Distributions.insupport(rd, vs(ux))) == true
         end
 
         @test @inferred(mean(_mvnormalrd(ntshape)))[] == (a = [2.0 2.0 2.0; 2.0 2.0 2.0], b = 2.0, c = 4.2, x = [11 21; 12 22], y = [2.0, 2.0, 2.0, 2.0])
@@ -119,8 +119,8 @@ using StatsBase, Distributions, ArraysOfArrays
             @test @inferred(pdf(rd, vs(ux))) == pdf(unshaped(rd), ux)
             @test @inferred(logpdf(rd, vs(ux)[])) == logpdf(unshaped(rd), ux)
             @test @inferred(logpdf(rd, vs(ux))) == logpdf(unshaped(rd), ux)
-            @test @inferred(insupport(rd, vs(ux)[])) == true
-            @test @inferred(insupport(rd, vs(ux))) == true
+            @test @inferred(Distributions.insupport(rd, vs(ux)[])) == true
+            @test @inferred(Distributions.insupport(rd, vs(ux))) == true
         end
 
         let rd = ReshapedDist(_mvndist(5), ArrayShape{Real}(5)), X = rand(rd, 10), Xn = nestedview(X)

@@ -35,14 +35,14 @@ using Random
     @test @inferred(pdf(ConstValueDist([1 2; 3 4]), [4 5; 6 7])) == 0
     @test @inferred(logpdf(ConstValueDist([1 2; 3 4]), [4 5; 6 7])) == -Inf
 
-    @test @inferred(insupport(ConstValueDist(4.2), 4.2)) == true
-    @test @inferred(insupport(ConstValueDist(4.2), 4.19)) == false
+    @test @inferred(Distributions.insupport(ConstValueDist(4.2), 4.2)) == true
+    @test @inferred(Distributions.insupport(ConstValueDist(4.2), 4.19)) == false
 
-    @test @inferred(insupport(ConstValueDist([1, 2, 3]), [1, 2, 3])) == true
-    @test @inferred(insupport(ConstValueDist([1, 2, 3]), [2, 3, 4])) == false
+    @test @inferred(Distributions.insupport(ConstValueDist([1, 2, 3]), [1, 2, 3])) == true
+    @test @inferred(Distributions.insupport(ConstValueDist([1, 2, 3]), [2, 3, 4])) == false
 
-    @test @inferred(insupport(ConstValueDist([1 2; 3 4]), [1 2; 3 4])) == true
-    @test @inferred(insupport(ConstValueDist([1 2; 3 4]), [4 5; 6 7])) == false
+    @test @inferred(Distributions.insupport(ConstValueDist([1 2; 3 4]), [1 2; 3 4])) == true
+    @test @inferred(Distributions.insupport(ConstValueDist([1 2; 3 4]), [4 5; 6 7])) == false
 
 
     @test @inferred(rand(ConstValueDist(4.2))) == 4.2
@@ -83,10 +83,10 @@ using Random
 
     @test @inferred(log(@inferred(pdf(cvd_from_named_tuple, (a=μ1, b=μ2))))) == @inferred(logpdf(cvd_from_named_tuple, (a=μ1, b=μ2))) == 0
 
-    @test @inferred(insupport(cvd_from_named_tuple, (a=μ1, b=μ2))) == true
-    @test @inferred(insupport(cvd_from_named_tuple, (a=μ1+eps(μ1), b=μ2+eps(μ2)))) == false
-    @test @inferred(insupport(cvd_from_named_tuple, (a=μ1+eps(μ1), b=μ2))) == false
-    @test @inferred(insupport(cvd_from_named_tuple, (a=μ1, b=μ2+eps(μ2)))) == false
+    @test @inferred(Distributions.insupport(cvd_from_named_tuple, (a=μ1, b=μ2))) == true
+    @test @inferred(Distributions.insupport(cvd_from_named_tuple, (a=μ1+eps(μ1), b=μ2+eps(μ2)))) == false
+    @test @inferred(Distributions.insupport(cvd_from_named_tuple, (a=μ1+eps(μ1), b=μ2))) == false
+    @test @inferred(Distributions.insupport(cvd_from_named_tuple, (a=μ1, b=μ2+eps(μ2)))) == false
 
     n_samples = 100
     samples = @inferred(rand(cvd_from_named_tuple, n_samples))
