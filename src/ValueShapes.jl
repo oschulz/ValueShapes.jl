@@ -43,6 +43,8 @@ import ZygoteRules
 using ChainRulesCore: AbstractTangent, Tangent, AbstractZero, NoTangent, ZeroTangent
 using ChainRulesCore: AbstractThunk, ProjectTo, unthunk, backing
 
+using Random123: Philox4x
+
 include("tangent_utils.jl")
 include("value_shape.jl")
 include("value_accessor.jl")

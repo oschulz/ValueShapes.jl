@@ -1,5 +1,7 @@
 # This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
+_dummy_rng() = Philox4x((0, 0))::Philox4x{UInt64,10}
+
 
 _variate_form(::Distribution{VF}) where VF = VF
 
@@ -85,7 +87,7 @@ export HierarchicalDist
 function HierarchicalDist(f::Function, primary_dist::ContinuousDistribution)
     vs_primary = varshape(primary_dist)
     vf_primary = _variate_form(primary_dist)
-    x_primary_us = rand(bat_determ_rng(), unshaped(primary_dist))
+    x_primary_us = rand(_dummy_rng(), unshaped(primary_dist))
     x_primary = vs_primary(x_primary_us)
 
     secondary_dist = f(x_primary)
@@ -134,6 +136,14 @@ MeasureBase.getdof(d::HierarchicalDist) = d.dof
 @inline MeasureBase.transport_origin(ν::HierarchicalDist) = unshaped(ν)
 @inline MeasureBase.from_origin(ν::HierarchicalDist, x) = varshape(ν)(x)
 @inline MeasureBase.to_origin(ν::HierarchicalDist, y) = unshaped(y, varshape(ν))
+
+# Short-circuit transport default to increase type stability:
+function MeasureBase.transport_def(ν::MvStdMeasure, μ::HierarchicalDist, x)
+    transport_def(ν, unshaped(μ), unshaped(x, varshape(μ)))
+end
+function MeasureBase.transport_def(ν::HierarchicalDist, μ::MvStdMeasure, x)
+    varshape(ν)(transport_def(unshaped(ν), μ, x))
+end
 
 
 
@@ -248,11 +258,11 @@ end
 
 
 function Statistics.mean(ud::UnshapedHDist)
-    mean(nestedview(rand(bat_determ_rng(), ud, 10^5)))
+    mean(nestedview(rand(_dummy_rng(), ud, 10^5)))
 end
 
 function Statistics.cov(ud::UnshapedHDist)
-    cov(nestedview(rand(bat_determ_rng(), ud, 10^5)))
+    cov(nestedview(rand(_dummy_rng(), ud, 10^5)))
 end
 
 
@@ -260,8 +270,8 @@ MeasureBase.getdof(d::UnshapedHDist) = getdof(d.shaped)
 
 function MeasureBase.transport_def(ν::MvStdMeasure, μ::UnshapedHDist, x)
     x_primary, x_secondary = _hd_split(μ, x)
-    trg_primary = typeof(ν)(length(eachindex(x_primary)))
-    trg_secondary = typeof(ν)(length(eachindex(x_secondary)))
+    trg_primary = ν.parent^length(eachindex(x_primary))
+    trg_secondary = ν.parent^length(eachindex(x_secondary))
     trg_v_primary = transport_def(trg_primary, _hd_pridist(μ), x_primary)
     trg_v_secondary = transport_def(trg_secondary, _hd_secdist(μ, x_primary), x_secondary)
     vcat(trg_v_primary, trg_v_secondary)
@@ -269,8 +279,8 @@ end
 
 function MeasureBase.transport_def(ν::UnshapedHDist, μ::MvStdMeasure, x)
     x_primary, x_secondary = _hd_split(ν, x)
-    src_primary = typeof(μ)(length(eachindex(x_primary)))
-    src_secondary = typeof(μ)(length(eachindex(x_secondary)))
+    src_primary = μ.parent^length(eachindex(x_primary))
+    src_secondary = μ.parent^length(eachindex(x_secondary))
     trg_v_primary = transport_def(_hd_pridist(ν), src_primary, x_primary)
     trg_v_secondary = transport_def(_hd_secdist(ν, trg_v_primary), src_secondary, x_secondary)
     vcat(trg_v_primary, trg_v_secondary)

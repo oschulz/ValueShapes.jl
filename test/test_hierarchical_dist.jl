@@ -3,7 +3,11 @@
 using ValueShapes
 using Test
 
-using Distributions, StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
+using StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
+using MeasureBase, Distributions, DistributionMeasures
+
+include("testutils.jl")
+
 
 @testset "hierarchial_distribution" begin
     let
@@ -37,6 +41,10 @@ using Distributions, StatsBase, IntervalSets, ValueShapes, ArraysOfArrays
         @test @inferred(logpdf(ud, ux)) ≈ logpdf(primary_dist.foo, 2.7) + logpdf(primary_dist.bar, 4.3) + 3 * logpdf(Normal(4.3, 2.7), 8.7)
         @test @inferred(logpdf(hd, varshape(hd)(ux))) == logpdf(ud, ux)
         @test @inferred(logpdf(hd, varshape(hd)(ux))) == logpdf(ud, ux)
+
+        stdnormal = StdNormal()^getdof(hd)
+        #test_transport(stdnormal, hd)
+        #test_transport(hd, stdnormal)
     end
 
     let
