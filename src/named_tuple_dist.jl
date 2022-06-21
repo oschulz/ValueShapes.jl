@@ -238,6 +238,14 @@ MeasureBase.getdof(d::NamedTupleDist) = sum(map(MeasureBase.getdof, values(d)))
 @inline MeasureBase.from_origin(ν::NamedTupleDist, x) = varshape(ν)(x)
 @inline MeasureBase.to_origin(ν::NamedTupleDist, y) = unshaped(y, varshape(ν))
 
+# Short-circuit transport default to increase type stability:
+function MeasureBase.transport_def(ν::MvStdMeasure, μ::NamedTupleDist, x)
+    transport_def(ν, unshaped(μ), unshaped(x, varshape(μ)))
+end
+function MeasureBase.transport_def(ν::NamedTupleDist, μ::MvStdMeasure, x)
+    varshape(ν)(transport_def(unshaped(ν), μ, x))
+end
+
 
 
 struct UnshapedNTD{NTD<:NamedTupleDist} <: Distribution{Multivariate,Continuous}
@@ -555,14 +563,6 @@ function MeasureBase.transport_def(ν::UnshapedNTD{<:NamedTupleDist}, μ::MvStdM
     ν_dists = values(ν.shaped)
     ndofs = map(getdof, ν_dists)
     x_idxs = _cumulative_offsets(ndofs, firstindex(x))
-    vcat(map(_StdToNTDElem{MU,typeof(x)}(x), ν_dists, x_idxs)...)
-end
-
-
-function MeasureBase.transport_def(ν::MvStdMeasure, μ::NamedTupleDist, x)
-    transport_def(ν, unshaped(μ), unshaped(x, varshape(μ)))
-end
-
-function MeasureBase.transport_def(ν::NamedTupleDist, μ::MvStdMeasure, x)
-    varshape(ν)(transport_def(unshaped(ν), μ, x))
+    rs = map(_StdToNTDElem{MU,typeof(x)}(x), ν_dists, x_idxs)
+    vcat(rs...)
 end
