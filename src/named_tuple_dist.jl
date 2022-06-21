@@ -354,3 +354,6 @@ end
 
 
 Statistics.cov(ud::UnshapedNTD) = _ntd_cov(ud.shaped)
+
+
+MeasureBase.basemeasure(μ::NamedTupleDist) = productmeasure(map(basemeasure, μ))

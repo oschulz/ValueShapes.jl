@@ -10,6 +10,9 @@ and structures.
 """
 module ValueShapes
 
+
+using Base: @propagate_inbounds
+
 using ArgCheck
 using ArraysOfArrays
 using ChangesOfVariables
@@ -20,6 +23,17 @@ using InverseFunctions
 using Random
 using Statistics
 using StatsBase
+using Static
+
+using DensityInterface
+
+import MeasureBase
+using MeasureBase: AbstractMeasure, StdMeasure, basemeasure, productmeasure, getdof
+using MeasureBase: transport_to, transport_def, transport_origin, from_origin, to_origin
+using MeasureBase: TransportFunction, PowerMeasure
+
+import DistributionMeasures
+using DistributionMeasures: DistributionMeasure, StandardDist
 
 import ChainRulesCore
 import IntervalSets
@@ -31,6 +45,8 @@ import ZygoteRules
 
 using ChainRulesCore: AbstractTangent, Tangent, AbstractZero, NoTangent, ZeroTangent
 using ChainRulesCore: AbstractThunk, ProjectTo, unthunk, backing
+
+using Random123: Philox4x
 
 include("tangent_utils.jl")
 include("value_shape.jl")
