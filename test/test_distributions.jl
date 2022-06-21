@@ -3,7 +3,7 @@
 using ValueShapes
 using Test
 
-using Distributions
+using Distributions, MeasureBase
 
 
 @testset "distributions" begin
