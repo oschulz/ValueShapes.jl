@@ -3,12 +3,6 @@
 const UvStdMeasure = MeasureBase.StdMeasure
 const MvStdMeasure{D<:MeasureBase.StdMeasure} = PowerMeasure{D,<:NTuple{1,Base.OneTo}}
 
-uv_stdmeasure(μ::MvStdMeasure) = μ.parent
-mv_stdmeasure(μ::UvStdMeasure, n::Int) = μ^n
-
-stdmeasure_size(μ::UvStdMeasure) = ()
-stdmeasure_size(μ::MvStdMeasure) = map(length, m.axes)
-
 
 @inline varshape(μ::MeasureBase.StdMeasure) = ScalarShape{Real}()
 
