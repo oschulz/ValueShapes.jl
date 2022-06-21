@@ -25,7 +25,7 @@ using StatsBase
 using Static
 
 import MeasureBase
-using MeasureBase: AbstractMeasure, getdof
+using MeasureBase: AbstractMeasure, StdMeasure, getdof
 using MeasureBase: transport_to, transport_def, transport_origin, from_origin, to_origin
 using MeasureBase: TransportFunction, PowerMeasure
 

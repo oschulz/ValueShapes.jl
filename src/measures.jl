@@ -1,7 +1,7 @@
 # This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
 const UvStdMeasure = MeasureBase.StdMeasure
-const MvStdMeasure = PowerMeasure{<:MeasureBase.StdMeasure,<:NTuple{1,Base.OneTo}}
+const MvStdMeasure{D<:MeasureBase.StdMeasure} = PowerMeasure{D,<:NTuple{1,Base.OneTo}}
 
 uv_stdmeasure(μ::MvStdMeasure) = μ.parent
 mv_stdmeasure(μ::UvStdMeasure, n::Int) = μ^n

@@ -79,7 +79,7 @@ varshape(d::ConstValueDist) = ConstValueShape(d.value)
 
 Statistics.var(d::ConstValueDist) = zero(d.value)
 
-unshaped(::ConstValueDist) = StandardDist{Uniform}(0)
+unshaped(::ConstValueDist) = StandardDist{Uniform}(static(0))
 
 
 MeasureBase.testvalue(μ::ConstValueDist) = μ.x

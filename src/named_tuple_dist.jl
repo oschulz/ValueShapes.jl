@@ -495,39 +495,65 @@ Statistics.cov(ud::UnshapedNTD) = _ntd_cov(ud.shaped)
 MeasureBase.getdof(d::ValueShapes.UnshapedNTD) = getdof(d.shaped)
 
 
+@inline _accessor_dof(acc::ValueAccessor) = acc.len
+@inline _accessor_dof(::ScalarAccessor) = static(1)
+@inline _accessor_dof(::ConstAccessor) = static(0)
 
-# ToDo add custom rrules for parts of the NamedTupleDist transform process.
 
-_flat_ntd_elshape(d::Distribution) = ArrayShape{Real}(getdof(d))
-
-function _flat_ntd_accessors(d::NamedTupleDist{names,DT,AT,VT}) where {names,DT,AT,VT}
-    shapes = map(_flat_ntd_elshape, values(d))
-    vs = NamedTupleShape(VT, NamedTuple{names}(shapes))
-    values(vs)
+function _cumulative_offsets(lens::NTuple{N,Integer}, i0::Integer) where N
+    offsets = _varoffset_cumsum(lens)
+    idxs_from = offsets .+ i0
+    idxs_to = idxs_from .+ lens .- 1
+    idxs = map(range, idxs_from, idxs_to)
 end
 
 
-function _flat_ntdistelem_to_stdmv(trg::UvStdMeasure, sd::Distribution, x_unshaped::AbstractVector{<:Real}, trg_acc::ValueAccessor)
-    # ToDo: This may fail for Dirichlet and the like, trg_acc may be wrong:
-    transport_def(mv_stdmeasure(trg, trg_acc.len), unshaped(sd), trg_acc(x_unshaped))
+struct _NTDElemToStd2{MU<:StdMeasure,V<:AbstractArray{<:Real}} <: Function
+    x_unshaped::V
 end
 
-function MeasureBase.transport_def(ν::MvStdMeasure, μ::ValueShapes.UnshapedNTD{<:NamedTupleDist{names}}, x) where names
+function (f::_NTDElemToStd2{S})(μ::Distribution, idxs::AbstractUnitRange{<:Integer}) where S
+    transport_def(S()^getdof(μ), unshaped(μ), view(f.x_unshaped, idxs))
+end
+
+function (f::_NTDElemToStd2{S})(μ::Distribution{Univariate}, idxs::AbstractUnitRange{<:Integer}) where S
+    Fill(transport_def(S(), μ, f.x_unshaped[only(idxs)]))
+end
+
+function (f::_NTDElemToStd2{S})(μ::ConstValueDist, idxs::AbstractUnitRange{<:Integer}) where S
+    Zeros{Bool}(static(0))
+end
+
+function MeasureBase.transport_def(::MvStdMeasure{NU}, μ::ValueShapes.UnshapedNTD{<:NamedTupleDist{names}}, x) where {NU,names}
     # @argcheck length(src) == length(eachindex(x))
-    trg_accessors = _flat_ntd_accessors(μ.shaped)
-    rs = map((acc, sd) -> _flat_ntdistelem_to_stdmv(uv_stdmeasure(ν), sd, x, acc), trg_accessors, values(μ.shaped))
-    vcat(rs...)
+    μ_dists = values(μ.shaped)
+    shapelengths = map(totalndof, map(varshape, μ_dists))
+    x_idxs = _cumulative_offsets(shapelengths, firstindex(x))
+    vcat(map(_NTDElemToStd2{NU,typeof(x)}(x), μ_dists, x_idxs)...)
 end
 
 
-function _stdmv_to_flat_ntdistelem(td::Distribution, src::UvStdMeasure, x::AbstractVector{<:Real}, src_acc::ValueAccessor)
-    sd = mv_stdmeasure(src, src_acc.len)
-    transport_def(unshaped(td), sd, src_acc(x))
+struct _StdToNTDElem{NU<:StdMeasure,V<:AbstractArray{<:Real}} <: Function
+    x_unshaped::V
 end
 
-function MeasureBase.transport_def(ν::ValueShapes.ValueShapes.UnshapedNTD{<:NamedTupleDist{names}}, μ::MvStdMeasure, x) where names
+function (f::_StdToNTDElem{S})(ν::Distribution, idxs::AbstractUnitRange{<:Integer}) where S
+    transport_def(unshaped(ν), S()^getdof(ν), view(f.x_unshaped, idxs))
+end
+
+function (f::_StdToNTDElem{S})(ν::Distribution{Univariate}, idxs::AbstractUnitRange{<:Integer}) where S
+    Fill(transport_def(ν, S(), f.x_unshaped[only(idxs)]))
+end
+
+function (f::_StdToNTDElem{S})(ν::ConstValueDist, idxs::AbstractUnitRange{<:Integer}) where S
+    Zeros{Bool}(static(0))
+end
+
+
+function MeasureBase.transport_def(ν::ValueShapes.ValueShapes.UnshapedNTD{<:NamedTupleDist{names}}, μ::MvStdMeasure{MU}, x) where {MU,names}
     # @argcheck length(μ) == length(eachindex(x))
-    src_accessors = _flat_ntd_accessors(ν.shaped)
-    rs = map((acc, td) -> _stdmv_to_flat_ntdistelem(td, uv_stdmeasure(μ), x, acc), src_accessors, values(ν.shaped))
-    vcat(rs...)
+    ν_dists = values(ν.shaped)
+    ndofs = map(getdof, ν_dists)
+    x_idxs = _cumulative_offsets(ndofs, firstindex(x))
+    vcat(map(_StdToNTDElem{MU,typeof(x)}(x), ν_dists, x_idxs)...)
 end
