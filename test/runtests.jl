@@ -3,7 +3,6 @@
 import Test
 
 Test.@testset "Package ValueShapes" begin
-    include("test_aqua.jl")
     include("test_value_shape.jl")
     include("test_value_accessor.jl")
     include("test_scalar_shape.jl")

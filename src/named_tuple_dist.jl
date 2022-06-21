@@ -524,7 +524,7 @@ function (f::_NTDElemToStd{S})(μ::ConstValueDist, idxs::AbstractUnitRange{<:Int
     Zeros{Bool}(static(0))
 end
 
-function MeasureBase.transport_def(::MvStdMeasure{NU}, μ::ValueShapes.UnshapedNTD{<:NamedTupleDist{names}}, x) where {NU,names}
+function MeasureBase.transport_def(::MvStdMeasure{NU}, μ::UnshapedNTD{<:NamedTupleDist}, x) where NU
     # @argcheck length(src) == length(eachindex(x))
     μ_dists = values(μ.shaped)
     shapelengths = map(totalndof, map(varshape, μ_dists))
@@ -550,10 +550,19 @@ function (f::_StdToNTDElem{S})(ν::ConstValueDist, idxs::AbstractUnitRange{<:Int
 end
 
 
-function MeasureBase.transport_def(ν::ValueShapes.ValueShapes.UnshapedNTD{<:NamedTupleDist{names}}, μ::MvStdMeasure{MU}, x) where {MU,names}
+function MeasureBase.transport_def(ν::UnshapedNTD{<:NamedTupleDist}, μ::MvStdMeasure{MU}, x) where MU
     # @argcheck length(μ) == length(eachindex(x))
     ν_dists = values(ν.shaped)
     ndofs = map(getdof, ν_dists)
     x_idxs = _cumulative_offsets(ndofs, firstindex(x))
     vcat(map(_StdToNTDElem{MU,typeof(x)}(x), ν_dists, x_idxs)...)
+end
+
+
+function MeasureBase.transport_def(ν::MvStdMeasure, μ::NamedTupleDist, x)
+    transport_def(ν, unshaped(μ), unshaped(x, varshape(μ)))
+end
+
+function MeasureBase.transport_def(ν::NamedTupleDist, μ::MvStdMeasure, x)
+    varshape(ν)(transport_def(unshaped(ν), μ, x))
 end
