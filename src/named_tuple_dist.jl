@@ -508,19 +508,19 @@ function _cumulative_offsets(lens::NTuple{N,Integer}, i0::Integer) where N
 end
 
 
-struct _NTDElemToStd2{MU<:StdMeasure,V<:AbstractArray{<:Real}} <: Function
+struct _NTDElemToStd{MU<:StdMeasure,V<:AbstractArray{<:Real}} <: Function
     x_unshaped::V
 end
 
-function (f::_NTDElemToStd2{S})(μ::Distribution, idxs::AbstractUnitRange{<:Integer}) where S
+function (f::_NTDElemToStd{S})(μ::Distribution, idxs::AbstractUnitRange{<:Integer}) where S
     transport_def(S()^getdof(μ), unshaped(μ), view(f.x_unshaped, idxs))
 end
 
-function (f::_NTDElemToStd2{S})(μ::Distribution{Univariate}, idxs::AbstractUnitRange{<:Integer}) where S
+function (f::_NTDElemToStd{S})(μ::Distribution{Univariate}, idxs::AbstractUnitRange{<:Integer}) where S
     Fill(transport_def(S(), μ, f.x_unshaped[only(idxs)]))
 end
 
-function (f::_NTDElemToStd2{S})(μ::ConstValueDist, idxs::AbstractUnitRange{<:Integer}) where S
+function (f::_NTDElemToStd{S})(μ::ConstValueDist, idxs::AbstractUnitRange{<:Integer}) where S
     Zeros{Bool}(static(0))
 end
 
@@ -529,7 +529,7 @@ function MeasureBase.transport_def(::MvStdMeasure{NU}, μ::ValueShapes.UnshapedN
     μ_dists = values(μ.shaped)
     shapelengths = map(totalndof, map(varshape, μ_dists))
     x_idxs = _cumulative_offsets(shapelengths, firstindex(x))
-    vcat(map(_NTDElemToStd2{NU,typeof(x)}(x), μ_dists, x_idxs)...)
+    vcat(map(_NTDElemToStd{NU,typeof(x)}(x), μ_dists, x_idxs)...)
 end
 
 
