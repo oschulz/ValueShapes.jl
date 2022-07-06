@@ -26,7 +26,7 @@ ZygoteRules = "700de1a5-db45-46bc-99cf-38207098b444"
 
 [compat]
 ArgCheck = "1, 2"
-ArraysOfArrays = "0.5"
+ArraysOfArrays = "0.5, 0.6"
 ChainRulesCore = "0.9.44, 0.10, 1"
 ChangesOfVariables = "0.1.1"
 DensityInterface = "0.4"
