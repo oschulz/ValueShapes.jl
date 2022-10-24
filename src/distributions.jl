@@ -35,7 +35,7 @@ Turns `d` into a `Distributions.Distribution{Multivariate}` based on
 function unshaped(d::UnivariateDistribution)
     # ToDo: Replace with `reshape(d, 1)` when result of `reshape(::UnivariateDistribution, 1)`
     # becomes fully functional in Distributions:
-    Distributions.Product(Fill(d, 1))
+    product_distribution(Fill(d, 1))
 end
 
 _unshaped_uv_pullback(ΔΩ) = NoTangent(), only(unthunk(ΔΩ).v)
