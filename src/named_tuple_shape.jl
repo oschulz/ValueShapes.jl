@@ -622,10 +622,10 @@ Base.isapprox(A::ShapedAsNTArray, B::ShapedAsNTArray; kwargs...) = isapprox(_dat
 
 
 ShapedAsNT(A::ShapedAsNTArray{T,0}) where T = _elshape(A)(first(_data(A)))
-ShapedAsNT{names}(A::ShapedAsNTArray{<:NamedTuple{names},0}) where {names,T} = _elshape(A)(first(_data(A)))
+ShapedAsNT{names}(A::ShapedAsNTArray{<:NamedTuple{names},0}) where names = _elshape(A)(first(_data(A)))
 
 Base.convert(::Type{ShapedAsNT}, A::ShapedAsNTArray{T,0}) where T = ShapedAsNT(A)
-Base.convert(::Type{ShapedAsNT{names}}, A::ShapedAsNTArray{<:NamedTuple{names},0}) where {names,T} = ShapedAsNT{names}(A)
+Base.convert(::Type{ShapedAsNT{names}}, A::ShapedAsNTArray{<:NamedTuple{names},0}) where names = ShapedAsNT{names}(A)
 
 
 Base.@propagate_inbounds _apply_ntshape_copy(data::AbstractVector{<:Real}, shape::NamedTupleShape) = shape(data)

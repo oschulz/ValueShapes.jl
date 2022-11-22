@@ -69,7 +69,7 @@ function ReshapedDist(dist::MultivariateDistribution{VS}, shape::AbstractValueSh
 end
 
 
-function (shape::ArrayShape{<:Real,1})(dist::MultivariateDistribution) where {T<:Real}
+function (shape::ArrayShape{<:Real,1})(dist::MultivariateDistribution)
     @argcheck totalndof(varshape(dist)) == totalndof(shape)
     dist
 end
