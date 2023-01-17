@@ -32,9 +32,6 @@ using MeasureBase: AbstractMeasure, StdMeasure, basemeasure, productmeasure, get
 using MeasureBase: transport_to, transport_def, transport_origin, from_origin, to_origin
 using MeasureBase: TransportFunction, PowerMeasure
 
-import DistributionMeasures
-using DistributionMeasures: DistributionMeasure, StandardDist
-
 import ChainRulesCore
 import IntervalSets
 import Tables
