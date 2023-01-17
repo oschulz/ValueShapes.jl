@@ -27,11 +27,6 @@ using Static
 
 using DensityInterface
 
-import MeasureBase
-using MeasureBase: AbstractMeasure, StdMeasure, basemeasure, productmeasure, getdof
-using MeasureBase: transport_to, transport_def, transport_origin, from_origin, to_origin
-using MeasureBase: TransportFunction, PowerMeasure
-
 import ChainRulesCore
 import IntervalSets
 import Tables
