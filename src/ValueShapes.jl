@@ -23,7 +23,6 @@ using InverseFunctions
 using Random
 using Statistics
 using StatsBase
-using Static
 
 using DensityInterface
 
