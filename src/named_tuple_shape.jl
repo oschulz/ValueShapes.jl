@@ -1,10 +1,23 @@
 # This file is a part of ValueShapes.jl, licensed under the MIT License (MIT).
 
 
-@inline _varoffset_cumsum_impl(s, x, y, rest...) = (s, _varoffset_cumsum_impl(s+x, y, rest...)...)
-@inline _varoffset_cumsum_impl(s,x) = (s,)
-@inline _varoffset_cumsum_impl(s) = ()
-@inline _varoffset_cumsum(x::Tuple) = _varoffset_cumsum_impl(0, x...)
+function _varoffset_cumsum(x::Tuple{Vararg{Integer,N}}) where N
+    if @generated
+        if N < 1000
+            vars = [Symbol("s$i") for i in 0:N-1]
+            exprs = [:($(vars[i+1]) = $(vars[i]) + x[$i]) for i in 1:N-1]
+            quote
+                s0 = 0
+                $(exprs...)
+                ($(vars...),)
+            end
+        else
+            :((0, cumsum([x...][begin:end-1])...))
+        end
+    else
+        (0, cumsum([x...][begin:end-1])...)
+    end
+end
 
 
 """
