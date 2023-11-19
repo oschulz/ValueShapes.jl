@@ -14,17 +14,6 @@ else
     varshape(d::Distribution{Matrixvariate}) = ArrayShape{Real}(size(d)...)
 end
 
-@deprecate valshape(d::Distribution) varshape(d)
-
-
-"""
-    vardof(d::Distributions.Distribution)
-
-Get the number of degrees of freedom of the variates of distribution `d`.
-Equivalent to `totalndof(varshape(d))`.
-"""
-vardof(d::Distribution) = totalndof(varshape(d))
-
 
 """
     unshaped(d::Distributions.Distribution)
