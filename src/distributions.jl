@@ -6,6 +6,9 @@
 
 Get the value shape of the variates of distribution `d`.
 """
+function varshape end
+export varshape
+
 varshape(d::Distribution{Univariate}) = ScalarShape{Real}()
 @static if isdefined(Distributions, :ArrayLikeVariate)
     varshape(d::Distribution{<:ArrayLikeVariate}) = ArrayShape{Real}(size(d)...)
