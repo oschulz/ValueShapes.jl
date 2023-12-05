@@ -398,6 +398,11 @@ Base.isapprox(A::ShapedAsNT, B::ShapedAsNT; kwargs...) = isapprox(_data(A), _dat
 Base.copy(A::ShapedAsNT) = ShapedAsNT(copy(_data(A)),_valshape(A))
 
 
+function Adapt.adapt_structure(to, x::ShapedAsNT)
+    ShapedAsNT(Adapt.adapt(to, _data(x)), _valshape(x))
+end
+
+
 # Required for accumulation during automatic differentiation:
 function Base.:(+)(A::ShapedAsNT{names}, B::ShapedAsNT{names}) where names
     @argcheck _valshape(A) == _valshape(B)
@@ -760,6 +765,10 @@ end
 
 @inline Tables.rows(A::ShapedAsNTArray) = A
 
+
+function Adapt.adapt_structure(to, x::ShapedAsNTArray)
+    ShapedAsNTArray(Adapt.adapt(to, _data(x)), _elshape(x))
+end
 
 
 const _AnySNTArray{names} = ShapedAsNTArray{<:Union{NamedTuple{names},ShapedAsNT{names}}}
