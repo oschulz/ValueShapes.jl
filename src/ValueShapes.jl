@@ -26,6 +26,7 @@ using StatsBase
 
 using DensityInterface
 
+import Adapt
 import ChainRulesCore
 import IntervalSets
 import Tables
