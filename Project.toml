@@ -1,6 +1,6 @@
 name = "ValueShapes"
 uuid = "136a8f8c-c49b-4edb-8b98-f3d64d48be8f"
-version = "0.11.0"
+version = "0.11.1"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
