@@ -23,6 +23,7 @@ realnumtype(::Type{T}) where T = throw(ArgumentError("Can't derive numeric type 
 
 realnumtype(::Type{T}) where {T<:Real} = T
 realnumtype(::Type{<:Complex{T}}) where {T<:Real} = T
+realnumtype(::Type{<:Enum{T}}) where {T<:Real} = T
 realnumtype(::Type{<:AbstractArray{T}}) where {T} = realnumtype(T)
 realnumtype(::Type{<:NamedTuple{names,T}}) where {names,T} = realnumtype(T)
 
@@ -31,6 +32,14 @@ realnumtype(::Type{NTuple{N,T}}) where {N,T} = realnumtype(T)
 @generated function realnumtype(::Type{T}) where {T<:Tuple}
     :(promote_type(map(realnumtype, $((T.parameters...,)))...))
 end
+
+# Use a fake numtype for non-numerical types that may be used to express
+# default and missing values, string/symbol options, etc.:
+realnumtype(::Type{Nothing}) = Bool
+realnumtype(::Type{Missing}) = Bool
+realnumtype(::Type{Tuple{}}) = Bool
+realnumtype(::Type{Symbol}) = Bool
+realnumtype(::Type{<:AbstractString}) = Bool
 
 
 """

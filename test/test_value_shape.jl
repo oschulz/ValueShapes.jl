@@ -10,6 +10,7 @@ using FillArrays
 using InverseFunctions, ChangesOfVariables
 using ChainRulesCore: rrule, NoTangent
 import TypedTables
+import Dates
 
 
 @testset "abstract_value_shape" begin
@@ -106,6 +107,11 @@ import TypedTables
         deepnt = (a = a, b = b, A = A, B = B, C = C, nt = nt, tpl = tpl)
         for x in [a, A, B, C, nt, tpl, deepnt]
             @test @inferred (realnumtype(typeof(x))) == Float32
+        end
+
+        @test @inferred(realnumtype(typeof(Dates.TWENTYFOURHOUR))) <: Integer
+        for x in [nothing, missing, (), :foo, "foo"]
+            @test @inferred(realnumtype(typeof(x))) == Bool
         end
     end
 
