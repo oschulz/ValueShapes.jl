@@ -147,11 +147,6 @@ export AbstractValueShape
 
 @inline Base.:(>=)(a::AbstractValueShape, b::AbstractValueShape) = b <= a
 
-vs_cmp_pullback(ΔΩ) = (NoTangent(), NoTangent(), NoTangent())
-ChainRulesCore.rrule(::typeof(Base.:(==)), a::AbstractValueShape, b::AbstractValueShape) = (a == b, vs_cmp_pullback)
-ChainRulesCore.rrule(::typeof(Base.:(<=)), a::AbstractValueShape, b::AbstractValueShape) = (a <= b, vs_cmp_pullback)
-ChainRulesCore.rrule(::typeof(Base.:(>=)), a::AbstractValueShape, b::AbstractValueShape) = (a >= b, vs_cmp_pullback)
-
 
 # Reserve broadcasting semantics for value shapes:
 @inline Base.Broadcast.broadcastable(shape::AbstractValueShape) =
@@ -275,33 +270,10 @@ const _InvValueShape = Base.Fix2{typeof(unshaped),<:AbstractValueShape}
     Base.Broadcast.broadcasted(unshaped, xs, Ref(inv_vs.x))
 end
 
-
-InverseFunctions.inverse(vs::AbstractValueShape) = Base.Fix2(unshaped, vs)
-InverseFunctions.inverse(inv_vs::_InvValueShape) = inv_vs.x
-
-function ChangesOfVariables.with_logabsdet_jacobian(vs::AbstractValueShape, flat_x)
-    x = vs(flat_x)
-    x, zero(float(eltype(flat_x)))
-end
-
-function ChangesOfVariables.with_logabsdet_jacobian(inv_vs::_InvValueShape, x)
-    flat_x = inv_vs(x)
-    flat_x, zero(float(eltype(flat_x)))
-end
-
 const _BroadcastValueShape = Base.Fix1{typeof(broadcast),<:AbstractValueShape}
 const _BroadcastInvValueShape = Base.Fix1{typeof(broadcast),<:_InvValueShape}
 const _BroadcastUnshaped = Base.Fix1{typeof(broadcast),typeof(unshaped)}
 
-function ChangesOfVariables.with_logabsdet_jacobian(bc_vs::_BroadcastValueShape, ao_flat_x)
-    ao_x = bc_vs(ao_flat_x)
-    ao_x, zero(float(realnumtype(typeof(ao_flat_x))))
-end
-
-function ChangesOfVariables.with_logabsdet_jacobian(bc_inv_vs::Union{_BroadcastInvValueShape,_BroadcastUnshaped}, ao_x)
-    ao_flat_x = bc_inv_vs(ao_x)
-    ao_flat_x, zero(float(realnumtype(typeof(ao_flat_x))))
-end
 
 const _VSTrafo = Union{
     AbstractValueShape, _InvValueShape, typeof(unshaped),

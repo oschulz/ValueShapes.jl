@@ -16,7 +16,6 @@ using Base: @propagate_inbounds
 using ArgCheck
 using ArraysOfArrays
 using ChangesOfVariables
-using Distributions
 using ElasticArrays
 using FillArrays
 using InverseFunctions
@@ -27,7 +26,6 @@ using StatsBase
 using DensityInterface
 
 import Adapt
-import ChainRulesCore
 import IntervalSets
 import Tables
 import TypedTables
@@ -35,12 +33,9 @@ import TypedTables
 # Long-term, ChainRulesCore should be sufficient:
 import ZygoteRules
 
-using ChainRulesCore: AbstractTangent, Tangent, AbstractZero, NoTangent, ZeroTangent
-using ChainRulesCore: AbstractThunk, ProjectTo, unthunk, backing
 
 using Random123: Philox4x
 
-include("tangent_utils.jl")
 include("value_shape.jl")
 include("value_accessor.jl")
 include("scalar_shape.jl")
