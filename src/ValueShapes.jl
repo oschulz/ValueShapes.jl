@@ -36,7 +36,7 @@ import TypedTables
 import ZygoteRules
 
 using ChainRulesCore: AbstractTangent, Tangent, AbstractZero, NoTangent, ZeroTangent
-using ChainRulesCore: AbstractThunk, ProjectTo, unthunk, backing
+using ChainRulesCore: AbstractThunk, ProjectTo, AbstractThunk, unthunk, backing
 
 using Random123: Philox4x
 

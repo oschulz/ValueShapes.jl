@@ -21,7 +21,8 @@ const _az_tangent(::Nothing) = ZeroTangent()  # Still necessary? Return NoTangen
 
 
 _notangent_to_zerotangent(x::Any) = x
-_notangent_to_zerotangent(x::Union{NoTangent,Nothing}) = ZeroTangent()
+_notangent_to_zerotangent(x::AbstractThunk) = unthunk(x)
+_notangent_to_zerotangent(::Union{NoTangent,Nothing}) = ZeroTangent()
 _notangent_to_zerotangent(x::Union{Tuple,NamedTuple}) = map(_notangent_to_zerotangent, x)
 
 

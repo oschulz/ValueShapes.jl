@@ -438,7 +438,8 @@ function _check_ntgs_tangent_compat(a::NamedTupleShape{names}, b::NamedTupleShap
 end
 
 _snt_from_tangent(data::AbstractVector{<:Real}, gs::NamedTupleShape) = ShapedAsNT(data, gs)
-_snt_from_tangent(data::_ZeroLike, gs::NamedTupleShape) = _az_tangent(data)
+_snt_from_tangent(data::_ZeroLike, ::NamedTupleShape) = _az_tangent(data)
+_snt_from_tangent(data::AbstractThunk, gs::NamedTupleShape) = _snt_from_tangent(unthunk(data), gs)
 
 function (project::GradShapedAsNTProjector{<:NamedTupleShape{names}})(data::NamedTuple{(:__internal_data, :__internal_valshape)}) where names
     gs = project.gradshape
