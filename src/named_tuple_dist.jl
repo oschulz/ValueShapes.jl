@@ -12,8 +12,7 @@ _ntd_dist_and_shape(x::AbstractArray{<:Number}) = _ntd_dist_and_shape(ConstValue
 
 
 """
-    NamedTupleDist <: MultivariateDistribution
-    NamedTupleDist <: MultivariateDistribution
+    NamedTupleDist <: Distribution
 
 A distribution with `NamedTuple`-typed variates.
 

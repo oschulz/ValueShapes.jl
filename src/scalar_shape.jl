@@ -31,7 +31,7 @@ export AbstractScalarShape
 """
     ScalarShape{T} <: AbstractScalarShape{T}
 
-An `ScalarShape` describes the shape of scalar values of a given type.
+A `ScalarShape` describes the shape of scalar values of a given type.
 
 Constructor:
 

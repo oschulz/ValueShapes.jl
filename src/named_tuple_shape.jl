@@ -193,7 +193,7 @@ end
 """
     ShapedAsNT{names,...}
 
-View of an `AbstractVector{<:Real}` as a mutable named tuple (though not) a
+View of an `AbstractVector{<:Real}` as a mutable named tuple (though not a
 `NamedTuple`, exactly), according to a specified [`NamedTupleShape`](@ref).
 
 Constructors:
@@ -408,7 +408,7 @@ View of an `AbstractArray{<:AbstractVector{<:Real},N}` as an array of
 Constructors:
 
     ShapedAsNTArray(
-        data::AbstractArray{<:AbstractVector{<:Real},
+        data::AbstractArray{<:AbstractVector{<:Real}},
         shape::NamedTupleShape
     )
 

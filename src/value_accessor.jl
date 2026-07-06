@@ -14,7 +14,7 @@ Constructor:
 The offset is relative to the first index of a flat data array, so if
 the value is stored at the beginning of the array, the offset will be zero.
 
-An `ValueAccessor` can be used to index into a given flat data array.
+A `ValueAccessor` can be used to index into a given flat data array.
 
 Example:
 

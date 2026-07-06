@@ -10,7 +10,7 @@ end
 """
     ReshapedDist <: Distribution
 
-An multivariate distribution reshaped using a given
+A multivariate distribution reshaped using a given
 [`AbstractValueShape`](@ref).
 
 Constructors:
@@ -28,7 +28,7 @@ In addition, `MultivariateDistribution`s can be reshaped via
 with the difference that
 
 ```julia
-(shape::ArrayShape{T,1})(dist::MultivariateDistribution)
+(shape::ArrayShape{<:Real,1})(dist::MultivariateDistribution)
 ```
 
 will return the original `dist` instead of a `ReshapedDist`.

@@ -162,7 +162,7 @@ function _valshapeoftype end
 Returns the default real array element type to use for unshaped
 representations of data with shape `shape`.
 
-Subtypes of `AbstractValueShape` must implemenent
+Subtypes of `AbstractValueShape` must implement
 `ValueShapes.default_unshaped_eltype`.
 """
 function default_unshaped_eltype end
@@ -189,7 +189,7 @@ shaped_type(shape::AbstractValueShape) = shaped_type(shape, default_unshaped_elt
     valshape(acc::ValueAccessor)::AbstractValueShape
 
 Get the value shape of an arbitrary value, resp. the shape a `ValueAccessor`
-is based on, or the shape of the variates for a `Distribution`.
+is based on.
 """
 function valshape end
 export valshape
@@ -289,7 +289,7 @@ Base.:(∘)(f::_VSTrafo, ::typeof(identity)) = f
 Dereference value `x`.
 
 If x is a scalar-like object, like a 0-dimensional array or a `Ref`,
-`stripscalar` returns it's inner value. Otherwise, `x` is returned unchanged.
+`stripscalar` returns its inner value. Otherwise, `x` is returned unchanged.
 
 Useful to strip shaped scalar-like views of their 0-dim array semantics
 (if present), but leave array-like views unchanged.
@@ -297,14 +297,9 @@ Useful to strip shaped scalar-like views of their 0-dim array semantics
 Example:
 
 ```julia
-data = [1, 2, 3]
-shape1 = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2))
-x1 = shape1(data)
-@assert x1 isa NamedTuple
-
-shape2 = ArrayShape{Real}(3)
-x2 = shape2(data)
-@assert x2 isa AbstractArray{Int,1}
+stripscalar(Ref(1)) == 1
+stripscalar(fill(2)) == 2
+stripscalar([3]) == [3]
 ```
 """
 function stripscalar end
@@ -393,7 +388,7 @@ end
 """
     const_zero(x::Any)
 
-Get the equivalent of a constant zero for values the same type as .
+Get the equivalent of a constant zero for values of the same type as `x`.
 """
 function const_zero end
 
