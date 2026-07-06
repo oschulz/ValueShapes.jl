@@ -352,7 +352,7 @@ Base.@propagate_inbounds function Base.setindex!(A::ShapedAsNT{names}, x::NamedT
     A
 end
 
-Base.@propagate_inbounds Base.setindex!(A::ShapedAsNT{T}, x) where {T} = setindex!(A, convert(T, x))
+Base.@propagate_inbounds Base.setindex!(A::ShapedAsNT{names}, x) where {names} = setindex!(A, NamedTuple{names}(x))
 
 Base.@propagate_inbounds function Base.setindex!(A::ShapedAsNT, x, i::Integer)
     @boundscheck Base.checkbounds(A, i)

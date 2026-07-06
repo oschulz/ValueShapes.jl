@@ -142,6 +142,8 @@ import Zygote, ForwardDiff
 
             x = (a = [5 3 5; 9 4 5], b = 9, c = 4.2, x = [11 21; 12 22], y = [4, 7, 5, 6])
             @test (B = copy(A); B[] = x; B[]) == x
+            x_reordered = (b = 9, a = [5 3 5; 9 4 5], y = [4, 7, 5, 6], c = 4.2, x = [11 21; 12 22])
+            @test (B = copy(A); B[] = x_reordered; B[]) == x
             @test_throws ArgumentError copy(A)[] = (a = [5 3 5; 9 4 5], b = 9, c = 4.2, x = [11 21; 12 23], y = [4, 7, 5, 6])
 
             @testset "rrules" begin
