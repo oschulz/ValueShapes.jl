@@ -15,28 +15,18 @@ using Base: @propagate_inbounds
 
 using ArgCheck
 using ArraysOfArrays
-using ChangesOfVariables
 using Distributions
 using ElasticArrays
 using FillArrays
-using InverseFunctions
 using Random
 using Statistics
 using StatsBase
 
 using DensityInterface
 
-import Adapt
-import ChainRulesCore
 import IntervalSets
 import Tables
 import TypedTables
-
-# Long-term, ChainRulesCore should be sufficient:
-import ZygoteRules
-
-using ChainRulesCore: AbstractTangent, Tangent, AbstractZero, NoTangent, ZeroTangent
-using ChainRulesCore: AbstractThunk, ProjectTo, AbstractThunk, unthunk, backing
 
 using Random123: Philox4x
 
