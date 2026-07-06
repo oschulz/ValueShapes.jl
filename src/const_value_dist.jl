@@ -79,6 +79,10 @@ end
 Random.rand(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, dims::Dims) = Fill(d.value, dims)
 Random.rand!(rng::AbstractRNG, d::ConstValueDist{<:StructVariate}, A::AbstractArray) = fill!(A, d.value)
 
+# Disambiguation with the generic NamedTupleVariate methods:
+Random.rand(rng::AbstractRNG, d::ConstValueDist{<:NamedTupleVariate}, dims::Tuple{}) = Fill(d.value, dims)
+Random.rand!(rng::AbstractRNG, d::ConstValueDist{<:NamedTupleVariate}, A::ShapedAsNTArray) = fill!(A, d.value)
+
 
 ValueShapes.varshape(d::ConstValueDist) = ConstValueShape(d.value)
 
