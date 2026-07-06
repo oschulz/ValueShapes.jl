@@ -86,6 +86,12 @@ function unshaped(A::Base.ReshapedArray{T,N,<:AbstractArray{T,1}}, shape::ArrayS
     parent(A)
 end
 
+# Disambiguation:
+function unshaped(A::Base.ReshapedArray{T,1,<:AbstractArray{T,1}}, shape::ArrayShape{U,1}) where {T<:Real,U<:Real}
+    _check_unshaped_compat(A, shape)
+    parent(A)
+end
+
 
 replace_const_shapes(f::Function, shape::ArrayShape) = shape
 

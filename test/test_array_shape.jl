@@ -51,6 +51,7 @@ using ElasticArrays, ArraysOfArrays
         @test @inferred(unshaped(A, ArrayShape{Real}(3))) === A
         @test_throws ArgumentError unshaped(A, ArrayShape{Real}(2))
         @test_throws ArgumentError unshaped(A, ArrayShape{Integer}(3))
+        @test @inferred(unshaped(Base.ReshapedArray(A, (3,), ()), ArrayShape{Real}(3))) === A
     end
     @test @inferred(unshaped([1 2; 3 4; 5 6], ArrayShape{Real}(3,2))) == [1, 3, 5, 2, 4, 6]
     let shape = ArrayShape{Real}(3,2), UA = [1, 3, 5, 2, 4, 6]
