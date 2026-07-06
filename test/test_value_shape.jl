@@ -104,8 +104,9 @@ import Dates
         C = ArrayOfSimilarArrays(B)
         nt = (a = 4.2f0, b = 42)
         tpl = (4.2f0, Float16(2.3))
+        htpl = (4.2f0, 2.3f0, 3.4f0)
         deepnt = (a = a, b = b, A = A, B = B, C = C, nt = nt, tpl = tpl)
-        for x in [a, A, B, C, nt, tpl, deepnt]
+        for x in [a, A, B, C, nt, tpl, htpl, deepnt]
             @test @inferred (realnumtype(typeof(x))) == Float32
         end
 

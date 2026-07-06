@@ -27,8 +27,6 @@ realnumtype(::Type{<:Enum{T}}) where {T<:Real} = T
 realnumtype(::Type{<:AbstractArray{T}}) where {T} = realnumtype(T)
 realnumtype(::Type{<:NamedTuple{names,T}}) where {names,T} = realnumtype(T)
 
-realnumtype(::Type{NTuple{N,T}}) where {N,T} = realnumtype(T)
-
 @generated function realnumtype(::Type{T}) where {T<:Tuple}
     :(promote_type(map(realnumtype, $((T.parameters...,)))...))
 end
