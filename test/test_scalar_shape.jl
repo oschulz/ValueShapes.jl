@@ -42,6 +42,9 @@ import TypedTables
     @test @inferred (ScalarShape{Int}() <= ScalarShape{Real}()) == true
     @test @inferred (ScalarShape{Real}() <= ScalarShape{Int}()) == false
     @test @inferred (ScalarShape{Real}() >= ScalarShape{Int}()) == true
+    @test @inferred (ScalarShape{Real}() <= ArrayShape{Real}(1)) == false
+    @test @inferred (ArrayShape{Real}(3) <= ArrayShape{Real}(3, 1)) == false
+    @test @inferred (ScalarShape{Real}() >= ConstValueShape(4.2)) == false
 
     let shape = ScalarShape{Real}(), data = [4.2]
         @test @inferred(unshaped(shape(data), shape)) == data

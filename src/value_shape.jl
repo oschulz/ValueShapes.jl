@@ -143,6 +143,8 @@ abstract type AbstractValueShape end
 export AbstractValueShape
 
 
+@inline Base.:(<=)(a::AbstractValueShape, b::AbstractValueShape) = false
+
 @inline Base.:(>=)(a::AbstractValueShape, b::AbstractValueShape) = b <= a
 
 
