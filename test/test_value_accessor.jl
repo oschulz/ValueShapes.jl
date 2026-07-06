@@ -17,4 +17,10 @@ using Test
 
     @test @inferred(ValueShapes.default_unshaped_eltype(acc)) == @inferred(ValueShapes.default_unshaped_eltype(getproperty(acc, :shape)))
 
+    let acc2 = ValueAccessor(ArrayShape{Real}(2,3), 2), acc3 = ValueAccessor(ArrayShape{Real}(2,3), 3)
+        @test acc == acc2
+        @test isequal(acc, acc2)
+        @test hash(acc) == hash(acc2)
+        @test acc != acc3
+    end
 end

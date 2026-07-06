@@ -11,4 +11,5 @@ using LinearAlgebra
     ValueShapes.resultshape(::typeof(f), ::Real) = ArrayShape{Real}(1)
 
     @test @inferred(resultshape(f, 42)) >= valshape(f(42))
+    @test @inferred(resultshape(sin, ScalarShape{Real}())) === missing
 end
