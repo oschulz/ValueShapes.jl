@@ -22,13 +22,9 @@ using Random
 using Statistics
 using StatsBase
 
-using DensityInterface
-
 import IntervalSets
 import Tables
 import TypedTables
-
-using Random123: Philox4x
 
 include("tangent_utils.jl")
 include("value_shape.jl")
