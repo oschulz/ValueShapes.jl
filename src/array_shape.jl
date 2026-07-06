@@ -110,11 +110,6 @@ const RealScalarOrVectorAccessor = ValueAccessor{<:Union{ScalarShape{<:Real},Arr
 
 Base.@propagate_inbounds vs_getindex(data::AbstractVector{<:Real}, va::ArrayAccessor{<:Real}) = copy(view(data, va))
 
-@static if VERSION < v"1.4"
-    # To avoid ambiguity with Julia v1.0 (and v1.1 to v1.3?)
-    Base.@propagate_inbounds vs_getindex(data::AbstractVector{<:Real}, va::ArrayAccessor{<:Real,1}) = copy(view(data, va))
-end
-
 Base.@propagate_inbounds function vs_getindex(
     data::AbstractArray{<:Real,N},
     idxs::Vararg{RealScalarOrVectorAccessor,N}
@@ -142,12 +137,6 @@ end
 
 Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::ArrayAccessor{<:Real}) =
     setindex!(data, v, view_idxs(axes(data, 1), va))
-
-@static if VERSION < v"1.4"
-    # To avoid ambiguity with Julia v1.0 (and v1.1 to v1.3?)
-    Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::ArrayAccessor{<:Real,1}) =
-        setindex!(data, v, view_idxs(axes(data, 1), va))
-end
 
 Base.@propagate_inbounds function vs_setindex!(
     data::AbstractArray{<:Real,N},
