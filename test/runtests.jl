@@ -15,4 +15,5 @@ Test.@testset "Package ValueShapes" begin
     include("test_const_value_dist.jl")
     include("test_named_tuple_dist.jl")
     include("test_reshaped_dist.jl")
+    include("test_mooncake.jl")
 end # testset
