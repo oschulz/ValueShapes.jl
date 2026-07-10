@@ -18,10 +18,12 @@ using ArraysOfArrays
 using Distributions
 using ElasticArrays
 using FillArrays
+using InverseFunctions
 using Random
 using Statistics
 using StatsBase
 
+import Adapt
 import IntervalSets
 import Tables
 import TypedTables

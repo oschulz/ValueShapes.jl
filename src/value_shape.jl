@@ -270,6 +270,10 @@ const _InvValueShape = Base.Fix2{typeof(unshaped),<:AbstractValueShape}
     Base.Broadcast.broadcasted(unshaped, xs, Ref(inv_vs.x))
 end
 
+
+InverseFunctions.inverse(vs::AbstractValueShape) = Base.Fix2(unshaped, vs)
+InverseFunctions.inverse(inv_vs::_InvValueShape) = inv_vs.x
+
 const _BroadcastValueShape = Base.Fix1{typeof(broadcast),<:AbstractValueShape}
 const _BroadcastInvValueShape = Base.Fix1{typeof(broadcast),<:_InvValueShape}
 const _BroadcastUnshaped = Base.Fix1{typeof(broadcast),typeof(unshaped)}
