@@ -32,7 +32,7 @@ ValueShapesZygoteRulesExt = "ZygoteRules"
 [compat]
 Adapt = "3, 4"
 ArgCheck = "1, 2"
-ArraysOfArrays = "0.5, 0.6"
+ArraysOfArrays = "0.5, 0.6, 1"
 ChainRulesCore = "1"
 ChangesOfVariables = "0.1.1"
 Distributions = "0.23, 0.24, 0.25"

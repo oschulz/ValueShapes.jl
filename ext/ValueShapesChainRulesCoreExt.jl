@@ -47,7 +47,7 @@ function _tangent_array(A::AbstractArray{T}) where T
 end
 
 function _tangent_array(A::ArrayOfSimilarVectors{T}) where T
-    dA = similar(A, Vector{float(T)})
+    dA = ArrayOfSimilarVectors(similar(flatview(A), float(T)))
     fill!(flatview(dA), NaN) # For safety
     return dA
 end
@@ -292,14 +292,14 @@ function _shapedasntarray_tangent(
     dY::AbstractArray{<:Tangent{<:Any,<:NamedTuple{names}}},
     vs::NamedTupleShape{names}
 ) where names
-    ArrayOfSimilarArrays(unshaped.(_backing.(dY), Ref(gradient_shape(vs))))
+    convert(ArrayOfSimilarArrays, unshaped.(_backing.(dY), Ref(gradient_shape(vs))))
 end
 
 function _shapedasntarray_tangent(
     dY::AbstractArray{<:ShapedAsNT{names}},
     vs::NamedTupleShape{names}
 ) where names
-    ArrayOfSimilarArrays(unshaped.(dY))
+    convert(ArrayOfSimilarArrays, unshaped.(dY))
 end
 
 function _shapedasntarray_tangent(

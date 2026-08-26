@@ -61,7 +61,7 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
     @test @inferred(rand(dist, 100)) isa ShapedAsNTArray
     @test all(x -> x > 0, pdf.(Ref(dist), rand(dist, 10^3)))
 
-    let X = varshape(dist).(nestedview(Array{eltype(unshaped(dist))}(undef, length(unshaped(dist)), 14)))
+    let X = varshape(dist).(VectorOfSimilarVectors(Array{eltype(unshaped(dist))}(undef, length(unshaped(dist)), 14)))
         @test @inferred(rand!(dist, X[1])) == X[1]
         @test @inferred(rand!(dist, X)) === X
     end
@@ -73,7 +73,7 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
 
     testrng() = MersenneTwister(0xaef035069e01e678)
 
-    let X = rand(unshaped(dist), 10), Xn = nestedview(X)
+    let X = rand(unshaped(dist), 10), Xn = VectorOfSimilarVectors(X)
         @test @inferred(Distributions._pdf(unshaped(dist), Xn[1])) == @inferred(pdf(unshaped(dist), Xn[1]))
         @test @inferred(pdf(unshaped(dist), X)) == @inferred(broadcast(pdf, Ref(unshaped(dist)), Xn))
 
@@ -88,7 +88,7 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
     @test @inferred(rand(unshaped(dist))) isa Vector{Float64}
     @test shape(@inferred(rand(testrng(), unshaped(dist)))) == @inferred(rand(testrng(), dist, ()))[] == @inferred(rand(testrng(), dist))
     @test @inferred(rand(unshaped(dist), 10^3)) isa Matrix{Float64}
-    @test shape.(nestedview(@inferred(rand(testrng(), unshaped(dist), 10^3)))) == @inferred(rand(testrng(), dist, 10^3))
+    @test shape.(VectorOfSimilarVectors(@inferred(rand(testrng(), unshaped(dist), 10^3)))) == @inferred(rand(testrng(), dist, 10^3))
 
     propnames = propertynames(dist, true)
     @test propnames == (:a, :b, :c, :d, :x, :e, :_internal_distributions, :_internal_shape)

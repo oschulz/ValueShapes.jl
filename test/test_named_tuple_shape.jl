@@ -287,7 +287,7 @@ import Zygote, ForwardDiff
             @test @inferred(TypedTables.Table(A)) == A
             @test typeof(@inferred flatview(TypedTables.Table(shape.(data)).y)) == Array{Int,2}
 
-            A_zero() = shape.(nestedview(zeros(totalndof(shape), 2)))
+            A_zero() = shape.(VectorOfSimilarVectors(zeros(totalndof(shape), 2)))
             @test (B = A_zero(); B[:] = A; B) == A
             @test (B = A_zero(); B[:] = TypedTables.Table(A); B) == A
 
@@ -436,14 +436,17 @@ import Zygote, ForwardDiff
         end
 
         for vs in (sntvs, ntvs)
-            X = nestedview(rand(totalndof(vs), 10))
+            X = VectorOfSimilarVectors(rand(totalndof(vs), 10))
             f_X = let vs = vs; X -> sum(norm.(norm.(values(Tables.columns((vs.(X))))))); end
-            # ToDo: Fix, likely requires updated ArraysOfArrays with correct element type:
-            # since `Zygote.gradient(X -> sum(sum.(X)), X)` fails already.
-            @test_broken Zygote.gradient(f_X, X)[1] ≈ nestedview(ForwardDiff.gradient(f_X∘nestedview, flatview(X)))
+            # Zygote gradients through ArrayOfSimilarArrays require ArraysOfArrays >= v1:
+            if pkgversion(ArraysOfArrays) >= v"1"
+                @test Zygote.gradient(f_X, X)[1] ≈ VectorOfSimilarVectors(ForwardDiff.gradient(f_X∘VectorOfSimilarVectors, flatview(X)))
+            else
+                @test_broken Zygote.gradient(f_X, X)[1] ≈ VectorOfSimilarVectors(ForwardDiff.gradient(f_X∘VectorOfSimilarVectors, flatview(X)))
+            end
             sX = vs.(X)
             f_sX = sX -> norm(flatview(unshaped.(sX)))
-            @test unshaped.(Zygote.gradient(f_sX, sX)[1], Ref(gradient_shape(vs))) ≈ nestedview(ForwardDiff.gradient(X_flat -> f_sX(vs.(nestedview(X_flat))), flatview(X)))
+            @test unshaped.(Zygote.gradient(f_sX, sX)[1], Ref(gradient_shape(vs))) ≈ VectorOfSimilarVectors(ForwardDiff.gradient(X_flat -> f_sX(vs.(VectorOfSimilarVectors(X_flat))), flatview(X)))
         end
     end
 end

@@ -119,7 +119,7 @@ end
     data1d = [rand(4), rand(4), rand(4), rand(4)]
     data2d = [[rand(4,)] [rand(4,)] [rand(4,)]]
 
-    VoV = VectorOfVectors(data1d)
+    VoV = VectorOfArrays(data1d)
 
     shape1 = ArrayShape{Float64, 1}((4,))
     shape2 = ArrayShape{Float64}(1,4)
@@ -140,8 +140,8 @@ end
     @test isapprox(shape2_VoV_bcast, shape2_data_bcast)
     @test isapprox(shape3_VoV_bcast, shape3_data_bcast)
 
-    AoSV = ArrayOfSimilarVectors{Float64}(data1d)
-    AoSA = ArrayOfSimilarArrays{Float64}(data2d)
+    AoSV = convert(ArrayOfSimilarVectors{Float64}, data1d)
+    AoSA = convert(ArrayOfSimilarArrays{Float64}, data2d)
 
     shaped_AoSV_bcast = broadcast(shape1, AoSV)
     shaped_AoSV_dcast = shape1.(AoSV)

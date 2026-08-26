@@ -430,7 +430,7 @@ X = [
 ]
 
 shape = valshape(X[1])
-data = nestedview(Array{Int}(undef, totalndof(shape), 2))
+data = VectorOfSimilarVectors(Array{Int}(undef, totalndof(shape), 2))
 Y = shape.(data)
 @assert Y isa ShapedAsNTArray
 Y[:] = X

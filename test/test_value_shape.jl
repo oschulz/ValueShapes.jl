@@ -53,7 +53,7 @@ import Dates
         @test_throws ArgumentError ValueShapes._checkcompat_inner(ntshape, data2)
         @test ValueShapes._checkcompat_inner(shape, data2) == nothing
 
-        let vs = sntshape, x = rand(totalndof(vs)), xs = nestedview(rand(totalndof(vs), 5))
+        let vs = sntshape, x = rand(totalndof(vs)), xs = VectorOfSimilarVectors(rand(totalndof(vs), 5))
             vs_jacobian(f, x) = 1
 
             InverseFunctions.test_inverse(vs, x)
@@ -86,13 +86,15 @@ import Dates
             @test @inferred(unshaped(x)) === x
             @test @inferred(unshaped(Base.ReshapedArray(x, (3, 5), ()))) === x
 
-            @test @inferred(broadcast(unshaped, x)) isa ArrayOfSimilarArrays{Float64,1,1,2,<:Base.ReshapedArray}
-            @test broadcast(unshaped, x) == nestedview(reshape(x, 1, 15))
+            @test @inferred(broadcast(unshaped, x)) isa ArrayOfSimilarArrays{Float64,1,1}
+            @test flatview(broadcast(unshaped, x)) isa Base.ReshapedArray
+            @test broadcast(unshaped, x) == VectorOfSimilarVectors(reshape(x, 1, 15))
         end
 
         let A = rand(1,15)
-            @test @inferred(broadcast(unshaped, view(A, 1, :))) isa ArrayOfSimilarArrays{Float64,1,1,2,<:SubArray}
-            @test broadcast(unshaped, view(A, 1, :)) == nestedview(A)
+            @test @inferred(broadcast(unshaped, view(A, 1, :))) isa ArrayOfSimilarArrays{Float64,1,1}
+            @test flatview(broadcast(unshaped, view(A, 1, :))) isa SubArray
+            @test broadcast(unshaped, view(A, 1, :)) == VectorOfSimilarVectors(A)
         end
     end
 
@@ -101,7 +103,7 @@ import Dates
         b = Complex(a, a)
         A = fill(fill(rand(Float32, 5), 10), 5)
         B = fill(rand(Float32, 5), 10)
-        C = ArrayOfSimilarArrays(B)
+        C = convert(ArrayOfSimilarArrays, B)
         nt = (a = 4.2f0, b = 42)
         tpl = (4.2f0, Float16(2.3))
         htpl = (4.2f0, 2.3f0, 3.4f0)

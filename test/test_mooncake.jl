@@ -31,12 +31,12 @@ _mooncake_gradient(f, x::AbstractVector{<:Real}) =
         (x -> norm(unshaped(vs(x)[], vs)), rand(n)),
         (x -> logpdf(ud, x), rand(length(ud))),
         (X_flat -> begin
-            Y = vs.(nestedview(reshape(X_flat, n, 5)))
+            Y = vs.(VectorOfSimilarVectors(reshape(X_flat, n, 5)))
             cols = Tables.columns(Y)
             sum(sum.(cols.b)) + sum(cols.a)
         end, rand(n * 5)),
         (X_flat -> begin
-            Y = vs.(nestedview(reshape(X_flat, n, 5)))
+            Y = vs.(VectorOfSimilarVectors(reshape(X_flat, n, 5)))
             sum(sum.(unshaped.(Y, Ref(vs))))
         end, rand(n * 5)),
     ]

@@ -123,7 +123,7 @@ using StatsBase, Distributions, ArraysOfArrays
             @test @inferred(insupport(rd, vs(ux))) == true
         end
 
-        let rd = ReshapedDist(_mvndist(5), ArrayShape{Real}(5)), X = rand(rd, 10), Xn = nestedview(X)
+        let rd = ReshapedDist(_mvndist(5), ArrayShape{Real}(5)), X = rand(rd, 10), Xn = VectorOfSimilarVectors(X)
             @test @inferred(Distributions._pdf(rd, Xn[1])) == pdf(rd, Xn[1])
             @test @inferred(pdf(rd, X)) == pdf.(Ref(rd), Xn)
         
