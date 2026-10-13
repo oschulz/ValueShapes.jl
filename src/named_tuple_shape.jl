@@ -275,6 +275,10 @@ function unshaped(x::ShapedAsNT{names}, shape::NamedTupleShape{names}) where nam
 end
 
 
+# A named tuple nested in a named tuple is a view of its slice of the data:
+Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ValueAccessor{<:NamedTupleShape}) =
+    ShapedAsNT(view(data, (va.offset + 1):(va.offset + va.len)), va.shape)
+
 @inline _shapedasnt_getprop(data::AbstractArray{<:Real}, va::ValueAccessor) = view(data, va)
 @inline _shapedasnt_getprop(data::AbstractArray{<:Real}, va::ScalarAccessor) = getindex(data, va)
 

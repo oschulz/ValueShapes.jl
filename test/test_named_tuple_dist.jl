@@ -114,3 +114,41 @@ using StatsBase, Distributions, ArraysOfArrays, IntervalSets
         NamedTupleDist(z = Exponential(3), a = 4.2),
     )) == NamedTupleDist(x = Normal(), y = Normal(4, 5), z = Exponential(3), a = 4.2)
 end
+
+@testset "NamedTupleDist with nested named tuples" begin
+    # Flat parameter vector: (a, c, e, f). Groups b = (c, d) and d = (e,) are
+    # nested slices of it.
+    dist = NamedTupleDist((a = 0..1, b = (c = 0..2, d = (e = 0..3,)), f = 0..1))
+    shape = varshape(dist)
+    x = (a = 0.5, b = (c = 1.0, d = (e = 2.0,)), f = 0.3)
+
+    @test dist == NamedTupleDist(a = 0..1, b = NamedTupleDist(c = 0..2, d = NamedTupleDist(e = 0..3)), f = 0..1)
+    @test totalndof(shape) == 4
+    @test length(unshaped(dist)) == 4
+
+    # Densities are uniform: 1 / (1 * 2 * 3 * 1)
+    @test logpdf(dist, x) ≈ -log(6)
+    @test logpdf(unshaped(dist), [0.5, 1.0, 2.0, 0.3]) ≈ -log(6)
+    @test insupport(dist, x)
+    @test !insupport(dist, (a = 0.5, b = (c = 3.0, d = (e = 2.0,)), f = 0.3))
+    @test insupport(unshaped(dist), [0.5, 1.0, 2.0, 0.3])
+    @test !insupport(unshaped(dist), [0.5, 3.0, 2.0, 0.3])
+
+    @test mean(unshaped(dist)) ≈ [0.5, 1.0, 1.5, 0.5]
+    @test mode(unshaped(dist)) ≈ [0.5, 1.0, 1.5, 0.5]
+
+    rng = MersenneTwister(123)
+    r = rand(rng, dist)
+    @test insupport(dist, r)
+    @test r.b.d.e isa Real
+    R = rand(rng, dist, 100)
+    @test all(r -> insupport(dist, r), R)
+    @test all(0 .<= getproperty.(getproperty.(getproperty.(R, :b), :d), :e) .<= 3)
+
+    # Names map to the right places in the flat vector
+    y = shape([0.5, 1.0, 2.0, 0.3])
+    @test y.a == 0.5
+    @test y.b.c == 1.0
+    @test y.b.d.e == 2.0
+    @test y.f == 0.3
+end

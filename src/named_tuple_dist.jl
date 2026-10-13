@@ -7,6 +7,7 @@ _ntd_dist_and_shape(s::ConstValueShape) = (ConstValueDist(s.value), s)
 _ntd_dist_and_shape(s::IntervalSets.AbstractInterval) = _ntd_dist_and_shape(Uniform(minimum(s), maximum(s)))
 _ntd_dist_and_shape(xs::AbstractVector{<:IntervalSets.AbstractInterval}) = _ntd_dist_and_shape(Product((s -> Uniform(minimum(s), maximum(s))).(xs)))
 _ntd_dist_and_shape(xs::AbstractVector{<:Distribution}) = _ntd_dist_and_shape(product_distribution(xs))
+_ntd_dist_and_shape(nt::NamedTuple) = _ntd_dist_and_shape(NamedTupleDist(nt))
 _ntd_dist_and_shape(x::Number) = _ntd_dist_and_shape(ConstValueShape(x))
 _ntd_dist_and_shape(x::AbstractArray{<:Number}) = _ntd_dist_and_shape(ConstValueShape(x))
 
@@ -47,6 +48,11 @@ NamedTupleDist(dists::NamedTuple) = NamedTupleDist(NamedTuple, dists)
 
 @inline NamedTupleDist(::Type{VT} ;named_dists...) where VT = NamedTupleDist(VT, values(named_dists))
 @inline NamedTupleDist(;named_dists...) = NamedTupleDist(NamedTuple, values(named_dists))
+
+
+# Part of the flat parameter vector that belongs to one (nested) component:
+@inline _ntd_slice(x::AbstractVector{<:Real}, acc::ValueShapes.ValueAccessor) =
+    view(x, (acc.offset + 1):(acc.offset + acc.len))
 
 
 @inline Base.convert(::Type{NamedTupleDist}, named_dists::NamedTuple) = NamedTupleDist(;named_dists...)
@@ -110,6 +116,7 @@ end
 
 _ntd_length(d::Distribution) = length(d)
 _ntd_length(d::ConstValueDist) = 0
+_ntd_length(d::NamedTupleDist) = totalndof(varshape(d))
 
 function Base.length(ud::UnshapedNTD)
     d = ud.shaped
@@ -139,6 +146,9 @@ function _ntd_logpdf(
 )
     logpdf(dist, float(x[acc]))
 end
+
+_ntd_logpdf(dist::NamedTupleDist, acc::ValueShapes.ValueAccessor, x::AbstractVector{<:Real}) =
+    _ntd_logpdf(dist, _ntd_slice(x, acc))
 
 function _ntd_logpdf(d::NamedTupleDist, x::AbstractVector{<:Real})
     distributions = values(d)
@@ -174,6 +184,9 @@ function _ntd_insupport(
 )
     insupport(dist, float(x[acc]))
 end
+
+_ntd_insupport(dist::NamedTupleDist, acc::ValueShapes.ValueAccessor, x::AbstractVector{<:Real}) =
+    _ntd_insupport(dist, _ntd_slice(x, acc))
 
 function _ntd_insupport(d::NamedTupleDist, x::AbstractVector{<:Real})
     distributions = values(d)
@@ -229,6 +242,15 @@ function _ntd_rand!(
     nothing
 end
 
+function _ntd_rand!(
+    rng::AbstractRNG, dist::NamedTupleDist,
+    acc::ValueShapes.ValueAccessor,
+    x::AbstractVector{<:Real}
+)
+    _ntd_rand!(rng, dist, _ntd_slice(x, acc))
+    nothing
+end
+
 function _ntd_rand!(rng::AbstractRNG, d::NamedTupleDist, x::AbstractVector{<:Real})
     distributions = values(d)
     accessors = values(varshape(d))
@@ -263,6 +285,15 @@ function _ntd_mode!(
     params::AbstractVector{<:Real}
 )
     view(params, acc) .= map(mode, dist.v)
+    nothing
+end
+
+function _ntd_mode!(
+    dist::NamedTupleDist,
+    acc::ValueShapes.ValueAccessor,
+    params::AbstractVector{<:Real}
+)
+    _ntd_mode!(_ntd_slice(params, acc), dist)
     nothing
 end
 

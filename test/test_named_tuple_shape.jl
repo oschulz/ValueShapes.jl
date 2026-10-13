@@ -450,3 +450,23 @@ import Zygote, ForwardDiff
         end
     end
 end
+
+@testset "NamedTupleShape with nested named tuples" begin
+    shape = NamedTupleShape(
+        x = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2)),
+        c = ScalarShape{Real}()
+    )
+    @test totalndof(shape) == 4
+
+    data = [1.0, 2.0, 3.0, 4.0]
+    y = shape(data)
+    @test y.c == 4.0
+    @test y.x isa ShapedAsNT
+    @test y.x.a == 1.0
+    @test y.x.b == [2.0, 3.0]
+    @test unshaped(y.x) == [1.0, 2.0, 3.0]
+
+    # Shares memory with the data
+    y.x.a = 10.0
+    @test data[1] == 10.0
+end
