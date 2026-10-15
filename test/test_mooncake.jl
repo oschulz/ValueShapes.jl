@@ -25,6 +25,11 @@ _mooncake_gradient(f, x::AbstractVector{<:Real}) =
     dist = NamedTupleDist(ShapedAsNT, a = 5, b = Weibull(2, 1), c = -4..5, d = MvNormal([1.2 0.5; 0.5 2.1]), e = [Normal(1.1, 0.2)])
     ud = unshaped(dist)
 
+    nvs = NamedTupleShape(a = ScalarShape{Real}(), x = NamedTupleShape(b = ArrayShape{Real}(2), k = ConstValueShape(4.2), c = ScalarShape{Real}()))
+    nn = totalndof(nvs)
+    ndist = NamedTupleDist(a = Normal(), x = (b = MvNormal([1.2 0.5; 0.5 2.1]), k = 4.2, c = Exponential()))
+    nud = unshaped(ndist)
+
     testcases = [
         (x -> vs(x).a + sum(vs(x).b) + vs(x).c, rand(n)),
         (x -> norm(unshaped(vs(x))), rand(n)),
@@ -39,6 +44,14 @@ _mooncake_gradient(f, x::AbstractVector{<:Real}) =
             Y = vs.(VectorOfSimilarVectors(reshape(X_flat, n, 5)))
             sum(sum.(unshaped.(Y, Ref(vs))))
         end, rand(n * 5)),
+        # Nested named tuples:
+        (x -> nvs(x).a + sum(nvs(x).x.b) * nvs(x).x.c + nvs(x).x.k, rand(nn)),
+        (x -> logpdf(nud, x), rand(length(nud))),
+        (X_flat -> begin
+            Y = nvs.(VectorOfSimilarVectors(reshape(X_flat, nn, 3)))
+            cols = Tables.columns(Y)
+            sum(cols.a) + sum(cols.x.c) + sum(sum.(cols.x.b))
+        end, rand(nn * 3)),
     ]
 
     for (f, x) in testcases

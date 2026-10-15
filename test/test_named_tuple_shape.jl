@@ -573,5 +573,140 @@ import Zygote, ForwardDiff
             @test matrix.d.e.f == fill([5.0, 6.0], 2, 3)
             @test Tables.columns(matrix).x == matrix.x
         end
+
+        @testset "gradients" begin
+            vs = NamedTupleShape(
+                a = ScalarShape{Real}(),
+                x = NamedTupleShape(b = ArrayShape{Real}(2), k = ConstValueShape(4.2), c = ScalarShape{Real}()),
+                d = NamedTupleShape(e = NamedTupleShape(f = ArrayShape{Real}(2)))
+            )
+            h(x) = x.a^2 + 2 * sum(abs2, x.x.b) + 3 * x.x.c^2 + 4 * sum(abs2, x.d.e.f) + x.x.k
+            v = randn(totalndof(vs))
+            grad_ref = ForwardDiff.gradient(v -> h(vs(v)), v)
+
+            @test Zygote.gradient(v -> h(vs(v)), v)[1] ≈ grad_ref
+            @test Zygote.gradient(v -> h(ShapedAsNT(v, vs)), v)[1] ≈ grad_ref
+            @test Zygote.gradient(v -> h(vs(unshaped(vs(v), vs))), v)[1] ≈ grad_ref
+            @test Zygote.gradient(v -> h(vs(unshaped(ShapedAsNT(v, vs), vs))), v)[1] ≈ grad_ref
+
+            g_nt = Zygote.gradient(h, vs(v))[1]
+            @test g_nt isa NamedTuple && g_nt.x isa NamedTuple
+            @test unshaped(g_nt, gradient_shape(vs)) ≈ grad_ref
+            g_snt = Zygote.gradient(h, ShapedAsNT(v, vs))[1]
+            @test g_snt isa ShapedAsNT
+            @test unshaped(g_snt) ≈ grad_ref
+
+            # Nested shapes with ShapedAsNT value type:
+            svs = NamedTupleShape(a = ScalarShape{Real}(), x = NamedTupleShape(ShapedAsNT, b = ArrayShape{Real}(2), c = ScalarShape{Real}()))
+            hs(x) = x.a^2 + 2 * sum(abs2, x.x.b) + 3 * x.x.c^2
+            sv = randn(totalndof(svs))
+            @test Zygote.gradient(v -> hs(svs(v)), sv)[1] ≈ ForwardDiff.gradient(v -> hs(svs(v)), sv)
+            @test Zygote.gradient(v -> hs(ShapedAsNT(v, svs)), sv)[1] ≈ ForwardDiff.gradient(v -> hs(svs(v)), sv)
+
+            # Explicit pullbacks with mixed nested tangent representations:
+            x = ShapedAsNT(v, vs)
+            dv = [1.0, 2.0, 3.0, 0.0, 5.0, 6.0]
+            dys = [
+                (a = 1.0, x = (b = [2.0, 3.0], k = nothing, c = NoTangent()), d = (e = (f = [5.0, 6.0],),)),
+                (a = 1.0, x = Tangent{typeof(x[].x)}(b = [2.0, 3.0], k = ZeroTangent(), c = ZeroTangent()), d = Tangent{typeof(x[].d)}(e = Tangent{typeof(x[].d.e)}(f = [5.0, 6.0]))),
+            ]
+            for dy in dys
+                @test unshaped(rrule(getindex, x)[2](dy)[2]) == dv
+                @test unshaped(rrule(getindex, x)[2](Tangent{typeof(x[])}(;dy...))[2]) == dv
+                @test rrule(ShapedAsNT, v, vs)[2](Tangent{typeof(x[])}(;dy...))[2] == dv
+            end
+            @test ProjectTo(x[])(rrule(unshaped, x[], vs)[2](dv)[2]) isa Tangent{typeof(x[])}
+            @test unshaped(backing(rrule(unshaped, x[], vs)[2](dv)[2]), gradient_shape(vs)) == dv
+
+            # Omitted fields of structural tangents are zero:
+            dy_partial = Tangent{typeof(x[])}(x = Tangent{typeof(x[].x)}(c = 3.0))
+            @test unshaped(rrule(getindex, x)[2](dy_partial)[2]) == [0.0, 0.0, 0.0, 3.0, 0.0, 0.0]
+            @test rrule(ShapedAsNT, v, vs)[2](dy_partial)[2] == [0.0, 0.0, 0.0, 3.0, 0.0, 0.0]
+
+            # Direct indexing with nested accessors:
+            acc = vs.x
+            h_acc(z) = z[acc].c^2 + 2 * sum(z[acc].b)
+            @test Zygote.gradient(h_acc, v)[1] ≈ ForwardDiff.gradient(h_acc, v)
+            @test Zygote.gradient(z -> view(z, acc).c^2 + 2 * sum(view(z, acc).b), v)[1] ≈ ForwardDiff.gradient(h_acc, v)
+            @test Zygote.gradient(z -> acc(z).c^2 + 2 * sum(acc(z).b), v)[1] ≈ ForwardDiff.gradient(h_acc, v)
+            sacc = svs.x
+            @test Zygote.gradient(z -> z[sacc].c^2, sv)[1] ≈ ForwardDiff.gradient(z -> z[sacc].c^2, sv)
+            @test Zygote.gradient(z -> view(z, sacc).c^2, sv)[1] ≈ ForwardDiff.gradient(z -> view(z, sacc).c^2, sv)
+
+            # Thunked data of nested column tangents:
+            Xs = vs.(VectorOfSimilarVectors(ones(totalndof(vs), 2)))
+            cols, cols_pb = rrule(Tables.columns, Xs)
+            dcol = Tangent{typeof(cols.x)}(__internal_data = Thunk(() -> VectorOfSimilarVectors(ones(3, 2))), __internal_elshape = NoTangent())
+            @test flatview(unshaped.(cols_pb((a = nothing, x = dcol, d = nothing))[2])) == [0 0; 1 1; 1 1; 1 1; 0 0; 0 0]
+
+            # Higher derivatives and wider number types through nested columns:
+            f_cols(v) = sum(t -> t.x.c^3, vs.(VectorOfSimilarVectors(reshape(v, totalndof(vs), 2))))
+            v2 = rand(2 * totalndof(vs))
+            @test Zygote.hessian(f_cols, v2) ≈ ForwardDiff.hessian(f_cols, v2)
+            @test Zygote.gradient(f_cols, big.(v2))[1] isa AbstractVector{BigFloat}
+
+            X = VectorOfSimilarVectors(rand(totalndof(vs), 5))
+            f_X = X -> (cols = Tables.columns(vs.(X)); sum(abs2, cols.a) + sum(abs2, flatview(unshaped.(cols.x))) + sum(abs2, flatview(unshaped.(cols.d))))
+            @test Zygote.gradient(f_X, X)[1] ≈ VectorOfSimilarVectors(ForwardDiff.gradient(f_X ∘ VectorOfSimilarVectors, flatview(X)))
+            sX = vs.(X)
+            f_sX = sX -> norm(flatview(unshaped.(sX)))
+            @test unshaped.(Zygote.gradient(f_sX, sX)[1], Ref(gradient_shape(vs))) ≈ VectorOfSimilarVectors(ForwardDiff.gradient(X_flat -> f_sX(vs.(VectorOfSimilarVectors(X_flat))), flatview(X)))
+
+            # Tangents wider than the primal, partial Tangent{Any} values:
+            dy_dual = Tangent{typeof(x[])}(a = ForwardDiff.Dual(2.0, 1.0))
+            @test rrule(ShapedAsNT, v, vs)[2](dy_dual)[2] isa AbstractVector{<:ForwardDiff.Dual}
+            @test ForwardDiff.value.(rrule(ShapedAsNT, v, vs)[2](dy_dual)[2]) == [2.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            @test rrule(ValueShapes.vs_getindex, v, acc)[2](Tangent{Any}(c = 1.0))[2] == [0.0, 0.0, 0.0, 1.0, 0.0, 0.0]
+            @test rrule(ValueShapes.vs_unsafe_view, v, acc)[2](Tangent{Any}(c = 1.0))[2] == [0.0, 0.0, 0.0, 1.0, 0.0, 0.0]
+
+            # Constant values may look like structural tangents:
+            cvs = NamedTupleShape(a = ScalarShape{Real}(), k = ConstValueShape((__internal_data = [1.0, 2.0], __internal_valshape = 1)))
+            @test unshaped((a = 3.0, k = cvs.k.shape.value), cvs) == [3.0]
+
+            # Sparse row tangents, omitted shape fields and thunks in projectors:
+            f_row(v) = vs.(VectorOfSimilarVectors(reshape(v, totalndof(vs), 2)))[1].x.c^2
+            @test Zygote.gradient(f_row, v2)[1] ≈ ForwardDiff.gradient(f_row, v2)
+            @test unshaped(ProjectTo(x)(Tangent{typeof(x)}(__internal_data = dv))) == dv
+            @test unshaped(ProjectTo(x)(Thunk(() -> Tangent{typeof(x)}(__internal_data = dv)))) == dv
+            @test unshaped.(ProjectTo(Xs)(Thunk(() -> Tangent{typeof(Xs)}(__internal_data = unshaped.(Xs))))) == unshaped.(Xs)
+
+            # Unused columns of multi-dimensional tables, plain vector storage:
+            f_cols3(v) = sum(Tables.columns(vs.(ArrayOfSimilarVectors(reshape(v, totalndof(vs), 2, 2)))).a)
+            v3 = rand(4 * totalndof(vs))
+            @test Zygote.gradient(f_cols3, v3)[1] ≈ ForwardDiff.gradient(f_cols3, v3)
+            f_plain(v) = sum(t -> t.c, Tables.columns(vs.([v, 2v])).x)
+            @test Zygote.gradient(f_plain, v)[1] ≈ ForwardDiff.gradient(f_plain, v)
+            f_plain_scalar(v) = sum(t -> t.a, Tables.columns(NamedTupleShape(x = NamedTupleShape(a = ScalarShape{Real}())).([v])).x)
+            @test Zygote.gradient(f_plain_scalar, [2.0])[1] == [1.0]
+            f_plain_flat(v) = sum(Tables.columns(NamedTupleShape(a = ScalarShape{Real}()).([v, 2v])).a)
+            @test Zygote.gradient(f_plain_flat, [2.0])[1] == [3.0]
+
+            # Partial structural tangents, shapes with internal-looking field names:
+            @test rrule(ShapedAsNT, v, vs)[2](Tangent{Any}(__internal_data = dv))[2] == dv
+            @test unshaped(ProjectTo(x)(Tangent{Any}(__internal_data = dv))) == dv
+            @test unshaped.(ProjectTo(Xs)(Tangent{Any}(__internal_data = unshaped.(Xs)))) == unshaped.(Xs)
+            @test unshaped.(rrule(ShapedAsNTArray, unshaped.(Xs), vs)[2]([Tangent{Any}(__internal_data = dv), Tangent{Any}(__internal_data = 2 * dv)])[2]) == [dv, 2 * dv]
+            ivs = NamedTupleShape(__internal_data = ScalarShape{Real}(), __internal_valshape = ScalarShape{Real}())
+            f_internal(v) = ivs(v).__internal_data + 2 * ivs(v).__internal_valshape
+            @test Zygote.gradient(f_internal, [1.0, 2.0])[1] == [1.0, 2.0]
+            sivs = NamedTupleShape(ShapedAsNT, __internal_data = ConstValueShape(7), a = ScalarShape{Real}())
+            @test Zygote.gradient(v -> sivs(v).a^2, [2.0])[1] == [4.0]
+            # (Zygote itself can't differentiate property access to such a field of a ShapedAsNT, but the rules can tell
+            # structural tangents of the ShapedAsNT from logical tangents of its NamedTuple value apart:)
+            sivs2 = NamedTupleShape(ShapedAsNT, __internal_data = ScalarShape{Real}(), a = ScalarShape{Real}())
+            x_sivs2 = ShapedAsNT([1.0, 2.0], sivs2)
+            @test rrule(ShapedAsNT, [1.0, 2.0], sivs2)[2](Tangent{typeof(x_sivs2)}(__internal_data = [5.0, 6.0]))[2] == [5.0, 6.0]
+            @test rrule(ShapedAsNT, [1.0, 2.0], sivs2)[2]((a = 6.0,))[2] == [0.0, 6.0]
+            @test unshaped(ProjectTo(x_sivs2)(Tangent{typeof(x_sivs2)}(__internal_data = [5.0, 6.0]))) == [5.0, 6.0]
+            @test unshaped(rrule(getindex, x_sivs2)[2]((__internal_data = 5.0, a = 6.0))[2]) == [5.0, 6.0]
+            nivs = NamedTupleShape(y = sivs2, z = ScalarShape{Real}())
+            @test unshaped(rrule(getindex, ShapedAsNT([1.0, 2.0, 3.0], nivs))[2]((y = (__internal_data = [5.0, 6.0],), z = 7.0))[2]) == [5.0, 6.0, 7.0]
+            @test unshaped(rrule(getindex, ShapedAsNT([1.0, 2.0, 3.0], nivs))[2]((y = (a = 6.0,), z = 7.0))[2]) == [0.0, 6.0, 7.0]
+
+            # Flat data of natural tangents is passed through without copying:
+            dy_snt = ShapedAsNT(copy(dv), gradient_shape(vs))
+            @test rrule(ShapedAsNT, v, vs)[2](dy_snt)[2] === unshaped(dy_snt)
+            @test rrule(ShapedAsNT, v, vs)[2](Tangent{typeof(x)}(__internal_data = dv))[2] === dv
+        end
     end
 end
