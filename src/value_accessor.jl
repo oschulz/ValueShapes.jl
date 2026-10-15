@@ -99,6 +99,12 @@ function view_idxs end
 @inline view_idxs(idxs::AbstractUnitRange{<:Integer}, va::ValueAccessor) = view_range(idxs, va)
 
 
+# The flat part of a data vector that belongs to an accessor, independent of
+# the shape of the accessor:
+Base.@propagate_inbounds _flat_view(data::AbstractVector{<:Real}, va::ValueAccessor) =
+    view(data, view_range(axes(data, 1), va))
+
+
 """
     ValueShapes.vs_getindex(data::AbstractArray{<:Real}, idxs::ValueAccessor...)
 

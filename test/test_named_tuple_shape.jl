@@ -450,24 +450,76 @@ import Zygote, ForwardDiff
             @test unshaped.(Zygote.gradient(f_sX, sX)[1], Ref(gradient_shape(vs))) ≈ VectorOfSimilarVectors(ForwardDiff.gradient(X_flat -> f_sX(vs.(VectorOfSimilarVectors(X_flat))), flatview(X)))
         end
     end
-end
 
-@testset "NamedTupleShape with nested named tuples" begin
-    shape = NamedTupleShape(
-        x = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2)),
-        c = ScalarShape{Real}()
-    )
-    @test totalndof(shape) == 4
 
-    data = [1.0, 2.0, 3.0, 4.0]
-    y = shape(data)
-    @test y.c == 4.0
-    @test y.x isa ShapedAsNT
-    @test y.x.a == 1.0
-    @test y.x.b == [2.0, 3.0]
-    @test unshaped(y.x) == [1.0, 2.0, 3.0]
+    @testset "nested named tuples" begin
+        shape = NamedTupleShape(
+            x = NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2), k = ConstValueShape(42)),
+            c = ScalarShape{Real}(),
+            d = NamedTupleShape(e = NamedTupleShape(f = ArrayShape{Real}(2)))
+        )
+        data = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+        nt = (x = (a = 1.0, b = [2.0, 3.0], k = 42), c = 4.0, d = (e = (f = [5.0, 6.0],),))
+        data2 = [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
+        nt2 = (x = (a = 10.0, b = [20.0, 30.0], k = 42), c = 40.0, d = (e = (f = [50.0, 60.0],),))
 
-    # Shares memory with the data
-    y.x.a = 10.0
-    @test data[1] == 10.0
+        get_xa(y) = y.x.a
+        get_def(y) = y.d.e.f
+        get_x(y) = y.x
+
+        @test @inferred(totalndof(shape)) == 6
+        @test @inferred(valshape(nt.d)) <= shape.d.shape
+        @test @inferred(ValueShapes.shaped_type(shape)) == NamedTuple{(:x, :c, :d), Tuple{NamedTuple{(:a, :b, :k), Tuple{Float64, Vector{Float64}, Int}}, Float64, NamedTuple{(:e,), Tuple{NamedTuple{(:f,), Tuple{Vector{Float64}}}}}}}
+        @test typeof(shape(undef)) == ValueShapes.shaped_type(shape)
+
+        # Nested shapes with NamedTuple value type yield plain nested NamedTuples:
+        y = @inferred shape(data)
+        @test y == nt
+        @test y.x isa NamedTuple
+        @test y.d.e isa NamedTuple
+        @test @inferred(get_xa(y)) == 1.0
+        @test @inferred(get_def(y)) == [5.0, 6.0]
+        @test @inferred(unshaped(nt, shape)) == data
+        @test @inferred(unshaped(y, shape)) == data
+
+        # Accessors of nested shapes: getindex yields a NamedTuple, view a ShapedAsNT:
+        @test @inferred(data[shape.x]) == nt.x
+        @test @inferred(view(data, shape.x)) isa ShapedAsNT
+        @test view(data, shape.x)[] == nt.x
+        @test unshaped(view(data, shape.d)) == view(data, 5:6)
+        @test @inferred(shape.x(data)) == nt.x
+        @test (v = copy(data); v[shape.x] = nt2.x; v) == [10.0, 20.0, 30.0, 4.0, 5.0, 6.0]
+
+        # Offsets are relative to the first index of the data vector:
+        odata = view([-1.0, -1.0, data...], Base.IdentityUnitRange(3:8))
+        @test shape(odata) == nt
+        @test view(odata, shape.d)[] == nt.d
+        @test (v = view(copy(parent(odata)), axes(odata, 1)); v[shape.d] = nt2.d; parent(v)) == [-1.0, -1.0, 1.0, 2.0, 3.0, 4.0, 50.0, 60.0]
+
+        @testset "ShapedAsNT" begin
+            A = ShapedAsNT(copy(data), shape)
+            @test @inferred(get_xa(A)) == 1.0
+            @test @inferred(get_x(A)) == nt.x
+            @test A.x isa NamedTuple
+            @test A[] == nt
+            @test (B = copy(A); B.x = nt2.x; unshaped(B)) == [10.0, 20.0, 30.0, 4.0, 5.0, 6.0]
+            @test (B = copy(A); B.d = nt2.d; unshaped(B)) == [1.0, 2.0, 3.0, 4.0, 50.0, 60.0]
+            @test (B = copy(A); B.x = view(data2, shape.x); unshaped(B)) == [10.0, 20.0, 30.0, 4.0, 5.0, 6.0]
+            @test (B = copy(A); B[] = nt2; unshaped(B)) == data2
+            @test_throws ArgumentError copy(A).x = (a = 10.0, b = [20.0, 30.0], k = 43)
+
+            # Nested shapes with ShapedAsNT value type yield mutable views:
+            sshape = NamedTupleShape(ShapedAsNT, x = NamedTupleShape(ShapedAsNT, a = ScalarShape{Real}(), b = ArrayShape{Real}(2)), c = ScalarShape{Real}())
+            sdata = [1.0, 2.0, 3.0, 4.0]
+            sA = sshape(sdata)
+            @test @inferred(get_x(sA)) isa ShapedAsNT
+            @test valshape(sA.x) == NamedTupleShape(ShapedAsNT, a = ScalarShape{Real}(), b = ArrayShape{Real}(2))
+            @test unshaped(sA.x) == view(sdata, 1:3)
+            sA.x.a = 10.0
+            @test sdata[1] == 10.0
+            @test sA[].x isa ShapedAsNT
+            @test sA[] == (x = sA.x, c = 4.0)
+            @test unshaped(sA[], sshape) == sdata
+        end
+    end
 end

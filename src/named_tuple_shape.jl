@@ -48,6 +48,22 @@ fill!(table.a, 4.2)
 all(x -> x == 4.2, view(flatview(data), 1, :))
 ```
 
+Shapes can be nested:
+
+```julia
+shape = NamedTupleShape(
+    a = ScalarShape{Real}(),
+    b = NamedTupleShape(c = ScalarShape{Real}(), d = ArrayShape{Real}(2))
+)
+x = shape([1, 2, 3, 4])
+x.b.d == [3, 4]
+```
+
+The value type (`NamedTuple` by default, or `ShapedAsNT`) is a property of
+each nesting level. In the example above, `x.b` is a `NamedTuple`, with
+`NamedTupleShape(ShapedAsNT, c = ..., d = ...)` as the nested shape it would
+be a `ShapedAsNT` view instead.
+
 See also the documentation of [`AbstractValueShape`](@ref).
 """
 struct NamedTupleShape{names,AT<:(NTuple{N,ValueAccessor} where N),VT} <: AbstractValueShape
@@ -223,6 +239,11 @@ y.a = 22
 
 Use `unshaped(x)` to access `data` directly.
 
+Properties of nested [`NamedTupleShape`](@ref)s are `NamedTuple`s or
+`ShapedAsNT` views of `data`, depending on the value type of the nested
+shape. `view(data, acc)` with a nested accessor always yields a `ShapedAsNT`,
+`data[acc]` a `NamedTuple`.
+
 See also [`ShapedAsNTArray`](@ref).
 """
 struct ShapedAsNT{names,D<:AbstractVector{<:Real},S<:NamedTupleShape{names}}
@@ -275,12 +296,25 @@ function unshaped(x::ShapedAsNT{names}, shape::NamedTupleShape{names}) where nam
 end
 
 
-# A named tuple nested in a named tuple is a view of its slice of the data:
-Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::ValueAccessor{<:NamedTupleShape}) =
-    ShapedAsNT(view(data, (va.offset + 1):(va.offset + va.len)), va.shape)
+const NamedTupleAccessor = ValueAccessor{<:NamedTupleShape}
 
-@inline _shapedasnt_getprop(data::AbstractArray{<:Real}, va::ValueAccessor) = view(data, va)
-@inline _shapedasnt_getprop(data::AbstractArray{<:Real}, va::ScalarAccessor) = getindex(data, va)
+# Like for arrays, getindex with a nested accessor yields a value and view
+# yields an alias of the data. Applying the accessor respects the value type
+# of the nested shape:
+
+Base.@propagate_inbounds vs_getindex(data::AbstractVector{<:Real}, va::NamedTupleAccessor) = view(data, va)[]
+
+Base.@propagate_inbounds vs_unsafe_view(data::AbstractVector{<:Real}, va::NamedTupleAccessor) =
+    ShapedAsNT(_flat_view(data, va), va.shape)
+
+Base.@propagate_inbounds function vs_setindex!(data::AbstractVector{<:Real}, v, va::NamedTupleAccessor)
+    view(data, va)[] = v
+    data
+end
+
+Base.@propagate_inbounds _apply_accessor_to_data(acc::NamedTupleAccessor, data::AbstractVector{<:Real}) =
+    acc.shape(_flat_view(data, acc))
+
 
 # ToDo: Move index calculation to separate function with no-op custom pullback to increase performance?
 Base.@propagate_inbounds function Base.getproperty(A::ShapedAsNT, p::Symbol)
@@ -293,7 +327,7 @@ Base.@propagate_inbounds function Base.getproperty(A::ShapedAsNT, p::Symbol)
         data = _data(A)
         shape = _valshape(A)
         va = getproperty(_accessors(shape), p)
-        _shapedasnt_getprop(data, va)
+        _apply_accessor_to_data(va, data)
     end
 end
 
@@ -326,15 +360,37 @@ Base.iterate(r::ShapedAsNT, s) = nothing
 Base.IteratorSize(::Type{<:ShapedAsNT}) = HasShape{0}()
 
 
-Base.@propagate_inbounds function Base.getindex(x::ShapedAsNT{names}) where names
+# Expression for the value of accessor `acc` in `data`. Nested shapes with
+# NamedTuple value type are unrolled, so that no runtime recursion is
+# necessary (which would defeat type inference):
+
+_accessor_value_expr(::Type{<:ValueAccessor}, data::Symbol, acc) = :(_apply_accessor_to_data($acc, $data))
+
+function _accessor_value_expr(::Type{ValueAccessor{S}}, data::Symbol, acc) where {S<:NamedTupleShape{<:Any,<:Any,<:NamedTuple}}
+    nested_data, nested_accs = gensym(:data), gensym(:accs)
+    quote
+        let $nested_data = _flat_view($data, $acc), $nested_accs = _accessors($acc.shape)
+            $(_nt_values_expr(S, nested_data, nested_accs))
+        end
+    end
+end
+
+function _nt_values_expr(::Type{<:NamedTupleShape{names,AT}}, data::Symbol, accs::Symbol) where {names,AT}
+    exprs = map((p, VA) -> _accessor_value_expr(VA, data, :($accs.$p)), names, fieldtypes(AT))
+    :(NamedTuple{$names}(($(exprs...),)))
+end
+
+
+Base.@propagate_inbounds function Base.getindex(x::ShapedAsNT{names,D,S}) where {names,D,S}
     if @generated
-        Expr(:tuple, map(p -> :($p = x.$p), names)...)
+        quote
+            data = _data(x)
+            accs = _accessors(_valshape(x))
+            $(_nt_values_expr(S, :data, :accs))
+        end
     else
-        # Shouldn't be used, ideally
-        @assert false
-        accessors = _accessors(_valshape(x))
         data = _data(x)
-        map(va -> getindex(data, va), accessors)
+        map(va -> _apply_accessor_to_data(va, data), _accessors(_valshape(x)))
     end
 end
 
@@ -348,9 +404,7 @@ Base.@propagate_inbounds function Base.setindex!(A::ShapedAsNT{names}, x::NamedT
     if @generated
         Expr(:block, map(p -> :(A.$p = x.$p), names)...)
     else
-        # Shouldn't be used, ideally
-        @assert false
-        map(n -> setproperty!(A, n, getproperty(x, n)), names)
+        map(p -> setproperty!(A, p, getproperty(x, p)), names)
     end
 
     A
