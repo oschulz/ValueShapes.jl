@@ -171,7 +171,6 @@ end
 valshape(x::NamedTuple) = NamedTupleShape(NamedTuple, map(valshape, x))
 
 
-(shape::NamedTupleShape)(::UndefInitializer) = map(x -> valshape(x)(undef), shape)
 
 
 @inline _multi_promote_type() = Nothing
@@ -267,11 +266,22 @@ _snt_ntshape(vs::NamedTupleShape{names,AT,<:ShapedAsNT}) where {names,AT} = vs
 _snt_ntshape(vs::NamedTupleShape{names,AT}) where {names,AT} = NamedTupleShape{names,AT,ShapedAsNT}(_accessors(vs), _flatdof(vs))
 
 
+_shaped_types(::Tuple{}, ::Type{T}) where {T<:Real} = ()
+@inline _shaped_types(accs::Tuple, ::Type{T}) where {T<:Real} =
+    (shaped_type(first(accs).shape, T), _shaped_types(Base.tail(accs), T)...)
+
 @inline shaped_type(shape::NamedTupleShape{names,AT,<:NamedTuple}, ::Type{T}) where {names,AT,T<:Real} =
-    NamedTuple{names,Tuple{map(acc -> shaped_type(acc.shape, T), values(_accessors(shape)))...}}
+    NamedTuple{names,Tuple{_shaped_types(values(_accessors(shape)), T)...}}
 
 @inline shaped_type(shape::NamedTupleShape{names,AT,<:ShapedAsNT}, ::Type{T}) where {names,AT,T<:Real} =
     ShapedAsNT{names,Vector{T},typeof(shape)}
+
+
+(shape::NamedTupleShape{names,AT,<:NamedTuple})(::UndefInitializer) where {names,AT} =
+    map(x -> valshape(x)(undef), shape)
+
+(shape::NamedTupleShape{names,AT,<:ShapedAsNT})(::UndefInitializer) where {names,AT} =
+    ShapedAsNT(Vector{default_unshaped_eltype(shape)}(undef, shape), shape)
 
 
 Base.@propagate_inbounds (shape::NamedTupleShape{names,AT,<:NamedTuple})(
@@ -693,7 +703,10 @@ Base.vec(A::ShapedAsNTArray) = ShapedAsNTArray(vec(_data(A)), _elshape(A))
 Tables.istable(::Type{<:ShapedAsNTArray}) = true
 Tables.rowaccess(::Type{<:ShapedAsNTArray}) = true
 Tables.columnaccess(::Type{<:ShapedAsNTArray}) = true
-Tables.schema(A::ShapedAsNTArray{T}) where {T} = Tables.Schema(T)
+function Tables.schema(A::ShapedAsNTArray)
+    vs = _elshape(A)
+    Tables.Schema(keys(vs), Tuple{_shaped_types(values(_accessors(vs)), realnumtype(typeof(A)))...})
+end
 
 function Tables.columns(A::ShapedAsNTArray)
     data = _data(A)

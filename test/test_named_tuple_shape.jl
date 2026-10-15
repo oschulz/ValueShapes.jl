@@ -520,6 +520,8 @@ import Zygote, ForwardDiff
             @test sA[].x isa ShapedAsNT
             @test sA[] == (x = sA.x, c = 4.0)
             @test unshaped(sA[], sshape) == sdata
+            @test typeof(sshape(undef)) == ValueShapes.shaped_type(sshape)
+            @test sshape(undef).x isa ShapedAsNT
         end
 
         @testset "ShapedAsNTArray" begin
@@ -550,6 +552,9 @@ import Zygote, ForwardDiff
             @test XA.x.a[1] == 1.0
             @test Tables.schema(XA).types == (eltype(XA.x), Float64, eltype(XA.d))
             @test TypedTables.Table(XA) == XA
+            sXA = NamedTupleShape(x = NamedTupleShape(ShapedAsNT, a = ScalarShape{Real}()), c = ScalarShape{Real}()).(VectorOfSimilarVectors(ones(2, 2)))
+            @test Tables.schema(sXA.x) == Tables.Schema((:a,), (Float64,))
+            @test Tables.schema(sXA).types == (eltype(sXA.x), Float64)
 
             @test (B = copy(XA); B[1] = nt2; B[1]) == nt2
             @test (B = shape.(VectorOfSimilarVectors(zeros(6, 2))); B[:] = XA; B) == XA
