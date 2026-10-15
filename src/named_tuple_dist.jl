@@ -22,6 +22,22 @@ of each variable/parameter in a set of named variables/parameters.
 
 Calling `varshape` on a `NamedTupleDist` will yield a
 [`NamedTupleShape`](@ref).
+
+Constructors:
+
+    NamedTupleDist(name1 = dist1, name2 = dist2, ...)
+    NamedTupleDist(named_dists::NamedTuple)
+
+Distributions may be given as `Distribution`s, intervals (uniform
+distributions), constant values and nested `NamedTuple`s or
+`NamedTupleDist`s:
+
+```julia
+d = NamedTupleDist(a = Normal(), b = (c = 0..1, d = MvNormal(I(2))), e = 42)
+x = rand(d)
+x.b.c isa Real
+cov(unshaped(d))
+```
 """
 struct NamedTupleDist{
     names,
@@ -48,11 +64,6 @@ NamedTupleDist(dists::NamedTuple) = NamedTupleDist(NamedTuple, dists)
 
 @inline NamedTupleDist(::Type{VT} ;named_dists...) where VT = NamedTupleDist(VT, values(named_dists))
 @inline NamedTupleDist(;named_dists...) = NamedTupleDist(NamedTuple, values(named_dists))
-
-
-# Part of the flat parameter vector that belongs to one (nested) component:
-@inline _ntd_slice(x::AbstractVector{<:Real}, acc::ValueShapes.ValueAccessor) =
-    view(x, (acc.offset + 1):(acc.offset + acc.len))
 
 
 @inline Base.convert(::Type{NamedTupleDist}, named_dists::NamedTuple) = NamedTupleDist(;named_dists...)
@@ -148,7 +159,7 @@ function _ntd_logpdf(
 end
 
 _ntd_logpdf(dist::NamedTupleDist, acc::ValueShapes.ValueAccessor, x::AbstractVector{<:Real}) =
-    _ntd_logpdf(dist, _ntd_slice(x, acc))
+    _ntd_logpdf(dist, _flat_view(x, acc))
 
 function _ntd_logpdf(d::NamedTupleDist, x::AbstractVector{<:Real})
     distributions = values(d)
@@ -186,7 +197,7 @@ function _ntd_insupport(
 end
 
 _ntd_insupport(dist::NamedTupleDist, acc::ValueShapes.ValueAccessor, x::AbstractVector{<:Real}) =
-    _ntd_insupport(dist, _ntd_slice(x, acc))
+    _ntd_insupport(dist, _flat_view(x, acc))
 
 function _ntd_insupport(d::NamedTupleDist, x::AbstractVector{<:Real})
     distributions = values(d)
@@ -247,7 +258,7 @@ function _ntd_rand!(
     acc::ValueShapes.ValueAccessor,
     x::AbstractVector{<:Real}
 )
-    _ntd_rand!(rng, dist, _ntd_slice(x, acc))
+    _ntd_rand!(rng, dist, _flat_view(x, acc))
     nothing
 end
 
@@ -261,85 +272,65 @@ end
 @inline Distributions._rand!(rng::AbstractRNG, ud::UnshapedNTD, x::AbstractVector{<:Real}) = _ntd_rand!(rng, ud.shaped, x)
 
 
-function _ntd_mode!(
-    dist::ConstValueDist,
-    acc::ValueShapes.ValueAccessor{<:ConstValueShape},
-    params::AbstractVector{<:Real}
-)
-    nothing
-end
-
-function _ntd_mode!(
-    dist::Distribution,
-    acc::ValueShapes.ValueAccessor,
-    params::AbstractVector{<:Real}
-)
-    view(params, acc) .= mode(dist)
-    nothing
-end
+# Statistics f (mode, mean, var) of the components, constants yield nothing:
+_ntd_stat(f, dist::ConstValueDist) = nothing
+_ntd_stat(f, dist::Distribution) = f(dist)
+_ntd_stat(f, dist::NamedTupleDist) = NamedTuple{keys(_distributions(dist))}(_ntd_stats(f, values(_distributions(dist))))
 
 # Workaround, Distributions.jl doesn't define mode for Product:
-function _ntd_mode!(
-    dist::Distributions.Product,
-    acc::ValueShapes.ValueAccessor,
-    params::AbstractVector{<:Real}
-)
-    view(params, acc) .= map(mode, dist.v)
+_ntd_stat(::typeof(mode), dist::Distributions.Product) = map(mode, dist.v)
+
+_ntd_stats(f, ::Tuple{}) = ()
+_ntd_stats(f, dists::Tuple) = (_ntd_stat(f, first(dists)), _ntd_stats(f, Base.tail(dists))...)
+
+
+_stat_realtype(::Nothing) = Bool
+_stat_realtype(x::Real) = typeof(x)
+_stat_realtype(x::AbstractArray{<:Real}) = eltype(x)
+_stat_realtype(x::NamedTuple) = _stats_realtype(values(x))
+
+_stats_realtype(::Tuple{}) = Bool
+_stats_realtype(stats::Tuple) = promote_type(_stat_realtype(first(stats)), _stats_realtype(Base.tail(stats)))
+
+
+# Writes component statistics into the flat parameter vector:
+_ntd_write!(x::AbstractVector{<:Real}, ::Nothing, acc::ValueShapes.ValueAccessor) = nothing
+
+function _ntd_write!(x::AbstractVector{<:Real}, stat, acc::ValueShapes.ValueAccessor)
+    view(x, acc) .= stat
     nothing
 end
 
-function _ntd_mode!(
-    dist::NamedTupleDist,
-    acc::ValueShapes.ValueAccessor,
-    params::AbstractVector{<:Real}
-)
-    _ntd_mode!(_ntd_slice(params, acc), dist)
+_ntd_write!(x::AbstractVector{<:Real}, stats::NamedTuple, acc::NamedTupleAccessor) =
+    _ntd_write!(_flat_view(x, acc), stats, acc.shape)
+
+function _ntd_write!(x::AbstractVector{<:Real}, stats::NamedTuple, vs::NamedTupleShape)
+    map((stat, acc) -> _ntd_write!(x, stat, acc), values(stats), values(vs))
     nothing
 end
 
-function _ntd_mode!(x::AbstractVector{<:Real}, d::NamedTupleDist)
-    distributions = values(d)
-    shape = varshape(d)
-    accessors = values(shape)
-    map((dist, acc) -> _ntd_mode!(dist, acc, x), distributions, accessors)
-    nothing
-end
 
-function _ntd_mode(d::NamedTupleDist)
-    x = Vector{default_unshaped_eltype(varshape(d))}(undef,varshape(d))
-    _ntd_mode!(x, d)
+function _ntd_fill(f, d::NamedTupleDist)
+    stats = _ntd_stat(f, d)
+    x = Vector{_stat_realtype(stats)}(undef, varshape(d))
+    _ntd_write!(x, stats, varshape(d))
     x
 end
 
 
-# ToDo/Decision: Return NamedTuple or ShapedAsNT?
 StatsBase.mode(d::NamedTupleDist) = varshape(d)(mode(unshaped(d)))
 
-StatsBase.mode(ud::UnshapedNTD) = _ntd_mode(ud.shaped)
+StatsBase.mode(ud::UnshapedNTD) = _ntd_fill(mode, ud.shaped)
 
 
-_ntd_mean(dist::ConstValueDist) = Float32[]
-_ntd_mean(dist::Distribution) = mean(unshaped(dist))
-
-# ToDo/Decision: Return NamedTuple or ShapedAsNT?
 Statistics.mean(d::NamedTupleDist) = varshape(d)(mean(unshaped(d)))
 
-function Statistics.mean(ud::UnshapedNTD)
-    d = ud.shaped
-    vcat(map(d -> _ntd_mean(d), values(ValueShapes._distributions(d)))...)
-end
+Statistics.mean(ud::UnshapedNTD) = _ntd_fill(mean, ud.shaped)
 
 
-_ntd_var(dist::ConstValueDist) = Float32[]
-_ntd_var(dist::Distribution) = var(unshaped(dist))
-
-# ToDo/Decision: Return NamedTuple or ShapedAsNT?
 Statistics.var(d::NamedTupleDist) = variance_shape(varshape(d))(var(unshaped(d)))
 
-function Statistics.var(ud::UnshapedNTD)
-    d = ud.shaped
-    vcat(map(d -> _ntd_var(d), values(ValueShapes._distributions(d)))...)
-end
+Statistics.var(ud::UnshapedNTD) = _ntd_fill(var, ud.shaped)
 
 
 function _ntd_var_or_cov!(A_cov::AbstractArray{<:Real,0}, dist::Distribution{Univariate})
@@ -366,6 +357,16 @@ function _ntd_cov!(
     A_cov::AbstractMatrix{<:Real}
 )
     _ntd_var_or_cov!(view(A_cov, acc, acc), dist)
+    nothing
+end
+
+function _ntd_cov!(
+    dist::NamedTupleDist,
+    acc::ValueShapes.ValueAccessor,
+    A_cov::AbstractMatrix{<:Real}
+)
+    idxs1, idxs2 = map(ax -> view_range(ax, acc), axes(A_cov))
+    _ntd_cov!(view(A_cov, idxs1, idxs2), dist)
     nothing
 end
 

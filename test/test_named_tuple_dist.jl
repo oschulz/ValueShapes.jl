@@ -5,6 +5,7 @@ using Test
 
 using Statistics, Random
 using StatsBase, Distributions, ArraysOfArrays, IntervalSets
+import ForwardDiff
 
 @testset "NamedTupleDist" begin
     dist = @inferred NamedTupleDist(
@@ -121,34 +122,83 @@ end
     dist = NamedTupleDist((a = 0..1, b = (c = 0..2, d = (e = 0..3,)), f = 0..1))
     shape = varshape(dist)
     x = (a = 0.5, b = (c = 1.0, d = (e = 2.0,)), f = 0.3)
+    x_unshaped = [0.5, 1.0, 2.0, 0.3]
 
     @test dist == NamedTupleDist(a = 0..1, b = NamedTupleDist(c = 0..2, d = NamedTupleDist(e = 0..3)), f = 0..1)
     @test totalndof(shape) == 4
-    @test length(unshaped(dist)) == 4
+    @test @inferred(length(unshaped(dist))) == 4
+    @test @inferred(unshaped(x, shape)) == x_unshaped
+    @test @inferred(shape(x_unshaped)) == x
 
     # Densities are uniform: 1 / (1 * 2 * 3 * 1)
-    @test logpdf(dist, x) ≈ -log(6)
-    @test logpdf(unshaped(dist), [0.5, 1.0, 2.0, 0.3]) ≈ -log(6)
+    @test @inferred(logpdf(dist, x)) ≈ -log(6)
+    @test @inferred(logpdf(dist, shape(x_unshaped))) ≈ -log(6)
+    @test @inferred(logpdf(dist, ShapedAsNT(x_unshaped, shape))) ≈ -log(6)
+    @test @inferred(logpdf(unshaped(dist), x_unshaped)) ≈ -log(6)
     @test insupport(dist, x)
     @test !insupport(dist, (a = 0.5, b = (c = 3.0, d = (e = 2.0,)), f = 0.3))
-    @test insupport(unshaped(dist), [0.5, 1.0, 2.0, 0.3])
+    @test @inferred(insupport(unshaped(dist), x_unshaped))
     @test !insupport(unshaped(dist), [0.5, 3.0, 2.0, 0.3])
 
-    @test mean(unshaped(dist)) ≈ [0.5, 1.0, 1.5, 0.5]
-    @test mode(unshaped(dist)) ≈ [0.5, 1.0, 1.5, 0.5]
+    @test @inferred(mean(unshaped(dist))) ≈ [0.5, 1.0, 1.5, 0.5]
+    @test @inferred(mode(unshaped(dist))) ≈ [0.5, 1.0, 1.5, 0.5]
+    @test @inferred(var(unshaped(dist))) ≈ [1/12, 4/12, 9/12, 1/12]
+    @test mean(dist) == (a = 0.5, b = (c = 1.0, d = (e = 1.5,)), f = 0.5)
+    @test mode(dist) == (a = 0.5, b = (c = 1.0, d = (e = 1.5,)), f = 0.5)
+    @test var(dist) == (a = 1/12, b = (c = 4/12, d = (e = 9/12,)), f = 1/12)
+
+    # Statistics keep the number types of the components:
+    dist32 = NamedTupleDist(a = Normal(1f0, 2f0), b = (c = Normal(0f0, 1f0), k = 3))
+    @test @inferred(mean(unshaped(dist32))) isa Vector{Float32}
+    @test @inferred(var(unshaped(dist32))) isa Vector{Float32}
+    @test @inferred(mode(unshaped(dist32))) isa Vector{Float32}
+    @test mode(unshaped(NamedTupleDist(n = Poisson(3.0), x = (k = 3,)))) isa Vector{Int}
+    @test mode(unshaped(NamedTupleDist(n = Poisson(3.0), x = (k = 3,)))) == [3]
+    @test mean(unshaped(NamedTupleDist(k = 3, x = (l = [1, 2],)))) isa Vector{Bool}
+    @test isempty(mean(unshaped(NamedTupleDist(k = 3, x = (l = [1, 2],)))))
+    @test mean(NamedTupleDist(a = Normal(big"1e400", big"1"), b = (c = Normal(),))).a == big"1e400"
+    @test ForwardDiff.derivative(t -> mean(NamedTupleDist(a = Normal(t, 1.0), b = (c = Normal(0.0, t),))).a, 2.0) == 1.0
+    @test ForwardDiff.derivative(t -> var(NamedTupleDist(a = Normal(t, 1.0), b = (c = Normal(0.0, t),))).b.c, 2.0) == 4.0
 
     rng = MersenneTwister(123)
-    r = rand(rng, dist)
+    r = @inferred rand(rng, dist)
+    @test r isa NamedTuple && r.b isa NamedTuple && r.b.d isa NamedTuple
     @test insupport(dist, r)
-    @test r.b.d.e isa Real
     R = rand(rng, dist, 100)
+    @test R.b isa ShapedAsNTArray
+    @test eltype(R) == ValueShapes.shaped_type(shape)
+    @test collect(R) isa Vector{eltype(R)}
     @test all(r -> insupport(dist, r), R)
-    @test all(0 .<= getproperty.(getproperty.(getproperty.(R, :b), :d), :e) .<= 3)
+    @test all(0 .<= R.b.d.e .<= 3)
+    R2 = rand(rng, dist, (3, 2))
+    @test R2.b isa ShapedAsNTArray{<:NamedTuple,2}
+    @test size(R2.b.d.e) == (3, 2)
 
-    # Names map to the right places in the flat vector
-    y = shape([0.5, 1.0, 2.0, 0.3])
-    @test y.a == 0.5
-    @test y.b.c == 1.0
-    @test y.b.d.e == 2.0
-    @test y.f == 0.3
+    # Variates with non-1-based indices:
+    buf = view(fill(NaN, 6), Base.IdentityUnitRange(2:5))
+    rand!(rng, unshaped(dist), buf)
+    @test insupport(unshaped(dist), buf)
+    @test logpdf(unshaped(dist), buf) ≈ -log(6)
+
+    # The value type is per nesting level:
+    sdist = NamedTupleDist(ShapedAsNT, a = 0..1, b = (c = 0..2,), d = NamedTupleDist(ShapedAsNT, e = 0..3))
+    sr = rand(rng, sdist)
+    @test sr isa ShapedAsNT
+    @test sr.b isa NamedTuple
+    @test sr.d isa ShapedAsNT
+    @test sr[].b isa NamedTuple
+    @test @inferred(logpdf(sdist, sr)) ≈ -log(6)
+
+    # Nested components with constants and correlated multivariate distributions:
+    cdist = NamedTupleDist(x = NamedTupleDist(a = Normal(1, 2), b = MvNormal([2.0 0.5; 0.5 1.0])), k = 7, c = Normal(0, 3))
+    @test @inferred(length(unshaped(cdist))) == 4
+    @test @inferred(cov(unshaped(cdist))) ≈ [4.0 0.0 0.0 0.0; 0.0 2.0 0.5 0.0; 0.0 0.5 1.0 0.0; 0.0 0.0 0.0 9.0]
+    @test @inferred(var(unshaped(cdist))) ≈ [4.0, 2.0, 1.0, 9.0]
+    @test mean(cdist) == (x = (a = 1.0, b = [0.0, 0.0]), k = 7, c = 0.0)
+    @test var(cdist) == (x = (a = 4.0, b = [2.0, 1.0]), k = 0, c = 9.0)
+    @test mode(cdist) == (x = (a = 1.0, b = [0.0, 0.0]), k = 7, c = 0.0)
+    cv = rand(rng, unshaped(cdist))
+    @test logpdf(unshaped(cdist), cv) ≈ logpdf(Normal(1, 2), cv[1]) + logpdf(MvNormal([2.0 0.5; 0.5 1.0]), cv[2:3]) + logpdf(Normal(0, 3), cv[4])
+    @test logpdf(cdist, varshape(cdist)(cv)) == logpdf(unshaped(cdist), cv)
+    @test logpdf(cdist, (x = (a = cv[1], b = cv[2:3]), k = 7, c = cv[4])) == logpdf(unshaped(cdist), cv)
 end
