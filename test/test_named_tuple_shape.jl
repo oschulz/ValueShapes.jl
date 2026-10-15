@@ -259,6 +259,7 @@ import Zygote, ForwardDiff
             @inferred typeof(@inferred broadcast(shape, data)) == typeof(A)
             @test shape.(data) == A
             @test @inferred(broadcast(unshaped, shape.(data))) == data
+            @test all(i -> isassigned(unshaped.(similar(A)), i), eachindex(A))
 
             @test @inferred(propertynames(A)) == (:a, :b, :c, :x, :y)
             @test propertynames(A, true) == (:a, :b, :c, :x, :y, :__internal_data, :__internal_elshape)

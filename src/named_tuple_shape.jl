@@ -549,7 +549,7 @@ function Base.similar(A::ShapedAsNTArray{T}, ::Type{T}, dims::Dims) where T
     U = eltype(data)
     newdata = similar(data, U, dims)
     # In case newdata is not something like an ArrayOfSimilarVectors:
-    if !isempty(newdata) && !isdefined(newdata, firstindex(newdata))
+    if !isempty(newdata) && !isassigned(newdata, firstindex(newdata))
         for i in eachindex(newdata)
             newdata[i] = similar(data[firstindex(data)])
         end
