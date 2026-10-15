@@ -521,5 +521,52 @@ import Zygote, ForwardDiff
             @test sA[] == (x = sA.x, c = 4.0)
             @test unshaped(sA[], sshape) == sdata
         end
+
+        @testset "ShapedAsNTArray" begin
+            X = VectorOfSimilarVectors(hcat(data, data2))
+            XA = shape.(X)
+            @test eltype(XA) == ValueShapes.shaped_type(shape)
+            @test XA[1] == nt
+            @test XA[2] == nt2
+            @test collect(XA) == [nt, nt2]
+            @test @inferred(get_x(XA)) isa ShapedAsNTArray
+            @test XA.x.a == [1.0, 10.0]
+            @test XA.x.b == [[2.0, 3.0], [20.0, 30.0]]
+            @test XA.x.k == [42, 42]
+            @test XA.c == [4.0, 40.0]
+            @test XA.d.e.f == [[5.0, 6.0], [50.0, 60.0]]
+            @test flatview(unshaped.(XA.x)) == flatview(X)[1:3, :]
+
+            # Nested columns alias the data:
+            XA.x.a[2] = 100.0
+            @test flatview(X)[1, 2] == 100.0
+            XA.x.a[2] = 10.0
+
+            cols = Tables.columns(XA)
+            @test cols.x isa ShapedAsNTArray
+            @test cols.x == XA.x
+            @test cols.c == [4.0, 40.0]
+            cols.x.a[1] = -1.0
+            @test XA.x.a[1] == 1.0
+            @test Tables.schema(XA).types == (eltype(XA.x), Float64, eltype(XA.d))
+            @test TypedTables.Table(XA) == XA
+
+            @test (B = copy(XA); B[1] = nt2; B[1]) == nt2
+            @test (B = shape.(VectorOfSimilarVectors(zeros(6, 2))); B[:] = XA; B) == XA
+
+            # Nested columns for other kinds of storage:
+            plain = shape.([copy(data), copy(data2)])
+            @test plain.x isa ShapedAsNTArray
+            @test plain.x[2] == nt2.x
+            @test plain.x.b == [[2.0, 3.0], [20.0, 30.0]]
+            plain.x.b[1][1] = 100.0
+            @test plain[1].x.b[1] == 100.0
+            @test Tables.columns(plain).x isa ShapedAsNTArray
+            matrix = shape.(ArrayOfSimilarVectors(reshape(repeat(data, 1, 6), 6, 2, 3)))
+            @test matrix.x isa ShapedAsNTArray{<:NamedTuple,2}
+            @test matrix.x.a == fill(1.0, 2, 3)
+            @test matrix.d.e.f == fill([5.0, 6.0], 2, 3)
+            @test Tables.columns(matrix).x == matrix.x
+        end
     end
 end

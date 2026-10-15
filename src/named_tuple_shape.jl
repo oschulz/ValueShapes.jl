@@ -501,6 +501,10 @@ Tables.columns(Y)
 
 Use `unshaped.(Y)` to access `data` directly.
 
+Columns of nested named tuples (like `Y.x` for a shape with a nested
+`NamedTupleShape` `x`) are `ShapedAsNTArray`s themselves. Like array-valued
+columns, they are views that alias the data of `Y`.
+
 `Tables.columns(Y)` will return a `NamedTuple` of columns. They will contain
 a copy the data, using a memory layout as contiguous as possible for each
 column.
@@ -704,6 +708,19 @@ end
 function Adapt.adapt_structure(to, x::ShapedAsNTArray)
     ShapedAsNTArray(Adapt.adapt(to, _data(x)), _elshape(x))
 end
+
+
+# Accessor for the flat data of a nested shape:
+_flat_accessor(va::ValueAccessor) = ValueAccessor(ArrayShape{Real}(va.len), va.offset)
+
+# Columns of nested named tuples are ShapedAsNTArrays over the columns of the
+# flat data of the nested shape:
+
+Base.Broadcast.broadcasted(::typeof(getindex), A::AbstractArray{<:AbstractVector{<:Real}}, acc::Ref{<:NamedTupleAccessor}) =
+    ShapedAsNTArray(getindex.(A, Ref(_flat_accessor(acc[]))), acc[].shape)
+
+Base.Broadcast.broadcasted(::typeof(view), A::AbstractArray{<:AbstractVector{<:Real}}, acc::Ref{<:NamedTupleAccessor}) =
+    ShapedAsNTArray(view.(A, Ref(_flat_accessor(acc[]))), acc[].shape)
 
 
 const _AnySNTArray{names} = ShapedAsNTArray{<:Union{NamedTuple{names},ShapedAsNT{names}}}
