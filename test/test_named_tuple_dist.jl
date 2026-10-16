@@ -206,6 +206,7 @@ end
     @test sr.d isa ShapedAsNT
     @test sr[].b isa NamedTuple
     @test @inferred(logpdf(sdist, sr)) ≈ -log(6)
+    @test @inferred(insupport(sdist, sr))
 
     # Nested components with constants and correlated multivariate distributions:
     cdist = NamedTupleDist(x = NamedTupleDist(a = Normal(1, 2), b = MvNormal([2.0 0.5; 0.5 1.0])), k = 7, c = Normal(0, 3))
@@ -216,7 +217,17 @@ end
     @test var(cdist) == (x = (a = 4.0, b = [2.0, 1.0]), k = 0, c = 9.0)
     @test mode(cdist) == (x = (a = 1.0, b = [0.0, 0.0]), k = 7, c = 0.0)
     cv = rand(rng, unshaped(cdist))
-    @test logpdf(unshaped(cdist), cv) ≈ logpdf(Normal(1, 2), cv[1]) + logpdf(MvNormal([2.0 0.5; 0.5 1.0]), cv[2:3]) + logpdf(Normal(0, 3), cv[4])
+    @test @inferred(logpdf(unshaped(cdist), cv)) ≈ logpdf(Normal(1, 2), cv[1]) + logpdf(MvNormal([2.0 0.5; 0.5 1.0]), cv[2:3]) + logpdf(Normal(0, 3), cv[4])
+    @test @inferred(insupport(unshaped(cdist), cv))
     @test logpdf(cdist, varshape(cdist)(cv)) == logpdf(unshaped(cdist), cv)
     @test logpdf(cdist, (x = (a = cv[1], b = cv[2:3]), k = 7, c = cv[4])) == logpdf(unshaped(cdist), cv)
+
+    # Same number of components on both levels, so the nested reductions re-enter
+    # the same methods with a view of the flat vector:
+    ndist = NamedTupleDist(a = Normal(), b = NamedTupleDist(c = Normal(1, 2), g = Uniform(0, 1)))
+    nv = rand(rng, unshaped(ndist))
+    @test @inferred(logpdf(unshaped(ndist), nv)) ≈ logpdf(Normal(), nv[1]) + logpdf(Normal(1, 2), nv[2]) + logpdf(Uniform(0, 1), nv[3])
+    @test @inferred(insupport(unshaped(ndist), nv))
+    @test @inferred(logpdf(ndist, varshape(ndist)(nv))) == logpdf(unshaped(ndist), nv)
+    @test @inferred(insupport(ndist, varshape(ndist)(nv)))
 end
