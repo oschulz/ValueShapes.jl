@@ -84,7 +84,7 @@ struct NamedTupleShape{names,AT<:(NTuple{N,ValueAccessor} where N),VT} <: Abstra
         accessors = map(ValueAccessor, shapes, offsets)
         # acclengths = map(x -> x.len, accessors)
         # @assert shapelengths == acclengths
-        n_flattened = sum(shapelengths)
+        n_flattened = isempty(shapelengths) ? 0 : sum(shapelengths)
         named_accessors = NamedTuple{labels}(accessors)
         new{names,typeof(accessors),VT}(named_accessors, n_flattened)
     end
@@ -173,7 +173,8 @@ valshape(x::NamedTuple) = NamedTupleShape(NamedTuple, map(valshape, x))
 
 
 
-@inline _multi_promote_type() = Nothing
+# Bool is the neutral element of type promotion, so an empty shape gets it:
+@inline _multi_promote_type() = Bool
 @inline _multi_promote_type(T::Type) = T
 @inline _multi_promote_type(T::Type, U::Type, rest::Type...) = promote_type(T, _multi_promote_type(U, rest...))
 

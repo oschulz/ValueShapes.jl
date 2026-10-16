@@ -131,7 +131,7 @@ _ntd_length(d::NamedTupleDist) = totalndof(varshape(d))
 
 function Base.length(ud::UnshapedNTD)
     d = ud.shaped
-    len = sum(_ntd_length, values(d))
+    len = isempty(values(d)) ? 0 : sum(_ntd_length, values(d))
     @assert len == totalndof(varshape(d))
     len
 end
@@ -161,10 +161,14 @@ end
 _ntd_logpdf(dist::NamedTupleDist, acc::ValueShapes.ValueAccessor, x::AbstractVector{<:Real}) =
     _ntd_logpdf(dist, _flat_view(x, acc))
 
+# Sum of component contributions, zero for empty named tuples like for constants:
+_ntd_sum(xs::Tuple) = sum(xs)
+_ntd_sum(::Tuple{}) = zero(Float32)
+
 function _ntd_logpdf(d::NamedTupleDist, x::AbstractVector{<:Real})
     distributions = values(d)
     accessors = values(varshape(d))
-    sum(map((dist, acc) -> _ntd_logpdf(dist, acc, x), distributions, accessors))
+    _ntd_sum(map((dist, acc) -> _ntd_logpdf(dist, acc, x), distributions, accessors))
 end
 
 
@@ -176,7 +180,7 @@ _ntd_logpdf(dist::Distribution, x::Any) = logpdf(dist, x)
 function _ntd_logpdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names
     distributions = values(d)
     parvalues = values(x)
-    sum(map((dist, d) -> _ntd_logpdf(dist, d), distributions, parvalues))
+    _ntd_sum(map((dist, d) -> _ntd_logpdf(dist, d), distributions, parvalues))
 end
 
 Distributions.logpdf(d::NamedTupleDist{names}, x::NamedTuple{names}) where names = _ntd_logpdf(d, x)
@@ -202,7 +206,7 @@ _ntd_insupport(dist::NamedTupleDist, acc::ValueShapes.ValueAccessor, x::Abstract
 function _ntd_insupport(d::NamedTupleDist, x::AbstractVector{<:Real})
     distributions = values(d)
     accessors = values(varshape(d))
-    prod(map((dist, acc) -> _ntd_insupport(dist, acc, x), distributions, accessors))
+    all(map((dist, acc) -> _ntd_insupport(dist, acc, x), distributions, accessors))
 end
 
 
@@ -214,7 +218,7 @@ _ntd_insupport(dist::Distribution, x::Any) = insupport(dist, x)
 function _ntd_insupport(d::NamedTupleDist{names}, x::NamedTuple{names}) where names
     distributions = values(d)
     parvalues = values(x)
-    prod(map((dist, d) -> _ntd_insupport(dist, d), distributions, parvalues))
+    all(map((dist, d) -> _ntd_insupport(dist, d), distributions, parvalues))
 end
 
 Distributions.insupport(d::NamedTupleDist{names}, x::NamedTuple{names}) where names = _ntd_insupport(d, x)

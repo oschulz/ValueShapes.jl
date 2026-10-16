@@ -116,6 +116,24 @@ import ForwardDiff
     )) == NamedTupleDist(x = Normal(), y = Normal(4, 5), z = Exponential(3), a = 4.2)
 end
 
+@testset "empty NamedTupleDist" begin
+    d = NamedTupleDist()
+    @test totalndof(varshape(d)) == 0
+    @test length(unshaped(d)) == 0
+    @test rand(d) == NamedTuple()
+    @test isempty(rand(unshaped(d)))
+    @test logpdf(d, NamedTuple()) == 0
+    @test insupport(d, NamedTuple()) === true
+    @test isempty(mean(unshaped(d)))
+
+    dn = NamedTupleDist(x = NamedTuple(), y = Normal())
+    @test length(unshaped(dn)) == 1
+    @test logpdf(dn, mean(dn)) ≈ logpdf(Normal(), 0.0)
+    @test logpdf(unshaped(dn), [0.0]) ≈ logpdf(Normal(), 0.0)
+    @test insupport(dn, (x = NamedTuple(), y = 0.5)) === true
+    @test rand(dn).x == NamedTuple()
+end
+
 @testset "NamedTupleDist with nested named tuples" begin
     # Flat parameter vector: (a, c, e, f). Groups b = (c, d) and d = (e,) are
     # nested slices of it.

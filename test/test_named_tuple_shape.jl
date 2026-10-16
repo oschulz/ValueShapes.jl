@@ -15,6 +15,12 @@ import Zygote, ForwardDiff
 
 @testset "named_tuple_shape" begin
     @testset "functionality" begin
+        @test @inferred(totalndof(NamedTupleShape())) == 0
+        @test @inferred(NamedTupleShape()(Float64[])) == NamedTuple()
+        @test valshape(NamedTuple()) == NamedTupleShape()
+        @test unshaped(NamedTuple(), NamedTupleShape()) isa Vector{Bool}
+        @test isempty(unshaped(NamedTuple(), NamedTupleShape()))
+
         get_y(x) = x.y
 
         data = VectorOfSimilarVectors(reshape(collect(1:22), 11, 2))
