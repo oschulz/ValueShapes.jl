@@ -66,6 +66,15 @@ using ElasticArrays, ArraysOfArrays
         @test @inferred(view(A, ac)) == [3, 4, 5]
         @test @inferred(setindex!(A, [7, 2, 6], ac)) === A
         @test A[ac] == [7, 2, 6]
+
+        # Value sizes are checked for any kind of data, Base doesn't do it for views:
+        @test_throws DimensionMismatch setindex!(A, [7, 2], ac)
+        @test_throws DimensionMismatch setindex!(view(A, :), [7, 2], ac)
+        @test_throws DimensionMismatch setindex!(view(A, :), [7, 2, 6, 1], ac)
+        @test_throws DimensionMismatch @inbounds setindex!(view(A, :), [7, 2], ac)
+        @test A[ac] == [7, 2, 6]
+        # Like Base, only the number of elements must match:
+        @test (setindex!(view(A, :), [8 3 7], ac); A[ac]) == [8, 3, 7]
     end
 
     let
@@ -86,6 +95,8 @@ using ElasticArrays, ArraysOfArrays
         @test @inferred(getindex(A, ac1, ac2)) == [21 27 33; 22 28 34]
         @test @inferred(view(A, ac1, ac2)) == [21 27 33; 22 28 34]
         @test @inferred(setindex!(A, [6 4 3; 2 1 5], ac1, ac2)) === A
+        @test_throws DimensionMismatch setindex!(view(A, :, :), [6 4; 2 1], ac1, ac2)
+        @test_throws DimensionMismatch setindex!(view(A, :, :), [6, 4, 3], ac1, ValueAccessor(ScalarShape{Real}(), 3))
         @test A[ac1, ac2] == [6 4 3; 2 1 5]
     end
 

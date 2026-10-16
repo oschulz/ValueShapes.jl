@@ -489,6 +489,9 @@ import Zygote, ForwardDiff
         @test unshaped(view(data, shape.d)) == view(data, 5:6)
         @test @inferred(shape.x(data)) == nt.x
         @test (v = copy(data); v[shape.x] = nt2.x; v) == [10.0, 20.0, 30.0, 4.0, 5.0, 6.0]
+        @test_throws DimensionMismatch (v = copy(data); v[shape.x] = (a = 10.0, b = [20.0, 30.0, 40.0], k = 42))
+        @test_throws DimensionMismatch unshaped((x = (a = 1.0, b = [2.0], k = 42), c = 4.0, d = nt.d), shape)
+        @test_throws DimensionMismatch unshaped((x = nt.x, c = 4.0, d = (e = (f = [5.0, 6.0, 7.0],),)), shape)
 
         # Offsets are relative to the first index of the data vector:
         odata = view([-1.0, -1.0, data...], Base.IdentityUnitRange(3:8))

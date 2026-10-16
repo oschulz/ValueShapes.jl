@@ -135,8 +135,15 @@ end
 
 
 
-Base.@propagate_inbounds vs_setindex!(data::AbstractVector{<:Real}, v, va::ArrayAccessor{<:Real}) =
+# Base checks the number of elements assigned to an Array, but not to a view:
+_check_value_length(v::AbstractArray, n::Integer) =
+    length(v) == n || throw(DimensionMismatch("tried to assign $(length(v)) elements to $n destinations"))
+_check_value_length(v, n::Integer) = nothing
+
+Base.@propagate_inbounds function vs_setindex!(data::AbstractVector{<:Real}, v, va::ArrayAccessor{<:Real})
+    _check_value_length(v, va.len)
     setindex!(data, v, view_idxs(axes(data, 1), va))
+end
 
 Base.@propagate_inbounds function vs_setindex!(
     data::AbstractArray{<:Real,N},
@@ -144,6 +151,7 @@ Base.@propagate_inbounds function vs_setindex!(
     idxs::Vararg{RealScalarOrVectorAccessor,N}
 ) where N
     idxs_mapped = map(view_idxs, axes(data), idxs)
+    _check_value_length(v, prod(map(length, idxs_mapped)))
     setindex!(data, v, idxs_mapped...)
 end
 
