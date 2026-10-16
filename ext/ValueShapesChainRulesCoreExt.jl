@@ -4,7 +4,7 @@ module ValueShapesChainRulesCoreExt
 
 using ValueShapes
 using ValueShapes: _adignore_call, _data, _valshape, _accessors, _AnySNTArray,
-    NamedTupleAccessor, _flat_view
+    NamedTupleAccessor, _flat_view, _tuple_map
 
 using ArgCheck
 using ArraysOfArrays
@@ -90,11 +90,12 @@ _write_tangent!(dx::AbstractVector{<:Real}, dy::ShapedAsNT, vs::NamedTupleShape)
 function _write_fields_tangent!(dx::AbstractVector{<:Real}, dy::NamedTuple, vs::NamedTupleShape{names}) where names
     zero_fields = NamedTuple{names}(ntuple(_ -> ZeroTangent(), Val(length(names))))
     dy_complete = NamedTuple{names}(merge(zero_fields, dy))
-    map(values(_accessors(vs)), values(dy_complete)) do acc, dy_acc
-        _write_tangent!(_flat_view(dx, acc), dy_acc, acc.shape)
-    end
+    _tuple_map(_write_field_tangent!, values(dy_complete), values(_accessors(vs)), dx)
     dx
 end
+
+_write_field_tangent!(dy, acc::ValueAccessor, dx::AbstractVector{<:Real}) =
+    _write_tangent!(_flat_view(dx, acc), dy, acc.shape)
 
 # Structural tangent of a ShapedAsNT value, carries the flat data:
 _write_structural_tangent!(dx::AbstractVector{<:Real}, dy::NamedTuple, vs::NamedTupleShape) =
