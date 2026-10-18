@@ -632,6 +632,17 @@ import Zygote, ForwardDiff
             @test unshaped(rrule(getindex, x)[2](dy_partial)[2]) == [0.0, 0.0, 0.0, 3.0, 0.0, 0.0]
             @test rrule(ShapedAsNT, v, vs)[2](dy_partial)[2] == [0.0, 0.0, 0.0, 3.0, 0.0, 0.0]
 
+            # Pullbacks allocate only their output, also where nested levels re-enter the
+            # tangent writer with views (same number of fields on each level):
+            vs_deep = NamedTupleShape(a = ScalarShape{Real}(), b = NamedTupleShape(c = ScalarShape{Real}(), d = NamedTupleShape(e = ScalarShape{Real}(), f = ScalarShape{Real}())))
+            v_deep = randn(totalndof(vs_deep))
+            dy_deep = (a = 1.0, b = (c = 2.0, d = (e = 3.0, f = 4.0)))
+            pb_deep = rrule(ShapedAsNT, v_deep, vs_deep)[2]
+            @test pb_deep(dy_deep)[2] == [1.0, 2.0, 3.0, 4.0]
+            pullback_allocs(pb, dy) = (pb(dy); pb(dy); @allocated pb(dy))
+            output_allocs(v) = (similar(v); similar(v); @allocated similar(v))
+            @test pullback_allocs(pb_deep, dy_deep) == output_allocs(v_deep)
+
             # Direct indexing with nested accessors:
             acc = vs.x
             h_acc(z) = z[acc].c^2 + 2 * sum(z[acc].b)
