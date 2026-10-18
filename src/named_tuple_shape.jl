@@ -268,10 +268,11 @@ _snt_ntshape(vs::NamedTupleShape{names,AT}) where {names,AT} = NamedTupleShape{n
 
 
 # Maps f over per-field values and accessors, passing shared arguments along explicitly.
-# Capturing a flat vector in a closure instead makes inference widen its type when
-# nested named tuples recurse with views of it. `N` forces specialization on args:
-_tuple_map(f, ::Tuple{}, ::Tuple{}, args::Vararg{Any,N}) where N = ()
-_tuple_map(f, xs::Tuple, accs::Tuple, args::Vararg{Any,N}) where N =
+# Capturing a flat vector in a closure instead can make inference widen its type when
+# nested named tuples recurse with views of it. `N` forces specialization on args, `F` on
+# f, whose splatted call the specialization heuristic treats as forwarding, not a call:
+_tuple_map(f::F, ::Tuple{}, ::Tuple{}, args::Vararg{Any,N}) where {F,N} = ()
+_tuple_map(f::F, xs::Tuple, accs::Tuple, args::Vararg{Any,N}) where {F,N} =
     (f(first(xs), first(accs), args...), _tuple_map(f, Base.tail(xs), Base.tail(accs), args...)...)
 
 _shaped_types(::Tuple{}, ::Type{T}) where {T<:Real} = ()
