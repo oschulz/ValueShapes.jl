@@ -26,7 +26,7 @@ ValueShapes.varshape(μ::PushforwardMeasure{<:AbstractValueShape}) = μ.f
 ValueShapes.varshape(μ::DensityMeasure) = varshape(μ.base)
 ValueShapes.varshape(μ::WeightedMeasure) = varshape(μ.base)
 
-_flat_shape(μ, sz::Tuple) = ArrayShape{Real}(map(Int, sz)...)
+_flat_shape(μ, sz) = ArrayShape{Real}(map(Int, Tuple(sz))...)
 _flat_shape(μ, ::NoMSpaceElementSize) = _shape_of_value(testvalue(μ))
 
 _shape_of_value(::Real) = ScalarShape{Real}()

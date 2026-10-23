@@ -5,6 +5,7 @@ using Test
 
 using Distributions
 using LinearAlgebra
+using Static: static
 using MeasureBase
 using MeasureBase: StdNormal, StdUniform, Dirac, asmeasure, productmeasure, testvalue, pushfwd, transport_to, mbind
 
@@ -14,6 +15,8 @@ using MeasureBase: StdNormal, StdUniform, Dirac, asmeasure, productmeasure, test
         @test varshape(asmeasure(MvNormal(zeros(2), Matrix(I, 2, 2)))) == ArrayShape{Real}(2)
         @test varshape(StdNormal()^3) == ArrayShape{Real}(3)
         @test varshape(StdNormal()^(2, 3)) == ArrayShape{Real}(2, 3)
+        @test varshape(StdNormal()^static(3)) == ArrayShape{Real}(3)
+        @test varshape(StdNormal()^(static(2), static(3))) == ArrayShape{Real}(2, 3)
         @test varshape(productmeasure([asmeasure(Normal(μ, 1.0)) for μ in 1:3])) == ArrayShape{Real}(3)
         @test varshape(Dirac(4.2)) == ConstValueShape(4.2)
         @test varshape(weightedmeasure(0.3, StdUniform()^2)) == ArrayShape{Real}(2)
