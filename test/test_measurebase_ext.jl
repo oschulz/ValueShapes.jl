@@ -110,6 +110,12 @@ using MeasureBase: StdNormal, StdUniform, Dirac, asmeasure, productmeasure, test
         x = (a = 0.4, b = [0.5, -0.2], c = 2.5)
         @test logdensityof(m, x) ≈ logpdf(ntd, x)
         @test logdensityof(m, (a = 0.4, b = [0.5, -0.2], c = 2.0)) == -Inf
+        nested = NamedTupleDist(a = ntd, b = Exponential(1.3))
+        m_nested = asmeasure(nested)
+        @test marginals(m_nested).a isa MeasureBase.ProductMeasure{<:NamedTuple}
+        @test varshape(m_nested) == varshape(nested)
+        @test getdof(m_nested) == totalndof(varshape(nested))
+        @test logdensityof(m_nested, (a = x, b = 0.7)) ≈ logpdf(nested, (a = x, b = 0.7))
         rd = ReshapedDist(MvNormal(zeros(4), Matrix(I, 4, 4)), ArrayShape{Real}(2, 2))
         X = [0.1 0.2; 0.3 0.4]
         @test varshape(asmeasure(rd)) == ArrayShape{Real}(2, 2)
