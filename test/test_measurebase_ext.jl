@@ -5,6 +5,8 @@ using Test
 
 using Distributions
 using LinearAlgebra
+using Random: Xoshiro
+using InverseFunctions: inverse
 using Static: static
 using MeasureBase
 using MeasureBase: StdNormal, StdUniform, Dirac, asmeasure, productmeasure, testvalue, pushfwd, transport_to, mbind
@@ -47,6 +49,41 @@ using MeasureBase: StdNormal, StdUniform, Dirac, asmeasure, productmeasure, test
         @test_throws ArgumentError varshape(mbind(n -> StdNormal()^n, counts, vcat))
         @test_throws ArgumentError varshape(mbind(a -> productmeasure((b = Dirac(a.a),)), productmeasure((a = U,)), merge))
         @test_throws ArgumentError varshape(mbind(a -> U, U, tuple))
+    end
+
+    @testset "flat layout" begin
+        U = StdUniform()
+        bnd = mbind(a -> productmeasure((b = U^2, d = Dirac(2.0))), productmeasure((a = U, c = Dirac(1.5))), merge)
+        hand_built = [
+            productmeasure((a = U, c = Dirac(1.5), b = U^(2, 2))) =>
+                ((a = 0.1, c = 1.5, b = [0.2 0.4; 0.3 0.5]), [0.1, 0.2, 0.3, 0.4, 0.5]),
+            productmeasure((a = productmeasure((x = U, y = Dirac(2.0), z = U^2)), b = U)) =>
+                ((a = (x = 0.1, y = 2.0, z = [0.2, 0.3]), b = 0.4), [0.1, 0.2, 0.3, 0.4]),
+            bnd => ((a = 0.1, c = 1.5, b = [0.2, 0.3], d = 2.0), [0.1, 0.2, 0.3]),
+            productmeasure((p = U, q = bnd)) =>
+                ((p = 0.7, q = (a = 0.1, c = 1.5, b = [0.2, 0.3], d = 2.0)), [0.7, 0.1, 0.2, 0.3]),
+        ]
+        @testset "$(nameof(typeof(μ)))" for (μ, (x, x_flat)) in hand_built
+            @test unshaped(x, varshape(μ)) == x_flat
+        end
+
+        # Transports between standard uniforms are identities, so for measures
+        # built from them, the transport to a standard uniform exposes
+        # MeasureBase's flat layout:
+        measures = [
+            productmeasure((a = U, b = U)), U^3, U^(2, 3), U^static(3), U^(static(2), static(2)),
+            first.(hand_built)..., mbind(a -> productmeasure((e = U^2,)), bnd, merge), mbind(a -> U^2, U^1, vcat),
+        ]
+        @testset "$(nameof(typeof(μ)))" for μ in measures
+            vs = varshape(μ)
+            x = rand(Xoshiro(1), μ)
+            x_flat = unshaped(x, vs)
+            @test getdof(μ) isa MeasureBase.NoDOF || getdof(μ) == totalndof(vs)
+            f = transport_to(U^totalndof(vs), μ)
+            @test f(x) ≈ x_flat
+            @test unshaped(inverse(f)(x_flat), vs) ≈ x_flat
+            @test vs(x_flat) == x
+        end
     end
 
     @testset "unshaped measures" begin
