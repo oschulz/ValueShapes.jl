@@ -6,7 +6,7 @@ using Test
 using Distributions
 using LinearAlgebra
 using MeasureBase
-using MeasureBase: StdNormal, StdUniform, Dirac, asmeasure, productmeasure, testvalue, pushfwd, transport_to
+using MeasureBase: StdNormal, StdUniform, Dirac, asmeasure, productmeasure, testvalue, pushfwd, transport_to, mbind
 
 @testset "MeasureBase extension" begin
     @testset "varshape" begin
@@ -21,6 +21,29 @@ using MeasureBase: StdNormal, StdUniform, Dirac, asmeasure, productmeasure, test
         @test varshape(μ) == NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2), c = ConstValueShape(1.5))
         @test totalndof(varshape(μ)) == 3
         @test varshape(mintegrate_exp(x -> 0.0, μ)) == varshape(μ)
+    end
+
+    @testset "binds" begin
+        U = StdUniform()
+        f_β(a) = productmeasure((b = U^2, d = Dirac(2.0)))
+        μ = mbind(f_β, productmeasure((a = U, c = Dirac(1.5))), merge)
+        vs_μ = NamedTupleShape(a = ScalarShape{Real}(), c = ConstValueShape(1.5), b = ArrayShape{Real}(2), d = ConstValueShape(2.0))
+        @test varshape(μ) == vs_μ
+        @test totalndof(varshape(μ)) == 3
+        # Nested binds, as primary and as secondary measure, and binds in products:
+        vs_e = NamedTupleShape(e = ScalarShape{Real}(), g = ConstValueShape(0.1))
+        @test varshape(mbind(a -> productmeasure((e = U, g = Dirac(0.1))), μ, merge)) == merge(vs_μ, vs_e)
+        @test varshape(mbind(a -> μ, productmeasure((e = U, g = Dirac(0.1))), merge)) == merge(vs_e, vs_μ)
+        @test varshape(productmeasure((p = U, q = μ))) == NamedTupleShape(p = ScalarShape{Real}(), q = vs_μ)
+        @test varshape(mbind(a -> U^2, U^1, vcat)) == ArrayShape{Real}(3)
+        @test varshape(mbind(a -> U^2, U, vcat)) == ArrayShape{Real}(3)
+        @test varshape(mbind(f_β, U)) == varshape(f_β(0.5))
+        # Binds with value-dependent secondary shapes have no fixed shape:
+        counts = asmeasure(Poisson(1000.0))
+        @test_throws ArgumentError varshape(mbind(n -> StdNormal()^n, counts))
+        @test_throws ArgumentError varshape(mbind(n -> StdNormal()^n, counts, vcat))
+        @test_throws ArgumentError varshape(mbind(a -> productmeasure((b = Dirac(a.a),)), productmeasure((a = U,)), merge))
+        @test_throws ArgumentError varshape(mbind(a -> U, U, tuple))
     end
 
     @testset "unshaped measures" begin

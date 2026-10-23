@@ -7,10 +7,11 @@ using ValueShapes: AbstractValueShape, ScalarShape, ArrayShape, ConstValueShape,
 using ValueShapes: NamedTupleDist, ConstValueDist, ReshapedDist, _distributions
 using Distributions: Distribution
 using InverseFunctions: inverse
+using Random: Xoshiro
 import MeasureBase
 using MeasureBase: AbstractMeasure, AsMeasure, Dirac, ProductMeasure, PowerMeasure, PushforwardMeasure, TransportFunction
-using MeasureBase: DensityMeasure, WeightedMeasure, NoMSpaceElementSize
-using MeasureBase: asmeasure, productmeasure, pushfwd, testvalue, marginals, mspace_flatsize
+using MeasureBase: DensityMeasure, WeightedMeasure, NoMSpaceElementSize, Bind
+using MeasureBase: asmeasure, productmeasure, pushfwd, testvalue, marginals, mspace_flatsize, boundmeasure, bindkernel
 
 # The shape of a measure's variates, structural where the measure declares
 # its variate layout, from a test value otherwise (real-valued shapes,
@@ -32,6 +33,37 @@ _shape_of_value(::Real) = ScalarShape{Real}()
 _shape_of_value(x::AbstractArray{<:Real}) = ArrayShape{Real}(size(x)...)
 _shape_of_value(x::NamedTuple) = NamedTupleShape(map(_shape_of_value, x))
 _shape_of_value(x) = valshape(x)
+
+# Binds have the shapes of their primary and secondary variates, combined
+# like the variates. They only have a fixed shape if the shape of the
+# secondary measure doesn't depend on the primary variate, this is checked
+# at the test value and at a random draw of the primary measure:
+function ValueShapes.varshape(μ::Bind)
+    _combined_shape(_bind_combinator(μ), varshape(boundmeasure(μ)), _secondary_shape(μ))
+end
+
+function _secondary_shape(μ::Bind)
+    α = boundmeasure(μ)
+    vs = varshape(_secondary_measure(μ, testvalue(α)))
+    vs == varshape(_secondary_measure(μ, rand(Xoshiro(0), α))) ||
+        throw(ArgumentError("Bind has no fixed variate shape, the shape of its secondary measure depends on the primary variate"))
+    return vs
+end
+
+# MeasureBase has no public accessors for the parts of a bind kernel:
+_bind_combinator(μ::Bind) = bindkernel(μ).f_c
+_secondary_measure(μ::Bind, a) = asmeasure(bindkernel(μ).f_β(a))
+
+_combined_shape(::typeof(MeasureBase.secondarg), ::AbstractValueShape, vs_b::AbstractValueShape) = vs_b
+_combined_shape(::typeof(merge), vs_a::NamedTupleShape, vs_b::NamedTupleShape) = merge(vs_a, vs_b)
+_combined_shape(::typeof(vcat), vs_a::AbstractValueShape, vs_b::AbstractValueShape) =
+    ArrayShape{Real}(_vcat_length(vs_a) + _vcat_length(vs_b))
+function _combined_shape(f_c, ::AbstractValueShape, ::AbstractValueShape)
+    throw(ArgumentError("Variate shapes of values combined via $f_c are not supported"))
+end
+
+_vcat_length(::ScalarShape{<:Real}) = 1
+_vcat_length(vs::ArrayShape{<:Real,1}) = totalndof(vs)
 
 # The measure over the flat vectors of its variates, and back:
 ValueShapes.unshaped(μ::AbstractMeasure) = _unshaped(μ, varshape(μ))
