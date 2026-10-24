@@ -10,7 +10,7 @@ using InverseFunctions: inverse
 using Random: Xoshiro
 import MeasureBase
 using MeasureBase: AbstractMeasure, AsMeasure, Dirac, ProductMeasure, PowerMeasure, PushforwardMeasure, TransportFunction
-using MeasureBase: DensityMeasure, WeightedMeasure, NoMSpaceElementSize, Bind
+using MeasureBase: DensityMeasure, AbstractWeightedMeasure, NoMSpaceElementSize, Bind
 using MeasureBase: asmeasure, productmeasure, pushfwd, testvalue, marginals, mspace_flatsize, boundmeasure, bindkernel
 
 # The shape of a measure's variates, structural where the measure declares
@@ -24,7 +24,7 @@ ValueShapes.varshape(μ::ProductMeasure{<:AbstractArray}) = _flat_shape(μ, mspa
 ValueShapes.varshape(μ::PowerMeasure) = _flat_shape(μ, mspace_flatsize(μ))
 ValueShapes.varshape(μ::PushforwardMeasure{<:AbstractValueShape}) = μ.f
 ValueShapes.varshape(μ::DensityMeasure) = varshape(μ.base)
-ValueShapes.varshape(μ::WeightedMeasure) = varshape(μ.base)
+ValueShapes.varshape(μ::AbstractWeightedMeasure) = varshape(MeasureBase.basemeasure(μ))
 
 _flat_shape(μ, sz) = ArrayShape{Real}(map(Int, Tuple(sz))...)
 _flat_shape(μ, ::NoMSpaceElementSize) = _shape_of_value(testvalue(μ))

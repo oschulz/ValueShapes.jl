@@ -22,6 +22,9 @@ using MeasureBase: StdNormal, StdUniform, Dirac, asmeasure, productmeasure, test
         @test varshape(productmeasure([asmeasure(Normal(μ, 1.0)) for μ in 1:3])) == ArrayShape{Real}(3)
         @test varshape(Dirac(4.2)) == ConstValueShape(4.2)
         @test varshape(weightedmeasure(0.3, StdUniform()^2)) == ArrayShape{Real}(2)
+        normalized = MeasureBase.normalize(productmeasure((a = weightedmeasure(log(2.0), StdNormal()), c = Dirac(3.0))))
+        @test varshape(normalized) == NamedTupleShape(a = ScalarShape{Real}(), c = ConstValueShape(3.0))
+        @test totalndof(varshape(normalized)) == 1
         μ = productmeasure((a = asmeasure(Normal()), b = StdUniform()^2, c = Dirac(1.5)))
         @test varshape(μ) == NamedTupleShape(a = ScalarShape{Real}(), b = ArrayShape{Real}(2), c = ConstValueShape(1.5))
         @test totalndof(varshape(μ)) == 3
