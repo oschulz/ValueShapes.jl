@@ -17,13 +17,13 @@ using MeasureBase: asmeasure, productmeasure, pushfwd, testvalue, marginals, msp
 # its variate layout, from a test value otherwise (real-valued shapes,
 # whatever the element type of the test value):
 ValueShapes.varshape(μ::AbstractMeasure) = _shape_of_value(testvalue(μ))
-ValueShapes.varshape(μ::AsMeasure{<:Distribution}) = varshape(μ.obj)
+ValueShapes.varshape(μ::AsMeasure{<:Distribution}) = varshape(Distribution(μ))
 ValueShapes.varshape(μ::Dirac) = ConstValueShape(μ.x)
 ValueShapes.varshape(μ::ProductMeasure{<:NamedTuple}) = NamedTupleShape(map(varshape, marginals(μ)))
 ValueShapes.varshape(μ::ProductMeasure{<:AbstractArray}) = _flat_shape(μ, mspace_flatsize(μ))
 ValueShapes.varshape(μ::PowerMeasure) = _flat_shape(μ, mspace_flatsize(μ))
-ValueShapes.varshape(μ::PushforwardMeasure{<:AbstractValueShape}) = μ.f
-ValueShapes.varshape(μ::DensityMeasure) = varshape(μ.base)
+ValueShapes.varshape(μ::PushforwardMeasure{<:AbstractValueShape}) = MeasureBase.gettransform(μ)
+ValueShapes.varshape(μ::DensityMeasure) = varshape(MeasureBase.basemeasure(μ))
 ValueShapes.varshape(μ::AbstractWeightedMeasure) = varshape(MeasureBase.basemeasure(μ))
 
 _flat_shape(μ, sz) = ArrayShape{Real}(map(Int, Tuple(sz))...)
@@ -50,9 +50,8 @@ function _secondary_shape(μ::Bind)
     return vs
 end
 
-# MeasureBase has no public accessors for the parts of a bind kernel:
-_bind_combinator(μ::Bind) = bindkernel(μ).f_c
-_secondary_measure(μ::Bind, a) = asmeasure(bindkernel(μ).f_β(a))
+_bind_combinator(μ::Bind) = MeasureBase.valuecombinator(μ)
+_secondary_measure(μ::Bind, a) = MeasureBase.kernelmeasure(bindkernel(μ), a)
 
 _combined_shape(::typeof(MeasureBase.secondarg), ::AbstractValueShape, vs_b::AbstractValueShape) = vs_b
 _combined_shape(::typeof(merge), vs_a::NamedTupleShape, vs_b::NamedTupleShape) = merge(vs_a, vs_b)
