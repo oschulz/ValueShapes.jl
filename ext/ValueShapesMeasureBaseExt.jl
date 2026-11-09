@@ -18,7 +18,7 @@ using MeasureBase: asmeasure, productmeasure, pushfwd, testvalue, marginals, msp
 # whatever the element type of the test value):
 ValueShapes.varshape(μ::AbstractMeasure) = _shape_of_value(testvalue(μ))
 ValueShapes.varshape(μ::AsMeasure{<:Distribution}) = varshape(Distribution(μ))
-ValueShapes.varshape(μ::Dirac) = ConstValueShape(μ.x)
+ValueShapes.varshape(μ::Dirac) = ConstValueShape(MeasureBase.atomof(μ))
 ValueShapes.varshape(μ::ProductMeasure{<:NamedTuple}) = NamedTupleShape(map(varshape, marginals(μ)))
 ValueShapes.varshape(μ::ProductMeasure{<:AbstractArray}) = _flat_shape(μ, mspace_flatsize(μ))
 ValueShapes.varshape(μ::PowerMeasure) = _flat_shape(μ, mspace_flatsize(μ))
@@ -78,7 +78,7 @@ ValueShapes.unshaped(μ::AbstractMeasure, vs::ConstValueShape) = invoke(unshaped
 (vs::AbstractValueShape)(μ::AbstractMeasure) = pushfwd(vs, μ)
 
 # Transports know the shape of their results:
-ValueShapes.resultshape(f::TransportFunction, ::AbstractValueShape) = varshape(f.ν)
+ValueShapes.resultshape(f::TransportFunction, ::AbstractValueShape) = varshape(MeasureBase.transport_target(f))
 
 # Named tuples of distributions are products of measures, constants are
 # Dirac measures, reshaped distributions are pushforwards through their
