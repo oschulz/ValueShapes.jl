@@ -20,12 +20,14 @@ TypedTables = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 [weakdeps]
 ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
 ChangesOfVariables = "9e997f8a-9a97-42d5-a9f1-ce6bfc15e2c0"
+MeasureBase = "fa1605e6-acd5-459c-a1e6-7e635759db14"
 Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
 ZygoteRules = "700de1a5-db45-46bc-99cf-38207098b444"
 
 [extensions]
 ValueShapesChainRulesCoreExt = "ChainRulesCore"
 ValueShapesChangesOfVariablesExt = "ChangesOfVariables"
+ValueShapesMeasureBaseExt = "MeasureBase"
 ValueShapesMooncakeExt = "Mooncake"
 ValueShapesZygoteRulesExt = "ZygoteRules"
 
@@ -40,6 +42,7 @@ ElasticArrays = "1.0"
 FillArrays = "0.7, 0.8, 0.9, 0.10, 0.11, 0.12, 0.13, 1"
 IntervalSets = "0.3, 0.4, 0.5, 0.6, 0.7"
 InverseFunctions = "0.1"
+MeasureBase = "0.15"
 Mooncake = "0.5"
 Random = "1"
 Statistics = "1"
